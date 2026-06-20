@@ -10,6 +10,7 @@ describe('CommandController', () => {
     })),
     getStatus: jest.fn(() => ({
       lastTranscription: null,
+      lastNormalizedTranscription: null,
       lastCommand: null,
       context: { book: null, chapter: null, verse: null },
     })),
@@ -23,6 +24,7 @@ describe('CommandController', () => {
   it('expõe o diagnóstico atual', () => {
     expect(controller.getStatus()).toEqual({
       lastTranscription: null,
+      lastNormalizedTranscription: null,
       lastCommand: null,
       context: { book: null, chapter: null, verse: null },
     });

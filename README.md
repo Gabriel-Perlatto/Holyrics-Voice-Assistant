@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0 a 8** estão concluídas. Esta versão contém:
+As **Phases 0 a 8.5** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -50,11 +50,20 @@ As **Phases 0 a 8** estão concluídas. Esta versão contém:
 - referências bíblicas estruturadas reutilizando aliases existentes;
 - comandos de próximo/anterior versículo e capítulo;
 - evento `COMMAND_IDENTIFIED`;
-- diagnóstico de transcrição e comando em `/settings`.
+- normalização de números em português de zero a cento e cinquenta;
+- ordinais comuns masculinos e femininos;
+- referências bíblicas faladas com números por extenso;
+- referências parciais de livro isolado;
+- livro e capítulo com versículo 1 assumido por padrão;
+- motor de navegação bíblica local orientado por comandos;
+- transições entre versículos, capítulos e livros;
+- sincronização automática do pregador por `BIBLE_CHANGED`;
+- diagnóstico de transcrição, comando, referência atual e último comando
+  aplicado em `/settings`.
 
 Esta fase não inclui apresentação real da passagem no Holyrics, texto bíblico,
-louvor, execução de comandos, navegação bíblica automática, controle do
-Holyrics por voz, IA generativa ou funcionalidades de fases futuras.
+louvor, envio de comandos ao Holyrics, controle de apresentações, IA
+generativa ou funcionalidades de fases futuras.
 
 ## Requisitos
 
@@ -104,7 +113,8 @@ http://localhost:3000
 
 Ao iniciar, o terminal também apresenta o endereço da rede local e um QR Code.
 Celulares e tablets conectados à mesma rede podem apontar a câmera para esse
-QR Code e abrir o hub.
+QR Code e abrir o hub. A mensagem do terminal identifica claramente que o QR
+Code representa o link exibido para o menu do sistema.
 
 Se o acesso por outro dispositivo falhar, verifique se:
 
@@ -140,13 +150,14 @@ Endpoint disponível:
 - `GET /api/bible/books/:book/chapters/:chapter/verses` — números dos
   versículos.
 - `POST /api/bible/selection` — valida e registra a passagem localmente.
+- `GET /api/bible/navigation/status` — contexto e último comando aplicado.
 - `GET /api/speech/status` — estado atual do provider e da captura.
 - `GET /api/speech/microphones` — entradas de áudio locais disponíveis.
 - `POST /api/speech/initialize` — valida e carrega o modelo configurado.
 - `POST /api/speech/start` — inicia captura e transcrição.
 - `POST /api/speech/stop` — para a captura.
 - `GET /api/commands/status` — último diagnóstico e contexto interno.
-- `POST /api/commands/interpret` — interpreta texto sem executar ações.
+- `POST /api/commands/interpret` — interpreta texto e aplica navegação local.
 
 Exemplo:
 
@@ -438,3 +449,29 @@ Somente transcrições finais são interpretadas. O resultado é emitido como
 do módulo não altera o `BibleModule`, a tela do pregador ou o Holyrics.
 `COMMAND_EXECUTED` não é emitido. Consulte
 [`docs/command-interpreter.md`](docs/command-interpreter.md).
+
+## Decisões técnicas da Phase 8.5
+
+O `NumberNormalizerService` transforma números portugueses em algarismos antes
+do parser, sem interpretar intenção. Ele suporta cardinais de zero a cento e
+cinquenta e ordinais simples de primeiro/primeira até décimo/décima.
+
+O texto original permanece disponível para diagnóstico. O parser, os aliases
+bíblicos, o payload realtime e a ausência de execução foram preservados.
+
+O tipo `BIBLE_REFERENCE` também representa livro isolado. Nesse caso,
+`chapter` e `verse` são `null`. Quando livro e capítulo são informados sem
+versículo, o comando assume versículo 1, ainda sem causar navegação ou
+execução.
+
+## Decisões técnicas da Phase 9
+
+O `BibleNavigationService` reutiliza o contexto e os metadados do
+`BibleModule`. Referências diretas e comandos relativos atualizam o estado
+local e emitem `BIBLE_CHANGED`, permitindo que `/preacher` reflita a seleção
+automaticamente.
+
+O motor atravessa limites de capítulos e livros sem duplicar dados bíblicos.
+O contexto permanece em memória, `COMMAND_EXECUTED` não é emitido e nenhuma
+chamada ao Holyrics foi adicionada. Consulte
+[`docs/bible-navigation.md`](docs/bible-navigation.md).

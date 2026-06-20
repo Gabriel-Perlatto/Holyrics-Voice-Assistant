@@ -33,6 +33,13 @@ Para evitar listas contínuas como fluxo principal, a grade usa paginação:
 
 Os botões “Livros” e “Capítulos” retornam às etapas anteriores.
 
+Os livros são exibidos por nome completo, não por abreviação. A grade usa duas
+colunas em telas pequenas e quatro em telas maiores para acomodar nomes longos.
+
+Ao selecionar um capítulo, o foco visual do botão é removido antes de mostrar
+os versículos. Estilos de `hover` são aplicados somente em dispositivos que
+suportam cursor, evitando marca persistente após toque em celulares.
+
 ## Versão favorita
 
 A versão escolhida é salva no navegador com a chave:
@@ -89,6 +96,10 @@ Ao receber `BIBLE_CHANGED`, a tela:
 - consulta capítulos e versículos pelos endpoints HTTP existentes;
 - atualiza o cabeçalho, painéis e botões;
 - mantém o fluxo manual disponível.
+
+Na Phase 9, o `BibleNavigationService` também emite esse evento. Por isso,
+referências e comandos de próximo/anterior atualizam automaticamente o livro,
+capítulo, versículo, paginação e cabeçalho sem clique adicional.
 
 O evento não contém texto bíblico nem dados sensíveis. Consulte
 `docs/realtime.md`.

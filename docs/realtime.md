@@ -59,7 +59,8 @@ transmitidos.
 
 ### BIBLE_CHANGED
 
-Emitido pelo `BibleService` após uma seleção válida.
+Emitido pelo `BibleService` após uma seleção manual válida e, na Phase 9, pelo
+`BibleNavigationService` após aplicar um comando de navegação.
 
 ```json
 {
@@ -183,6 +184,8 @@ identificado.
 
 `/preacher` exibe o estado da conexão e atualiza versão, livro, capítulo e
 versículo ao receber `BIBLE_CHANGED`, mantendo o fluxo manual HTTP existente.
+Comandos da Phase 9 usam esse mesmo evento; nenhum canal realtime adicional
+foi criado.
 
 ## Limitações
 

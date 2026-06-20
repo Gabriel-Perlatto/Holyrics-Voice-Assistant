@@ -92,17 +92,44 @@ export class PtBrCommandParser {
       const reference = this.normalizeNavigationCommand(
         normalized.slice(entry.alias.length).trim(),
       );
-      const match =
+
+      if (!reference) {
+        return {
+          type: CommandType.BIBLE_REFERENCE,
+          book: entry.book,
+          chapter: null,
+          verse: null,
+        };
+      }
+
+      const chapterMatch = /^(?:capitulo )?(\d{1,3})$/.exec(reference);
+
+      if (chapterMatch) {
+        const chapter = Number(chapterMatch[1]);
+
+        if (!this.isValidChapter(entry.bookIndex, chapter)) {
+          return null;
+        }
+
+        return {
+          type: CommandType.BIBLE_REFERENCE,
+          book: entry.book,
+          chapter,
+          verse: 1,
+        };
+      }
+
+      const completeMatch =
         /^(?:capitulo )?(\d{1,3}) (?:versiculo )?(\d{1,3})$/.exec(
           reference,
         );
 
-      if (!match) {
+      if (!completeMatch) {
         continue;
       }
 
-      const chapter = Number(match[1]);
-      const verse = Number(match[2]);
+      const chapter = Number(completeMatch[1]);
+      const verse = Number(completeMatch[2]);
 
       if (!this.isValidReference(entry.bookIndex, chapter, verse)) {
         return null;
@@ -128,12 +155,25 @@ export class PtBrCommandParser {
     const verseCount = chapters?.[chapter - 1];
 
     return (
-      Number.isInteger(chapter) &&
+      this.isValidChapter(bookIndex, chapter) &&
       Number.isInteger(verse) &&
-      chapter > 0 &&
       verse > 0 &&
       typeof verseCount === 'number' &&
       verse <= verseCount
+    );
+  }
+
+  private isValidChapter(
+    bookIndex: number,
+    chapter: number,
+  ): boolean {
+    const chapters = BIBLE_VERSE_COUNTS[bookIndex];
+
+    return (
+      Number.isInteger(chapter) &&
+      chapter > 0 &&
+      Array.isArray(chapters) &&
+      chapter <= chapters.length
     );
   }
 

@@ -211,7 +211,7 @@
 
     for (const book of visibleBooks) {
       elements.booksGrid.append(
-        createButton(book.abbreviation, () => selectBook(book), {
+        createButton(book.name, () => selectBook(book), {
           className: 'selection-button selection-button--book',
         }),
       );
@@ -290,6 +290,9 @@
   };
 
   const selectChapter = async (chapter) => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     state.selectedChapter = chapter;
     state.selectedVerse = null;
     state.pages.verses = 0;

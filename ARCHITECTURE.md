@@ -347,12 +347,18 @@ src/modules/command/
 
 O `PtBrCommandParser` usa os nomes, abreviações e aliases definidos nos dados
 locais do `BibleModule`, sem duplicar a lista. O parser aceita somente regras
-explícitas e retorna `UNKNOWN` para conteúdo inválido.
+explícitas e retorna `UNKNOWN` para conteúdo inválido. `BIBLE_REFERENCE`
+aceita livro isolado, livro com capítulo ou referência completa. Livro isolado
+usa capítulo e versículo nulos; livro com capítulo assume versículo 1.
 
-O `CommandService` recebe transcrições finais do `SpeechService`, mantém o
-último diagnóstico e emite `COMMAND_IDENTIFIED`. O contexto de livro, capítulo
-e versículo pertence ao próprio `CommandModule` e não altera o
-`BibleContextService`.
+Na Phase 8.5, o `NumberNormalizerService` converte cardinais de zero a cento e
+cinquenta e ordinais comuns em texto numérico antes do parser. Ele não conhece
+intents e não produz `StructuredCommand`.
+
+O `CommandService` recebe transcrições finais do `SpeechService`, preserva o
+texto original, normaliza uma cópia, mantém o último diagnóstico e emite
+`COMMAND_IDENTIFIED`. Na Phase 9, ele entrega o comando ao
+`BibleNavigationService`.
 
 Endpoints:
 
@@ -361,8 +367,8 @@ GET  /api/commands/status
 POST /api/commands/interpret
 ```
 
-O módulo não executa ações, não chama o `HolyricsModule`, não altera a passagem
-exibida e não emite `COMMAND_EXECUTED`. Consulte
+O módulo não chama o `HolyricsModule` e não emite `COMMAND_EXECUTED`. A
+navegação bíblica local pertence ao `BibleModule`. Consulte
 `docs/command-interpreter.md`.
 
 ---
@@ -432,6 +438,7 @@ GET /api/bible/books
 GET /api/bible/books/:book/chapters
 GET /api/bible/books/:book/chapters/:chapter/verses
 POST /api/bible/selection
+GET /api/bible/navigation/status
 ```
 
 `:book` aceita o ID estável ou aliases pt-BR. O Bible Module não acessa a rede
@@ -446,7 +453,11 @@ atualiza o contexto em memória e retorna `delivery: "local-only"` e
 `deliveredToHolyrics: false`. Esse contrato continua correto enquanto a ação
 oficial `ShowVerse` não estiver implementada no `HolyricsModule`.
 
-Consulte `docs/bible-data.md`.
+Na Phase 9, o `BibleNavigationService` resolve referências e comandos
+relativos usando `BibleContextService` e `BibleContentProvider`. Ele atravessa
+limites de capítulos e livros, emite `BIBLE_CHANGED` e não acessa o Holyrics.
+
+Consulte `docs/bible-data.md` e `docs/bible-navigation.md`.
 
 ---
 

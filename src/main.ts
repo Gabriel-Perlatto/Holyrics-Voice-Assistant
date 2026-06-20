@@ -17,9 +17,12 @@ async function bootstrap(): Promise<void> {
 
   const localUrl = systemService.getLocalUrl(port);
 
-  Logger.log(`Servidor iniciado em:\n\n${localUrl}`, 'Bootstrap');
   Logger.log(
-    'Aponte a câmera do celular para o QR Code abaixo para acessar.',
+    `Menu do sistema disponível neste link:\n\n${localUrl}`,
+    'Bootstrap',
+  );
+  Logger.log(
+    `O QR Code abaixo abre este mesmo link do menu: ${localUrl}`,
     'Bootstrap',
   );
 

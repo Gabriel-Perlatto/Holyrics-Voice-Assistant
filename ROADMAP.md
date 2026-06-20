@@ -557,36 +557,167 @@ Fora de escopo nesta fase:
 
 ---
 
-# Phase 9 - Worship Interface MVP
+# Phase 8.5 - Portuguese Number Normalization
 
 Objetivo:
 
-Criar tela inicial para equipe de louvor.
+Normalizar números falados em português antes do parser de comandos, sem
+interpretar ou executar ações.
+
+Status: **Concluída em 20 de junho de 2026.**
 
 Tarefas:
 
-- criar Worship Module
-- criar interface `/worship`
-- testar quais recursos de louvor a API do Holyrics permite controlar
-- listar louvores/sequência se a API permitir
-- mostrar música atual, se a API permitir
-- mostrar próxima música, se a API permitir
-- criar botões de próximo/anterior
-- criar botão de iniciar/selecionar louvor, se a API permitir
-- documentar limitações da API
+- [x] criar `NumberNormalizerService`
+- [x] normalizar cardinais de zero a cento e cinquenta
+- [x] normalizar formas masculina e feminina de um e dois
+- [x] normalizar ordinais comuns nas formas masculina e feminina
+- [x] normalizar livros numerados antes do parser
+- [x] preservar aliases existentes sem duplicar listas bíblicas
+- [x] integrar normalização antes do `PtBrCommandParser`
+- [x] preservar o comportamento dos comandos já suportados
+- [x] manter transcrição original e normalizada no diagnóstico
+- [x] atualizar `/settings` com diagnóstico somente leitura
+- [x] manter o payload de `COMMAND_IDENTIFIED` sem transcrição
+- [x] não emitir `COMMAND_EXECUTED`
+- [x] não integrar com Holyrics
+- [x] não alterar Bible Module ou Preacher Interface
 
 Critérios de aceite:
 
-- tela de Louvor abre no celular/tablet
-- controles manuais funcionam quando suportados pelo Holyrics
-- limitações da API estão documentadas
-- não existe reconhecimento automático de canto no MVP
+- [x] “João capítulo três versículo dezesseis” gera João 3:16
+- [x] “Primeira Coríntios capítulo dois versículo quatro” gera 1 Coríntios 2:4
+- [x] “João três dezesseis” gera João 3:16
+- [x] livros numerados são normalizados
+- [x] frases sem números são preservadas
+- [x] conteúdo inválido não lança erro
+- [x] nenhum comando é executado
+- [x] testes passam
+- [x] build passa
 
 Fora de escopo nesta fase:
 
-- reconhecimento de canto
-- detecção automática de trecho cantado
-- temporização avançada
+- números acima de cento e cinquenta
+- ordinais compostos
+- números decimais ou negativos
+- IA, LLMs ou NLP externo
+- APIs externas
+- execução de comandos
+- controle ou chamadas ao Holyrics
+- alteração automática da passagem exibida
+- funcionalidades de louvor
+
+---
+
+# Command Interpreter Correction - Partial Bible References
+
+Objetivo:
+
+Reconhecer referências bíblicas de livro e de livro com capítulo sem executar
+ações.
+
+Status: **Concluída em 20 de junho de 2026.**
+
+Tarefas:
+
+- [x] manter o tipo `BIBLE_REFERENCE`
+- [x] permitir capítulo nulo para livro isolado
+- [x] reconhecer livro isolado
+- [x] reconhecer livro com capítulo usando versículo 1 como padrão
+- [x] preservar referências completas
+- [x] reutilizar aliases e normalização existentes
+- [x] validar capítulos contra os metadados locais
+- [x] atualizar diagnóstico para referências parciais
+- [x] manter frases sem referência clara como `UNKNOWN`
+- [x] não emitir `COMMAND_EXECUTED`
+- [x] não alterar HolyricsModule ou Preacher Interface
+
+Critérios de aceite:
+
+- [x] “gênesis” gera referência de livro
+- [x] “gênesis capítulo um” gera Gênesis 1:1
+- [x] “joão capítulo três” e “joão três” geram João 3:1
+- [x] “joão três dezesseis” continua gerando João 3:16
+- [x] “primeira coríntios capítulo treze” gera 1 Coríntios 13
+- [x] “salmos cento e cinquenta” gera Salmos 150
+- [x] frase comum sem referência gera `UNKNOWN`
+- [x] nenhum comando é executado
+
+---
+
+# Usability Adjustments - Command, Preacher and Local Access
+
+Status: **Concluídos em 20 de junho de 2026.**
+
+- [x] livro com capítulo assume versículo 1
+- [x] livros usam nomes completos na seleção manual
+- [x] botões touch não mantêm marca visual ao trocar para versículos
+- [x] QR Code é apresentado como representação do link do menu
+- [x] nenhuma execução automática foi adicionada
+
+---
+
+# Phase 9 - Bible Navigation Engine MVP
+
+Objetivo:
+
+Transformar comandos identificados em mudanças reais de navegação bíblica
+local.
+
+Status: **Concluída em 20 de junho de 2026.**
+
+Tarefas:
+
+- [x] criar `BibleNavigationService`
+- [x] reutilizar contexto e metadados do BibleModule
+- [x] aplicar referências bíblicas diretas
+- [x] avançar e voltar versículos
+- [x] avançar e voltar capítulos
+- [x] atravessar limites entre capítulos
+- [x] atravessar limites entre livros
+- [x] preservar a versão bíblica atual
+- [x] emitir `BIBLE_CHANGED`
+- [x] sincronizar `/preacher` pelo RealtimeModule existente
+- [x] adicionar diagnóstico somente leitura em `/settings`
+- [x] manter estado somente em memória
+- [x] não emitir `COMMAND_EXECUTED`
+- [x] não chamar ou controlar Holyrics
+- [x] não alterar SpeechModule ou VoskSpeechProvider
+
+Critérios de aceite:
+
+- [x] João 3 gera João 3:1
+- [x] João 3:16 gera João 3:16
+- [x] próximo/anterior navegam por versículo
+- [x] capítulo seguinte/anterior navegam por capítulo
+- [x] João 3:36 + próximo gera João 4:1
+- [x] João 4:1 + anterior gera João 3:36
+- [x] contexto inexistente não gera mudança inválida
+- [x] `BIBLE_CHANGED` possui payload local seguro
+- [x] tela do pregador reflete a navegação
+- [x] testes passam
+- [x] build passa
+
+Fora de escopo nesta fase:
+
+- controle ou envio de comandos ao Holyrics
+- apresentação de passagem no Holyrics
+- funcionalidades de louvor
+- persistência do contexto em banco
+- alterações no reconhecimento de voz
+
+---
+
+# Deferred - Worship Interface MVP
+
+Esta fase foi adiada e não foi iniciada. Permanecem planejados para uma decisão
+futura:
+
+- Worship Module;
+- interface funcional de louvor;
+- controles de músicas e playlists;
+- pesquisa de recursos suportados pela API;
+- reconhecimento de canto.
 
 ---
 

@@ -679,7 +679,7 @@ h1 {
 }
 
 .selection-grid--books {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .selection-button {
@@ -696,15 +696,19 @@ h1 {
 }
 
 .selection-button--book {
-  font-size: 1rem;
+  min-height: 4.5rem;
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
 }
 
-.selection-button:hover,
-.version-button:hover,
-.navigation-button:hover,
-.pager-button:hover {
-  border-color: var(--accent);
-  background-color: var(--surface-hover);
+@media (hover: hover) {
+  .selection-button:hover,
+  .version-button:hover,
+  .navigation-button:hover,
+  .pager-button:hover {
+    border-color: var(--accent);
+    background-color: var(--surface-hover);
+  }
 }
 
 .selection-button:focus-visible,
@@ -790,7 +794,7 @@ h1 {
   }
 
   .selection-grid--books {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 

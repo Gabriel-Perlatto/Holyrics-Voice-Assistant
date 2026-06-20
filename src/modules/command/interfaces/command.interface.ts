@@ -3,8 +3,8 @@ import type { CommandType } from '../enums/command-type.enum';
 export interface BibleReferenceCommand {
   type: CommandType.BIBLE_REFERENCE;
   book: string;
-  chapter: number;
-  verse: number;
+  chapter: number | null;
+  verse: number | null;
 }
 
 export interface NavigationCommand {
@@ -36,6 +36,7 @@ export interface CommandContext {
 
 export interface CommandStatus {
   lastTranscription: string | null;
+  lastNormalizedTranscription: string | null;
   lastCommand: IdentifiedCommand | null;
   context: CommandContext;
 }

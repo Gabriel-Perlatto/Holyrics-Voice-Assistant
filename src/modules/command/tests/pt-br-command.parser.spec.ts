@@ -28,6 +28,37 @@ describe('PtBrCommandParser', () => {
     );
   });
 
+  describe('referências bíblicas parciais', () => {
+    it.each([
+      ['gênesis', 'genesis'],
+      ['João', 'joao'],
+      ['Primeira Coríntios', '1-corintios'],
+      ['Sl', 'salmos'],
+    ])('interpreta livro em "%s"', (input, book) => {
+      expect(parser.parse(input)).toEqual({
+        type: CommandType.BIBLE_REFERENCE,
+        book,
+        chapter: null,
+        verse: null,
+      });
+    });
+
+    it.each([
+      ['gênesis capítulo 1', 'genesis', 1],
+      ['joão capítulo 3', 'joao', 3],
+      ['joão 3', 'joao', 3],
+      ['1 Coríntios capítulo 13', '1-corintios', 13],
+      ['Salmos 150', 'salmos', 150],
+    ])('interpreta livro e capítulo em "%s"', (input, book, chapter) => {
+      expect(parser.parse(input)).toEqual({
+        type: CommandType.BIBLE_REFERENCE,
+        book,
+        chapter,
+        verse: 1,
+      });
+    });
+  });
+
   describe('aliases existentes do Bible Module', () => {
     it.each([
       ['Jo 3 16', 'joao', 3, 16],
@@ -89,10 +120,11 @@ describe('PtBrCommandParser', () => {
     '   ',
     'o próximo irmão',
     'vamos voltar ao texto',
-    'João',
-    'João 3',
-    'João três dezesseis',
+    'vamos estudar gênesis hoje',
+    'João versículo 16',
+    'João três palavras',
     'João 0 1',
+    'João capítulo 22',
     'João 3 99',
     'livro inexistente 1 1',
     null,

@@ -26,16 +26,103 @@
       return 'Nenhum comando identificado.';
     }
 
-    const reference =
-      command.type === 'BIBLE_REFERENCE'
-        ? ` · ${command.book} ${command.chapter}:${command.verse}`
-        : '';
+    let reference = '';
+
+    if (command.type === 'BIBLE_REFERENCE') {
+      reference = ` · ${command.book}`;
+
+      if (typeof command.chapter === 'number') {
+        reference += ` ${command.chapter}`;
+      }
+
+      if (typeof command.verse === 'number') {
+        reference += `:${command.verse}`;
+      }
+    }
     const confidence =
       typeof command.confidence === 'number'
         ? ` · confiança ${command.confidence}`
         : '';
 
     return `${command.type}${reference}${confidence}`;
+  };
+
+  const loadCommandDiagnostics = async () => {
+    const originalElement = document.querySelector(
+      '[data-command-transcription-original]',
+    );
+    const normalizedElement = document.querySelector(
+      '[data-command-transcription-normalized]',
+    );
+    const commandElement = document.querySelector(
+      '[data-command-identified]',
+    );
+
+    if (!originalElement || !normalizedElement || !commandElement) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/commands/status', {
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const status = await response.json();
+      originalElement.textContent = status.lastTranscription
+        ? `"${status.lastTranscription}"`
+        : 'Nenhuma transcrição processada.';
+      normalizedElement.textContent =
+        status.lastNormalizedTranscription
+          ? `"${status.lastNormalizedTranscription}"`
+          : 'Nenhuma transcrição normalizada.';
+      commandElement.textContent = formatCommand(status.lastCommand);
+    } catch {
+      originalElement.textContent =
+        'Não foi possível consultar o diagnóstico.';
+      normalizedElement.textContent =
+        'Não foi possível consultar o diagnóstico.';
+      commandElement.textContent =
+        'Não foi possível consultar o diagnóstico.';
+    }
+  };
+
+  const loadNavigationDiagnostics = async () => {
+    const referenceElement = document.querySelector(
+      '[data-navigation-reference]',
+    );
+    const commandElement = document.querySelector(
+      '[data-navigation-command]',
+    );
+
+    if (!referenceElement || !commandElement) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/bible/navigation/status', {
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const status = await response.json();
+      referenceElement.textContent =
+        status.currentReference ?? 'Nenhuma referência selecionada.';
+      commandElement.textContent = status.lastAppliedCommand
+        ? formatCommand(status.lastAppliedCommand)
+        : 'Nenhum comando aplicado.';
+    } catch {
+      referenceElement.textContent =
+        'Não foi possível consultar a navegação.';
+      commandElement.textContent =
+        'Não foi possível consultar a navegação.';
+    }
   };
 
   const loadStatus = async () => {
@@ -574,37 +661,7 @@
   };
 
   const initializeCommandDiagnostics = async () => {
-    const transcriptionElement = document.querySelector(
-      '[data-command-transcription]',
-    );
-    const commandElement = document.querySelector(
-      '[data-command-identified]',
-    );
-
-    if (!transcriptionElement || !commandElement) {
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/commands/status', {
-        headers: { Accept: 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const status = await response.json();
-      transcriptionElement.textContent = status.lastTranscription
-        ? `"${status.lastTranscription}"`
-        : 'Nenhuma transcrição processada.';
-      commandElement.textContent = formatCommand(status.lastCommand);
-    } catch {
-      transcriptionElement.textContent =
-        'Não foi possível consultar o diagnóstico.';
-      commandElement.textContent =
-        'Não foi possível consultar o diagnóstico.';
-    }
+    await loadCommandDiagnostics();
   };
 
   const initializeRealtime = () => {
@@ -699,7 +756,7 @@
             '[data-speech-transcription]',
           );
           const commandTranscription = document.querySelector(
-            '[data-command-transcription]',
+            '[data-command-transcription-original]',
           );
 
           if (transcription) {
@@ -707,10 +764,9 @@
               `"${event.payload.text}"` +
               (event.payload.final ? '' : ' (parcial)');
           }
-          if (commandTranscription) {
+          if (commandTranscription && event.payload.final) {
             commandTranscription.textContent =
-              `"${event.payload.text}"` +
-              (event.payload.final ? '' : ' (parcial)');
+              `"${event.payload.text}"`;
           }
         }
 
@@ -722,6 +778,12 @@
           if (command) {
             command.textContent = formatCommand(event.payload);
           }
+
+          void loadCommandDiagnostics();
+        }
+
+        if (event.type === 'BIBLE_CHANGED') {
+          void loadNavigationDiagnostics();
         }
 
         if (event.type === 'SPEECH_STARTED') {
@@ -832,5 +894,6 @@
   void initializeSettingsForm();
   void initializeSpeechPanel();
   void initializeCommandDiagnostics();
+  void loadNavigationDiagnostics();
   initializeRealtime();
 })();
