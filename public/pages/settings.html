@@ -18,9 +18,113 @@
         <p class="eyebrow">Configuração local</p>
         <h1 id="page-title">Configurações</h1>
         <p>
-          Consulte o estado básico do servidor local. As configurações
-          persistentes serão implementadas na próxima fase do roadmap.
+          Defina os dados que serão usados pelas próximas etapas do sistema.
+          Salvar não testa a conexão com o Holyrics nem inicia reconhecimento
+          de voz.
         </p>
+      </section>
+
+      <section class="settings-panel" aria-labelledby="local-settings-title">
+        <div class="settings-panel__header">
+          <div>
+            <p class="eyebrow">Persistência local</p>
+            <h2 id="local-settings-title">Configurações do sistema</h2>
+          </div>
+          <span class="status-badge" data-settings-state>Carregando</span>
+        </div>
+
+        <form class="settings-form" data-settings-form>
+          <fieldset>
+            <legend>Holyrics</legend>
+            <p class="field-group__description">
+              Informe apenas os dados de acesso. A conexão será implementada
+              na próxima fase.
+            </p>
+
+            <div class="form-grid form-grid--connection">
+              <label class="field-group">
+                <span>Host ou IP</span>
+                <input
+                  type="text"
+                  name="holyricsHost"
+                  maxlength="255"
+                  placeholder="192.168.1.50"
+                  autocomplete="off"
+                  data-settings-field
+                />
+              </label>
+
+              <label class="field-group">
+                <span>Porta da API</span>
+                <input
+                  type="number"
+                  name="holyricsPort"
+                  min="1"
+                  max="65535"
+                  step="1"
+                  inputmode="numeric"
+                  placeholder="Ex.: 8091"
+                  data-settings-field
+                />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Preferências locais</legend>
+
+            <div class="form-grid">
+              <label class="field-group">
+                <span>Idioma principal</span>
+                <select name="language" data-settings-field>
+                  <option value="pt-BR">Português do Brasil (pt-BR)</option>
+                </select>
+              </label>
+
+              <label class="field-group">
+                <span>Microfone selecionado</span>
+                <input
+                  type="text"
+                  name="microphone"
+                  maxlength="255"
+                  placeholder="Opcional"
+                  autocomplete="off"
+                  data-settings-field
+                />
+                <small>
+                  O dispositivo não será acessado nesta fase.
+                </small>
+              </label>
+
+              <label class="field-group">
+                <span>Caminho do modelo Vosk</span>
+                <input
+                  type="text"
+                  name="voskModelPath"
+                  maxlength="1024"
+                  placeholder="/caminho/para/modelo"
+                  autocomplete="off"
+                  data-settings-field
+                />
+                <small>
+                  O modelo não será carregado nesta fase.
+                </small>
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="form-actions">
+            <button class="primary-button" type="submit" data-settings-submit>
+              Salvar configurações
+            </button>
+            <p
+              class="form-feedback"
+              role="status"
+              aria-live="polite"
+              data-settings-feedback
+            ></p>
+          </div>
+        </form>
       </section>
 
       <section class="status-panel" aria-labelledby="system-status-title">

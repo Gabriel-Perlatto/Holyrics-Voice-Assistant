@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0 e 1** estão concluídas. Esta versão contém:
+As **Phases 0, 1 e 2** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -17,10 +17,14 @@ As **Phases 0 e 1** estão concluídas. Esta versão contém:
 - detecção do endereço IPv4 local;
 - URL e QR Code de acesso exibidos no terminal;
 - endpoint de status do sistema;
-- status básico exibido na página de Configurações.
+- status básico exibido na página de Configurações;
+- formulário para configurações locais;
+- persistência SQLite de host/porta do Holyrics, idioma, microfone e caminho
+  do modelo Vosk;
+- validações básicas e feedback de salvamento.
 
-Esta fase não inclui integração com Holyrics, reconhecimento de voz, Vosk,
-banco de dados, configurações persistentes, WebSocket ou funcionalidades de
+Esta fase não inclui conexão real com Holyrics, acesso ao microfone,
+carregamento do Vosk, reconhecimento de voz, WebSocket ou funcionalidades de
 fases futuras.
 
 ## Requisitos
@@ -87,6 +91,8 @@ PORT=4000 npm start
 Endpoint disponível:
 
 - `GET /api/system/status` — estado básico e endereço local do servidor.
+- `GET /api/settings` — configurações locais atuais.
+- `PUT /api/settings` — valida e substitui as configurações locais.
 
 Exemplo:
 
@@ -103,14 +109,52 @@ Exemplo:
 }
 ```
 
+Exemplo de atualização das configurações:
+
+```bash
+curl --request PUT http://localhost:3000/api/settings \
+  --header "Content-Type: application/json" \
+  --data '{
+    "holyricsHost": "192.168.1.50",
+    "holyricsPort": 8091,
+    "language": "pt-BR",
+    "microphone": "Microfone USB",
+    "voskModelPath": "/opt/modelos/vosk-pt"
+  }'
+```
+
+Campos opcionais podem ser enviados como `null` ou texto vazio. Nesta fase,
+salvar os dados não testa o Holyrics, não acessa o microfone e não carrega o
+modelo Vosk.
+
+## Dados locais
+
+As configurações são armazenadas por padrão em:
+
+```text
+data/settings.sqlite
+```
+
+O arquivo é criado automaticamente e ignorado pelo Git. Para utilizar outro
+caminho:
+
+```bash
+SETTINGS_DATABASE_PATH=/caminho/settings.sqlite npm start
+```
+
 ## Testes
 
 ```bash
 npm test
 ```
 
-Os testes atuais cobrem seleção do IPv4 local, fallback para loopback,
-validação da porta e geração do status básico.
+Os testes atuais cobrem:
+
+- seleção do IPv4 local e fallback para loopback;
+- geração do status básico;
+- defaults e validações das configurações;
+- normalização dos campos;
+- persistência após fechar e reabrir o SQLite.
 
 ## Estrutura
 
@@ -150,3 +194,13 @@ sistema operacional não fornece uma interface utilizável.
 O servidor escuta em `0.0.0.0`, permitindo acesso pela rede local. O QR Code é
 gerado somente no terminal e não depende de internet. A aplicação não realiza
 descoberta de Holyrics nem armazena configurações nesta fase.
+
+## Decisões técnicas da Phase 2
+
+O `SettingsModule` separa controller, serviço de validação e repositório. A
+persistência usa `better-sqlite3` diretamente, sem ORM, pois a fase possui uma
+única tabela e uma única configuração global.
+
+O idioma padrão é `pt-BR`. Microfone e caminho do modelo Vosk são armazenados
+como textos opcionais; enumerar dispositivos e carregar o modelo pertencem às
+fases futuras.

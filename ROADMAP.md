@@ -132,26 +132,28 @@ Objetivo:
 
 Criar configurações locais persistentes.
 
+Status: **Concluída em 20 de junho de 2026.**
+
 Tarefas:
 
-- criar Settings Module
-- definir modelo de configuração local
-- configurar persistência em SQLite
-- criar tela de Configurações
-- salvar host/IP do Holyrics
-- salvar porta/API do Holyrics
-- salvar idioma principal
-- salvar microfone selecionado, se disponível
-- salvar caminho/modelo Vosk, se disponível
-- criar endpoint para ler configurações
-- criar endpoint para atualizar configurações
+- [x] criar Settings Module
+- [x] definir modelo de configuração local
+- [x] configurar persistência em SQLite
+- [x] criar tela de Configurações
+- [x] salvar host/IP do Holyrics
+- [x] salvar porta/API do Holyrics
+- [x] salvar idioma principal
+- [x] salvar microfone selecionado, se disponível
+- [x] salvar caminho/modelo Vosk, se disponível
+- [x] criar endpoint para ler configurações
+- [x] criar endpoint para atualizar configurações
 
 Critérios de aceite:
 
-- usuário consegue salvar configurações
-- configurações persistem após reiniciar aplicação
-- tela de Configurações mostra valores atuais
-- configuração não depende de internet
+- [x] usuário consegue salvar configurações
+- [x] configurações persistem após reiniciar aplicação
+- [x] tela de Configurações mostra valores atuais
+- [x] configuração não depende de internet
 
 Fora de escopo nesta fase:
 

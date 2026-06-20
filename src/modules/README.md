@@ -6,6 +6,7 @@ do `ROADMAP.md`.
 Módulos atuais:
 
 - `system`: descoberta do IP local, URL de acesso e status básico do servidor.
+- `settings`: validação e persistência SQLite das configurações locais.
 
-Módulos de Holyrics, voz, comandos, Bíblia, louvor, configurações e tempo real
-não devem ser criados antes das respectivas fases.
+Módulos de Holyrics, voz, comandos, Bíblia, louvor e tempo real não devem ser
+criados antes das respectivas fases.

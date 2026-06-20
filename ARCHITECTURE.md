@@ -259,6 +259,49 @@ Exemplos:
 - idioma
 - modelo de voz
 
+Implementação atual:
+
+```txt
+src/modules/settings/
+├── controllers/
+├── dto/
+├── interfaces/
+├── providers/
+├── repositories/
+├── services/
+└── settings.module.ts
+```
+
+Responsabilidades por camada:
+
+- controller: expor leitura e atualização via HTTP;
+- service: aplicar normalização e validações;
+- repository: criar a tabela SQLite, inserir defaults e acessar os dados;
+- provider: definir o caminho local do arquivo de dados.
+
+Existe uma única configuração global nesta fase. O modelo contém:
+
+- `holyricsHost`;
+- `holyricsPort`;
+- `language`;
+- `microphone`;
+- `voskModelPath`;
+- `updatedAt`.
+
+Os campos de microfone e modelo Vosk são apenas valores opcionais persistidos.
+O Settings Module não acessa dispositivos, não carrega modelos e não testa
+conexão com o Holyrics.
+
+Endpoints:
+
+```txt
+GET /api/settings
+PUT /api/settings
+```
+
+O `PUT` substitui o conjunto completo de configurações e retorna o estado
+persistido. Validações inválidas utilizam `BadRequestException` do NestJS.
+
 ---
 
 # Realtime Module
@@ -498,6 +541,20 @@ Motivos:
 - multiplataforma
 
 Evitar dependências de bancos externos.
+
+A Settings MVP utiliza `better-sqlite3` diretamente, sem ORM, porque existe
+apenas uma tabela e uma configuração global. O arquivo padrão é:
+
+```txt
+data/settings.sqlite
+```
+
+O diretório é criado automaticamente. Arquivos SQLite locais não são
+versionados. O caminho pode ser substituído pela variável
+`SETTINGS_DATABASE_PATH`, principalmente para testes e instalações com
+diretório de dados específico.
+
+Não adicionar ORM enquanto o modelo de dados não justificar essa camada.
 
 ---
 
