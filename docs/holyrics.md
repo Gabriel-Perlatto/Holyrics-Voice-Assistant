@@ -8,7 +8,7 @@ configurado para o Holyrics.
 Não estão implementados:
 
 - comandos de controle;
-- recursos bíblicos;
+- apresentação remota de passagens bíblicas;
 - recursos de louvor;
 - consulta de apresentações;
 - sincronização de estado;
@@ -64,6 +64,18 @@ bíblica para clientes externos.
 Por esse motivo, nenhum endpoint bíblico foi inventado no Holyrics Module. O
 Bible Module usa um fallback local substituível, documentado em
 `docs/bible-data.md`.
+
+Na Phase 5, uma passagem selecionada na tela do pregador é validada e
+registrada localmente pelo backend. A resposta declara:
+
+```json
+{
+  "delivery": "local-only",
+  "deliveredToHolyrics": false
+}
+```
+
+Esse comportamento não simula sucesso no Holyrics.
 
 Endpoints reais de Bíblia, louvor ou controle só devem ser adicionados quando
 existir contrato oficial verificável.

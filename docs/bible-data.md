@@ -86,8 +86,14 @@ O contexto inicial é:
 }
 ```
 
-Não existem endpoints para alterar esse contexto na Phase 4. Navegação,
-preferência por dispositivo e envio ao Holyrics pertencem às fases seguintes.
+Na Phase 5, o contexto pode ser atualizado por uma seleção manual validada:
+
+```http
+POST /api/bible/selection
+```
+
+O contexto continua em memória e não é persistido. A preferência de versão do
+pregador é separada e fica no navegador.
 
 ## Substituição futura
 

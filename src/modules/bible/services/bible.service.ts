@@ -8,9 +8,11 @@ import type {
   BibleBook,
   BibleBooksResponse,
   BibleChaptersResponse,
+  BibleSelectionResponse,
   BibleVersesResponse,
   BibleVersionsResponse,
 } from '../interfaces/bible-content.interface';
+import type { SelectBiblePassageDto } from '../dto/select-bible-passage.dto';
 import {
   BIBLE_CONTENT_PROVIDER,
   type BibleContentProvider,
@@ -80,6 +82,55 @@ export class BibleService {
     };
   }
 
+  selectPassage(input: SelectBiblePassageDto): BibleSelectionResponse {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new BadRequestException('Seleção bíblica inválida.');
+    }
+
+    const versionId = this.validateVersion(input.versionId);
+    const bookId = this.validateRequiredText(input.bookId, 'livro');
+    const chapter = this.validatePositiveInteger(input.chapter, 'capítulo');
+    const verse = this.validatePositiveInteger(input.verse, 'versículo');
+    const book = this.resolveBook(bookId);
+    const verses = this.contentProvider.listVerses(book.id, chapter);
+
+    if (!verses.length) {
+      throw new NotFoundException(
+        `O capítulo ${chapter} não existe no livro ${book.name}.`,
+      );
+    }
+
+    if (!verses.some(({ number }) => number === verse)) {
+      throw new NotFoundException(
+        `O versículo ${verse} não existe em ${book.name} ${chapter}.`,
+      );
+    }
+
+    this.contextService.selectPassage({
+      versionId,
+      bookId: book.id,
+      chapter,
+      verse,
+    });
+
+    return {
+      accepted: true,
+      delivery: 'local-only',
+      deliveredToHolyrics: false,
+      message:
+        'Passagem selecionada localmente. O envio ao Holyrics ainda não possui endpoint oficial confirmado.',
+      selection: {
+        versionId,
+        bookId: book.id,
+        bookName: book.name,
+        chapter,
+        verse,
+        reference: `${book.name} ${chapter}:${verse}`,
+      },
+      selectedAt: new Date().toISOString(),
+    };
+  }
+
   private resolveBook(identifier: string): BibleBook {
     const aliasedBook = this.aliasService.resolve(identifier);
     const book = aliasedBook
@@ -111,5 +162,44 @@ export class BibleService {
     }
 
     return chapter;
+  }
+
+  private validateVersion(value: unknown): string {
+    const versionId = this.validateRequiredText(value, 'versão');
+    const versionExists = this.contentProvider
+      .listVersions()
+      .some(({ id }) => id === versionId);
+
+    if (!versionExists) {
+      throw new NotFoundException(
+        `Versão bíblica não encontrada: ${versionId}.`,
+      );
+    }
+
+    return versionId;
+  }
+
+  private validateRequiredText(value: unknown, field: string): string {
+    if (typeof value !== 'string' || !value.trim()) {
+      throw new BadRequestException(
+        `Informe ${field} para selecionar a passagem.`,
+      );
+    }
+
+    return value.trim();
+  }
+
+  private validatePositiveInteger(value: unknown, field: string): number {
+    if (
+      typeof value !== 'number' ||
+      !Number.isSafeInteger(value) ||
+      value < 1
+    ) {
+      throw new BadRequestException(
+        `O ${field} deve ser um número inteiro positivo.`,
+      );
+    }
+
+    return value;
   }
 }

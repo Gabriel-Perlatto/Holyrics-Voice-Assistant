@@ -20,4 +20,22 @@ describe('BibleContextService', () => {
 
     expect(service.getContext().bookId).toBeNull();
   });
+
+  it('atualiza o contexto com uma seleção validada', () => {
+    const service = new BibleContextService();
+
+    expect(
+      service.selectPassage({
+        versionId: 'acf',
+        bookId: 'joao',
+        chapter: 3,
+        verse: 16,
+      }),
+    ).toEqual({
+      versionId: 'acf',
+      bookId: 'joao',
+      chapter: 3,
+      verse: 16,
+    });
+  });
 });

@@ -33,6 +33,24 @@ export interface BibleContext {
   verse: number | null;
 }
 
+export interface BibleSelection {
+  versionId: string;
+  bookId: string;
+  bookName: string;
+  chapter: number;
+  verse: number;
+  reference: string;
+}
+
+export interface BibleSelectionResponse {
+  accepted: true;
+  delivery: 'local-only';
+  deliveredToHolyrics: false;
+  message: string;
+  selection: BibleSelection;
+  selectedAt: string;
+}
+
 export interface BibleCollectionResponse<T> {
   source: BibleDataSource;
   fallback: true;

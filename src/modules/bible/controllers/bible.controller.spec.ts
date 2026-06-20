@@ -11,6 +11,10 @@ describe('BibleController', () => {
       book,
       chapter,
     })),
+    selectPassage: jest.fn((input) => ({
+      endpoint: 'selection',
+      input,
+    })),
   } as unknown as jest.Mocked<BibleService>;
   const controller = new BibleController(bibleService);
 
@@ -36,5 +40,18 @@ describe('BibleController', () => {
   it('repassa livro e capítulo para consulta de versículos', () => {
     controller.getVerses({ book: 'Jo', chapter: '3' });
     expect(bibleService.getVerses).toHaveBeenCalledWith('Jo', '3');
+  });
+
+  it('repassa a seleção para o serviço', () => {
+    const input = {
+      versionId: 'nvi',
+      bookId: 'joao',
+      chapter: 3,
+      verse: 16,
+    };
+
+    controller.selectPassage(input);
+
+    expect(bibleService.selectPassage).toHaveBeenCalledWith(input);
   });
 });

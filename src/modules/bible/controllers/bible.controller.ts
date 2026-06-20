@@ -1,7 +1,16 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+} from '@nestjs/common';
 import type {
   BibleBooksResponse,
   BibleChaptersResponse,
+  BibleSelectionResponse,
   BibleVersesResponse,
   BibleVersionsResponse,
 } from '../interfaces/bible-content.interface';
@@ -9,6 +18,7 @@ import type {
   BibleBookParamsDto,
   BibleChapterParamsDto,
 } from '../dto/bible-route-params.dto';
+import type { SelectBiblePassageDto } from '../dto/select-bible-passage.dto';
 import { BibleService } from '../services/bible.service';
 
 @Controller('api/bible')
@@ -37,5 +47,13 @@ export class BibleController {
     @Param() params: BibleChapterParamsDto,
   ): BibleVersesResponse {
     return this.bibleService.getVerses(params.book, params.chapter);
+  }
+
+  @Post('selection')
+  @HttpCode(HttpStatus.OK)
+  selectPassage(
+    @Body() input: SelectBiblePassageDto,
+  ): BibleSelectionResponse {
+    return this.bibleService.selectPassage(input);
   }
 }

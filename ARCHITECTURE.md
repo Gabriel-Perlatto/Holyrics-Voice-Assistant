@@ -298,8 +298,9 @@ tradução esteja instalada ou disponível no Holyrics. Todas as respostas
 declaram `source: "local-fallback"` e `fallback: true`.
 
 O contexto inicial usa `nvi` como identificador de versão e não seleciona
-livro, capítulo ou versículo. Alteração de contexto e interface de navegação
-pertencem às fases futuras.
+livro, capítulo ou versículo. Na Phase 5, uma seleção manual validada atualiza
+esse contexto em memória. Não há persistência de passagem nem sincronização em
+tempo real.
 
 Endpoints:
 
@@ -308,11 +309,18 @@ GET /api/bible/versions
 GET /api/bible/books
 GET /api/bible/books/:book/chapters
 GET /api/bible/books/:book/chapters/:chapter/verses
+POST /api/bible/selection
 ```
 
 `:book` aceita o ID estável ou aliases pt-BR. O Bible Module não acessa a rede
 nem chama diretamente o Holyrics Module. Uma futura fonte Holyrics deve
 implementar `BibleContentProvider`, mantendo a lógica de domínio inalterada.
+
+`POST /api/bible/selection` valida versão, livro, capítulo e versículo,
+atualiza o contexto em memória e retorna `delivery: "local-only"` e
+`deliveredToHolyrics: false`. Esse contrato impede que a aplicação afirme uma
+apresentação inexistente enquanto não houver endpoint oficial confirmado no
+Holyrics.
 
 Consulte `docs/bible-data.md`.
 
@@ -518,7 +526,7 @@ index.html
 
 preacher.html
 
-- interface do pregador
+- interface mobile-first do pregador
 
 worship.html
 
@@ -543,11 +551,17 @@ Exemplo:
 ```txt
 public/js/
 ├── preacher.js
+├── preacher-preferences.js
 ├── worship.js
 ├── settings.js
 ├── websocket.js
 └── api.js
 ```
+
+Na Phase 5, `preacher.js` controla apenas estado de apresentação, paginação e
+chamadas HTTP. Regras de validação de passagem permanecem no `BibleService`.
+`preacher-preferences.js` isola a preferência de versão no `localStorage` e
+tolera navegadores nos quais o armazenamento não está disponível.
 
 ---
 

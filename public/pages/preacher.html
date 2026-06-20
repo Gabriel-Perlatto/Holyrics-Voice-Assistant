@@ -3,24 +3,121 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Área do pregador" />
+    <meta
+      name="description"
+      content="Seleção manual de passagem para o pregador"
+    />
     <title>Pregador | Holyrics Voice Assistant</title>
     <link rel="stylesheet" href="/css/base.css" />
     <script src="/js/base.js" defer></script>
+    <script src="/js/preacher-preferences.js" defer></script>
+    <script src="/js/preacher.js" defer></script>
   </head>
-  <body>
-    <main class="page-shell">
-      <a class="back-link" href="/">← Voltar ao início</a>
+  <body class="preacher-page">
+    <main class="preacher-shell">
+      <header class="preacher-header">
+        <div class="preacher-header__top">
+          <a class="back-link preacher-header__home" href="/">← Início</a>
+          <p class="preacher-header__step" data-current-step>Livros</p>
+        </div>
 
-      <section class="placeholder-panel" aria-labelledby="page-title">
-        <span class="placeholder-panel__icon" aria-hidden="true">📖</span>
-        <p class="eyebrow">Área do pregador</p>
-        <h1 id="page-title">Pregador</h1>
-        <p>
-          A base desta página está pronta. Os controles bíblicos serão
-          implementados nas fases definidas no roadmap.
-        </p>
+        <div class="preacher-reference" aria-live="polite">
+          <p class="eyebrow">Passagem atual</p>
+          <h1 data-current-reference>Selecione um livro</h1>
+          <p>
+            Versão:
+            <strong data-current-version>Carregando...</strong>
+          </p>
+        </div>
+
+        <nav
+          class="preacher-navigation"
+          aria-label="Navegação da passagem"
+        >
+          <button
+            class="navigation-button"
+            type="button"
+            data-back-books
+            hidden
+          >
+            ← Livros
+          </button>
+          <button
+            class="navigation-button"
+            type="button"
+            data-back-chapters
+            hidden
+          >
+            ← Capítulos
+          </button>
+        </nav>
+      </header>
+
+      <section
+        class="preacher-panel preacher-panel--versions"
+        aria-labelledby="versions-title"
+      >
+        <div class="preacher-panel__heading">
+          <h2 id="versions-title">Versão</h2>
+          <span class="source-badge">Referência local</span>
+        </div>
+        <div
+          class="version-grid"
+          role="group"
+          aria-label="Versões bíblicas"
+          data-version-grid
+        ></div>
       </section>
+
+      <section
+        class="preacher-panel"
+        aria-labelledby="books-title"
+        data-books-panel
+      >
+        <div class="preacher-panel__heading">
+          <h2 id="books-title">Livro</h2>
+          <span data-books-page-label></span>
+        </div>
+        <div class="selection-grid selection-grid--books" data-books-grid></div>
+        <div class="pager" data-books-pager></div>
+      </section>
+
+      <section
+        class="preacher-panel"
+        aria-labelledby="chapters-title"
+        data-chapters-panel
+        hidden
+      >
+        <div class="preacher-panel__heading">
+          <h2 id="chapters-title">Capítulo</h2>
+          <span data-chapters-page-label></span>
+        </div>
+        <div class="selection-grid" data-chapters-grid></div>
+        <div class="pager" data-chapters-pager></div>
+      </section>
+
+      <section
+        class="preacher-panel"
+        aria-labelledby="verses-title"
+        data-verses-panel
+        hidden
+      >
+        <div class="preacher-panel__heading">
+          <h2 id="verses-title">Versículo</h2>
+          <span data-verses-page-label></span>
+        </div>
+        <div class="selection-grid" data-verses-grid></div>
+        <div class="pager" data-verses-pager></div>
+      </section>
+
+      <p
+        class="preacher-feedback"
+        role="status"
+        aria-live="polite"
+        data-preacher-feedback
+      >
+        Carregando dados bíblicos...
+      </p>
     </main>
   </body>
 </html>

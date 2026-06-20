@@ -14,4 +14,13 @@ export class BibleContextService {
   getContext(): BibleContext {
     return { ...this.context };
   }
+
+  selectPassage(context: BibleContext): BibleContext {
+    this.context.versionId = context.versionId;
+    this.context.bookId = context.bookId;
+    this.context.chapter = context.chapter;
+    this.context.verse = context.verse;
+
+    return this.getContext();
+  }
 }

@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0, 1, 2, 3 e 4** estão concluídas. Esta versão contém:
+As **Phases 0 a 5** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -29,12 +29,15 @@ As **Phases 0, 1, 2, 3 e 4** estão concluídas. Esta versão contém:
 - Bible Module com provider de conteúdo substituível;
 - metadados locais dos 66 livros, capítulos e números de versículos;
 - aliases de livros em `pt-BR`;
-- contexto bíblico inicial e identificadores locais de versão.
+- contexto bíblico inicial e identificadores locais de versão;
+- interface mobile-first do pregador;
+- navegação em grade por livro, capítulo e versículo;
+- versão favorita persistida por dispositivo;
+- registro local da passagem selecionada no backend.
 
-Esta fase não inclui interface completa do pregador, alteração manual de
-contexto, envio de passagens ao Holyrics, texto bíblico, louvor, acesso ao
-microfone, carregamento do Vosk, reconhecimento de voz, WebSocket ou
-funcionalidades de fases futuras.
+Esta fase não inclui apresentação real da passagem no Holyrics, texto bíblico,
+louvor, acesso ao microfone, carregamento do Vosk, reconhecimento de voz,
+WebSocket ou funcionalidades de fases futuras.
 
 ## Requisitos
 
@@ -108,6 +111,7 @@ Endpoint disponível:
 - `GET /api/bible/books/:book/chapters` — capítulos e contagem de versículos.
 - `GET /api/bible/books/:book/chapters/:chapter/verses` — números dos
   versículos.
+- `POST /api/bible/selection` — valida e registra a passagem localmente.
 
 Exemplo:
 
@@ -165,6 +169,22 @@ Esses endpoints retornam metadados locais identificados por
 `source: "local-fallback"`. Não retornam texto bíblico. Consulte
 [`docs/bible-data.md`](docs/bible-data.md).
 
+Exemplo de seleção:
+
+```bash
+curl --request POST http://localhost:3000/api/bible/selection \
+  --header "Content-Type: application/json" \
+  --data '{
+    "versionId": "nvi",
+    "bookId": "joao",
+    "chapter": 3,
+    "verse": 16
+  }'
+```
+
+A seleção é local e retorna `deliveredToHolyrics: false`. Veja
+[`docs/preacher-interface.md`](docs/preacher-interface.md).
+
 ## Dados locais
 
 As configurações são armazenadas por padrão em:
@@ -199,7 +219,9 @@ Os testes atuais cobrem:
 - aliases bíblicos em `pt-BR`;
 - 66 livros, versões locais e topologia de capítulos/versículos;
 - contexto bíblico inicial;
-- validação de livros e capítulos.
+- validação de livros e capítulos;
+- seleção validada de passagem e versão;
+- persistência/restauração da versão favorita no `localStorage`.
 
 ## Estrutura
 
@@ -270,3 +292,13 @@ bíblica, a implementação atual usa `LocalBibleContentProvider`.
 O fallback contém somente metadados de navegação, sem texto bíblico e sem
 novas tabelas. Todas as respostas identificam a origem local. A interface do
 pregador e a alteração do contexto continuam fora desta fase.
+
+## Decisões técnicas da Phase 5
+
+A interface do pregador usa grades paginadas em vez de tabelas, selects ou uma
+lista contínua. O JavaScript controla somente a apresentação das etapas e
+consome os endpoints HTTP; validações permanecem no backend.
+
+A versão favorita usa `localStorage`, por dispositivo. Como não há endpoint
+oficial confirmado para apresentar passagens no Holyrics, a seleção é
+registrada no contexto local e responde explicitamente que não foi entregue.

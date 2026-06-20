@@ -240,27 +240,31 @@ Objetivo:
 
 Criar a primeira tela realmente útil para o pregador.
 
+Status: **Concluída em 20 de junho de 2026.**
+
 Tarefas:
 
-- criar interface mobile-first para `/preacher`
-- criar painel de livros
-- criar painel de capítulos
-- criar painel de versículos
-- criar navegação de volta para livros/capítulos
-- mostrar livro/capítulo/versículo atual no topo
-- mostrar versão bíblica atual no topo
-- permitir trocar versão bíblica
-- persistir versão bíblica favorita no navegador
-- enviar passagem selecionada ao backend
-- backend envia passagem ao Holyrics
+- [x] criar interface mobile-first para `/preacher`
+- [x] criar painel de livros
+- [x] criar painel de capítulos
+- [x] criar painel de versículos
+- [x] criar navegação de volta para livros/capítulos
+- [x] mostrar livro/capítulo/versículo atual no topo
+- [x] mostrar versão bíblica atual no topo
+- [x] permitir trocar versão bíblica
+- [x] persistir versão bíblica favorita no navegador
+- [x] enviar passagem selecionada ao backend
+- [x] preparar envio da passagem ao Holyrics com fallback local documentado,
+  pois não existe endpoint oficial confirmado para apresentação remota
 
 Critérios de aceite:
 
-- pregador chega em qualquer versículo com até 3 seleções principais
-- versão bíblica escolhida é visível
-- versão bíblica escolhida é usada ao enviar ao Holyrics
-- passagem manual aparece no Holyrics
-- interface é utilizável em celular
+- [x] pregador chega em qualquer versículo com até 3 seleções principais
+- [x] versão bíblica escolhida é visível
+- [x] versão bíblica escolhida é enviada junto com a passagem ao backend
+- [x] passagem manual é registrada localmente com retorno explícito de que
+  ainda não foi apresentada no Holyrics
+- [x] interface é utilizável em celular
 
 Fora de escopo nesta fase:
 

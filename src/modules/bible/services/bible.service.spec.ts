@@ -72,4 +72,51 @@ describe('BibleService', () => {
       NotFoundException,
     );
   });
+
+  it('registra uma passagem local usando a versão selecionada', () => {
+    const response = createService().selectPassage({
+      versionId: 'acf',
+      bookId: 'joao',
+      chapter: 3,
+      verse: 16,
+    });
+
+    expect(response).toEqual(
+      expect.objectContaining({
+        accepted: true,
+        delivery: 'local-only',
+        deliveredToHolyrics: false,
+        selection: {
+          versionId: 'acf',
+          bookId: 'joao',
+          bookName: 'João',
+          chapter: 3,
+          verse: 16,
+          reference: 'João 3:16',
+        },
+      }),
+    );
+  });
+
+  it('rejeita versão inexistente na seleção', () => {
+    expect(() =>
+      createService().selectPassage({
+        versionId: 'inexistente',
+        bookId: 'joao',
+        chapter: 3,
+        verse: 16,
+      }),
+    ).toThrow(NotFoundException);
+  });
+
+  it('rejeita versículo fora do capítulo', () => {
+    expect(() =>
+      createService().selectPassage({
+        versionId: 'nvi',
+        bookId: 'joao',
+        chapter: 3,
+        verse: 37,
+      }),
+    ).toThrow(NotFoundException);
+  });
 });
