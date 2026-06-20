@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0, 1 e 2** estão concluídas. Esta versão contém:
+As **Phases 0, 1, 2 e 3** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -21,11 +21,15 @@ As **Phases 0, 1 e 2** estão concluídas. Esta versão contém:
 - formulário para configurações locais;
 - persistência SQLite de host/porta do Holyrics, idioma, microfone e caminho
   do modelo Vosk;
-- validações básicas e feedback de salvamento.
+- validações básicas e feedback de salvamento;
+- teste isolado de conectividade HTTP com o endereço configurado para o
+  Holyrics;
+- feedback claro para configuração ausente, host indisponível, porta recusada
+  e timeout.
 
-Esta fase não inclui conexão real com Holyrics, acesso ao microfone,
-carregamento do Vosk, reconhecimento de voz, WebSocket ou funcionalidades de
-fases futuras.
+Esta fase não inclui comandos para o Holyrics, navegação bíblica, louvor,
+acesso ao microfone, carregamento do Vosk, reconhecimento de voz, WebSocket ou
+funcionalidades de fases futuras.
 
 ## Requisitos
 
@@ -93,6 +97,7 @@ Endpoint disponível:
 - `GET /api/system/status` — estado básico e endereço local do servidor.
 - `GET /api/settings` — configurações locais atuais.
 - `PUT /api/settings` — valida e substitui as configurações locais.
+- `POST /api/holyrics/test-connection` — testa o endereço persistido.
 
 Exemplo:
 
@@ -124,8 +129,18 @@ curl --request PUT http://localhost:3000/api/settings \
 ```
 
 Campos opcionais podem ser enviados como `null` ou texto vazio. Nesta fase,
-salvar os dados não testa o Holyrics, não acessa o microfone e não carrega o
-modelo Vosk.
+salvar os dados não testa automaticamente o Holyrics, não acessa o microfone e
+não carrega o modelo Vosk.
+
+Teste de conexão:
+
+```bash
+curl --request POST http://localhost:3000/api/holyrics/test-connection
+```
+
+O teste executa somente `GET /` no host e porta salvos. Qualquer resposta HTTP
+confirma conectividade, mas não garante que o servidor seja realmente o
+Holyrics. Veja [`docs/holyrics.md`](docs/holyrics.md).
 
 ## Dados locais
 
@@ -155,6 +170,9 @@ Os testes atuais cobrem:
 - defaults e validações das configurações;
 - normalização dos campos;
 - persistência após fechar e reabrir o SQLite.
+- provider HTTP do Holyrics com respostas simuladas;
+- uso das configurações persistidas no teste de conexão;
+- tradução de erros de rede sem depender de Holyrics real.
 
 ## Estrutura
 
@@ -204,3 +222,14 @@ persistência usa `better-sqlite3` diretamente, sem ORM, pois a fase possui uma
 O idioma padrão é `pt-BR`. Microfone e caminho do modelo Vosk são armazenados
 como textos opcionais; enumerar dispositivos e carregar o modelo pertencem às
 fases futuras.
+
+## Decisões técnicas da Phase 3
+
+Toda comunicação externa com o Holyrics fica dentro do `HolyricsModule`. O
+serviço depende de uma interface de provider, permitindo testes com mocks e
+substituição futura da implementação HTTP.
+
+Como não foi identificado um endpoint oficial público de saúde sem efeito
+colateral, o MVP consulta apenas `GET /` com timeout de três segundos. Esse
+teste mede acessibilidade HTTP e documenta explicitamente que não valida a
+identidade do Holyrics.

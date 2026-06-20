@@ -7,6 +7,7 @@ Módulos atuais:
 
 - `system`: descoberta do IP local, URL de acesso e status básico do servidor.
 - `settings`: validação e persistência SQLite das configurações locais.
+- `holyrics`: teste isolado de conectividade HTTP com o endereço configurado.
 
-Módulos de Holyrics, voz, comandos, Bíblia, louvor e tempo real não devem ser
-criados antes das respectivas fases.
+Módulos de voz, comandos, Bíblia, louvor e tempo real não devem ser criados
+antes das respectivas fases.

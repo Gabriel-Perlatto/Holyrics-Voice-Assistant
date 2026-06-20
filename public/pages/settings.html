@@ -18,9 +18,9 @@
         <p class="eyebrow">Configuração local</p>
         <h1 id="page-title">Configurações</h1>
         <p>
-          Defina os dados que serão usados pelas próximas etapas do sistema.
-          Salvar não testa a conexão com o Holyrics nem inicia reconhecimento
-          de voz.
+          Defina os dados locais e confirme se o endereço do Holyrics responde
+          pela rede. O teste não envia comandos ao Holyrics e não inicia
+          reconhecimento de voz.
         </p>
       </section>
 
@@ -37,8 +37,8 @@
           <fieldset>
             <legend>Holyrics</legend>
             <p class="field-group__description">
-              Informe apenas os dados de acesso. A conexão será implementada
-              na próxima fase.
+              Informe e salve os dados antes de testar. O teste realiza apenas
+              uma consulta HTTP sem comandos.
             </p>
 
             <div class="form-grid form-grid--connection">
@@ -67,6 +67,24 @@
                   data-settings-field
                 />
               </label>
+            </div>
+
+            <div class="connection-test">
+              <button
+                class="secondary-button"
+                type="button"
+                data-holyrics-test
+              >
+                Testar conexão
+              </button>
+              <p
+                class="connection-result"
+                role="status"
+                aria-live="polite"
+                data-holyrics-result
+              >
+                Salve o host e a porta antes de testar.
+              </p>
             </div>
           </fieldset>
 

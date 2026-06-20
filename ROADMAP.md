@@ -169,24 +169,26 @@ Objetivo:
 
 Criar integração inicial com a API do Holyrics.
 
+Status: **Concluída em 20 de junho de 2026.**
+
 Tarefas:
 
-- criar Holyrics Module
-- criar Holyrics Service
-- criar DTOs necessários
-- criar interface para provider Holyrics
-- implementar teste de conexão
-- criar endpoint para testar conexão com Holyrics
-- exibir resultado do teste na tela de Configurações
-- documentar endpoints usados da API do Holyrics
-- criar mocks para testes
+- [x] criar Holyrics Module
+- [x] criar Holyrics Service
+- [x] criar DTOs necessários
+- [x] criar interface para provider Holyrics
+- [x] implementar teste de conexão
+- [x] criar endpoint para testar conexão com Holyrics
+- [x] exibir resultado do teste na tela de Configurações
+- [x] documentar endpoints usados da API do Holyrics
+- [x] criar mocks para testes
 
 Critérios de aceite:
 
-- sistema consegue testar conexão com Holyrics
-- erro de conexão é exibido claramente
-- nenhum outro módulo chama Holyrics diretamente
-- testes não dependem de Holyrics real
+- [x] sistema consegue testar conexão com Holyrics
+- [x] erro de conexão é exibido claramente
+- [x] nenhum outro módulo chama Holyrics diretamente
+- [x] testes não dependem de Holyrics real
 
 Fora de escopo nesta fase:
 

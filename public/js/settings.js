@@ -9,15 +9,15 @@
       .join(':');
   };
 
-  const getErrorMessage = async (response) => {
+  const getErrorMessage = async (response, fallbackMessage) => {
     try {
       const body = await response.json();
 
       return typeof body.message === 'string'
         ? body.message
-        : 'Não foi possível salvar as configurações.';
+        : fallbackMessage;
     } catch {
-      return 'Não foi possível salvar as configurações.';
+      return fallbackMessage;
     }
   };
 
@@ -75,14 +75,26 @@
       '[data-settings-feedback]',
     );
     const submitButton = document.querySelector('[data-settings-submit]');
+    const testButton = document.querySelector('[data-holyrics-test]');
+    const connectionResult = document.querySelector(
+      '[data-holyrics-result]',
+    );
     const fields = [...document.querySelectorAll('[data-settings-field]')];
 
-    if (!form || !stateElement || !feedbackElement || !submitButton) {
+    if (
+      !form ||
+      !stateElement ||
+      !feedbackElement ||
+      !submitButton ||
+      !testButton ||
+      !connectionResult
+    ) {
       return;
     }
 
     const setBusy = (busy) => {
       submitButton.disabled = busy;
+      testButton.disabled = busy;
       fields.forEach((field) => {
         field.disabled = busy;
       });
@@ -108,6 +120,15 @@
       form.elements.voskModelPath.value = settings.voskModelPath ?? '';
     };
 
+    const resetConnectionResult = () => {
+      connectionResult.textContent =
+        'Configurações alteradas. Salve antes de testar.';
+      connectionResult.classList.remove(
+        'connection-result--success',
+        'connection-result--error',
+      );
+    };
+
     try {
       setBusy(true);
 
@@ -130,6 +151,10 @@
     } finally {
       setBusy(false);
     }
+
+    fields.forEach((field) => {
+      field.addEventListener('input', resetConnectionResult);
+    });
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -158,13 +183,24 @@
         });
 
         if (!response.ok) {
-          throw new Error(await getErrorMessage(response));
+          throw new Error(
+            await getErrorMessage(
+              response,
+              'Não foi possível salvar as configurações.',
+            ),
+          );
         }
 
         fillForm(await response.json());
         setState('Salvo', 'status-badge--online');
         feedbackElement.textContent =
           'Configurações salvas neste computador.';
+        connectionResult.textContent =
+          'Configurações salvas. A conexão ainda não foi testada.';
+        connectionResult.classList.remove(
+          'connection-result--success',
+          'connection-result--error',
+        );
       } catch (error) {
         setState('Erro', 'status-badge--error');
         feedbackElement.textContent =
@@ -172,6 +208,43 @@
             ? error.message
             : 'Não foi possível salvar as configurações.';
         feedbackElement.classList.add('form-feedback--error');
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    testButton.addEventListener('click', async () => {
+      setBusy(true);
+      connectionResult.textContent = 'Testando o endereço configurado...';
+      connectionResult.classList.remove(
+        'connection-result--success',
+        'connection-result--error',
+      );
+
+      try {
+        const response = await fetch('/api/holyrics/test-connection', {
+          method: 'POST',
+          headers: { Accept: 'application/json' },
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            await getErrorMessage(
+              response,
+              'Não foi possível acessar o Holyrics.',
+            ),
+          );
+        }
+
+        const result = await response.json();
+        connectionResult.textContent = `${result.message} Resposta HTTP ${result.statusCode} em ${result.latencyMs} ms.`;
+        connectionResult.classList.add('connection-result--success');
+      } catch (error) {
+        connectionResult.textContent =
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível acessar o Holyrics.';
+        connectionResult.classList.add('connection-result--error');
       } finally {
         setBusy(false);
       }

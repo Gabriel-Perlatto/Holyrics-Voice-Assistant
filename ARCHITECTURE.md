@@ -164,6 +164,45 @@ Responsabilidades:
 
 Nenhum outro módulo deve chamar a API do Holyrics diretamente.
 
+Implementação atual:
+
+```txt
+src/modules/holyrics/
+├── controllers/
+├── exceptions/
+├── interfaces/
+├── providers/
+├── services/
+└── holyrics.module.ts
+```
+
+Responsabilidades por camada:
+
+- controller: expor ações da integração para a API local;
+- service: obter configurações persistidas e traduzir falhas para mensagens
+  compreensíveis;
+- provider: realizar a comunicação HTTP externa;
+- interfaces: manter o serviço desacoplado da implementação HTTP.
+
+O `HolyricsModule` importa o `SettingsModule` e usa somente o
+`SettingsService` para obter host e porta. O módulo de configurações não
+realiza chamadas externas.
+
+Endpoint local atual:
+
+```txt
+POST /api/holyrics/test-connection
+```
+
+O provider executa `GET /` no host e porta configurados, com timeout de três
+segundos e sem seguir redirecionamentos. Qualquer resposta HTTP comprova que o
+endereço está acessível, independentemente do status retornado.
+
+Limitação: esse teste confirma conectividade HTTP, mas não garante que o
+servidor encontrado seja realmente o Holyrics. Nenhum endpoint de comando,
+Bíblia, louvor ou apresentação é utilizado nesta fase. Consulte
+`docs/holyrics.md`.
+
 ---
 
 # Speech Module
