@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BibleModule } from '../modules/bible/bible.module';
+import { CommandModule } from '../modules/command/command.module';
 import { HolyricsModule } from '../modules/holyrics/holyrics.module';
 import { RealtimeModule } from '../modules/realtime/realtime.module';
 import { SettingsModule } from '../modules/settings/settings.module';
@@ -11,6 +12,7 @@ import { AppController } from './app.controller';
   imports: [
     RealtimeModule,
     BibleModule,
+    CommandModule,
     HolyricsModule,
     SettingsModule,
     SpeechModule,

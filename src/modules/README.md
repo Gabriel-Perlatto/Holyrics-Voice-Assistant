@@ -9,6 +9,8 @@ Módulos atuais:
 - `settings`: validação e persistência SQLite das configurações locais.
 - `holyrics`: teste isolado de conectividade HTTP com o endereço configurado.
 - `bible`: metadados bíblicos, aliases pt-BR e contexto inicial por provider.
+- `realtime`: eventos Socket.IO entre o NestJS e navegadores locais.
+- `speech`: captura e transcrição local através de `SpeechProvider`.
+- `command`: interpretação determinística de transcrições sem execução.
 
-Módulos de voz, comandos, louvor e tempo real não devem ser criados antes das
-respectivas fases.
+O módulo de louvor ainda não foi iniciado.

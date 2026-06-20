@@ -147,23 +147,39 @@ Na Phase 7, erros do provider usam `source: "speech"`.
 }
 ```
 
-O texto é transmitido sem interpretação. Áudio bruto nunca é enviado pelo
-WebSocket.
+O texto é transmitido pelo evento de transcrição. Áudio bruto nunca é enviado
+pelo WebSocket. Na Phase 8, somente transcrições finais seguem também para o
+`CommandModule`.
+
+### COMMAND_IDENTIFIED
+
+Emitido após interpretação determinística de uma transcrição final ou chamada
+explícita ao endpoint de interpretação:
+
+```json
+{
+  "type": "BIBLE_REFERENCE",
+  "book": "joao",
+  "chapter": 3,
+  "verse": 16,
+  "confidence": 1
+}
+```
+
+O payload não repete o texto transcrito.
 
 ## Eventos ainda reservados
 
-Os tipos abaixo continuam sem emissão:
-
-- `COMMAND_IDENTIFIED`;
 - `COMMAND_EXECUTED`;
 - `SONG_CHANGED`.
 
-Nenhuma funcionalidade de comando ou louvor foi criada.
+Nenhum comando é executado e nenhuma funcionalidade de louvor foi criada.
 
 ## Frontend
 
 `/settings` exibe o estado da conexão, o último evento recebido e reflete
-eventos de configurações, conexão Holyrics, captura e transcrição.
+eventos de configurações, conexão Holyrics, captura, transcrição e comando
+identificado.
 
 `/preacher` exibe o estado da conexão e atualiza versão, livro, capítulo e
 versículo ao receber `BIBLE_CHANGED`, mantendo o fluxo manual HTTP existente.

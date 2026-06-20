@@ -22,7 +22,8 @@
         <p>
           Defina os dados locais e valide a autenticação no API Server oficial
           do Holyrics. Configure também o reconhecimento local, que transforma
-          áudio em texto sem interpretar ou executar comandos.
+          áudio em texto. O interpretador identifica comandos de forma
+          determinística, mas não executa ações.
         </p>
       </section>
 
@@ -268,6 +269,31 @@
         >
           Salve o modelo e o microfone antes de iniciar.
         </p>
+      </section>
+
+      <section class="settings-panel" aria-labelledby="command-title">
+        <div class="settings-panel__header">
+          <div>
+            <p class="eyebrow">Somente leitura</p>
+            <h2 id="command-title">Diagnóstico de comandos</h2>
+          </div>
+          <span class="status-badge">Sem execução</span>
+        </div>
+
+        <p class="field-group__description">
+          Esta seção mostra o resultado do interpretador. Nenhum comando é
+          enviado ao Holyrics e nenhuma passagem é alterada automaticamente.
+        </p>
+
+        <div class="transcription-panel">
+          <span>Última transcrição</span>
+          <p data-command-transcription>Nenhuma transcrição processada.</p>
+        </div>
+
+        <div class="transcription-panel">
+          <span>Último comando identificado</span>
+          <p data-command-identified>Nenhum comando identificado.</p>
+        </div>
       </section>
 
       <section class="status-panel" aria-labelledby="system-status-title">

@@ -1,4 +1,5 @@
 import { RealtimeEventType } from '../enums/realtime-event-type.enum';
+import type { IdentifiedCommand } from '../../command/interfaces/command.interface';
 
 export interface HolyricsConnectedPayload {
   connected: true;
@@ -67,7 +68,7 @@ export interface RealtimeEventPayloadMap {
   [RealtimeEventType.SETTINGS_UPDATED]: SettingsUpdatedPayload;
   [RealtimeEventType.SYSTEM_ERROR]: SystemErrorPayload;
   [RealtimeEventType.TRANSCRIPTION_RECEIVED]: TranscriptionReceivedPayload;
-  [RealtimeEventType.COMMAND_IDENTIFIED]: Record<string, never>;
+  [RealtimeEventType.COMMAND_IDENTIFIED]: IdentifiedCommand;
   [RealtimeEventType.COMMAND_EXECUTED]: Record<string, never>;
   [RealtimeEventType.SPEECH_STARTED]: SpeechStartedPayload;
   [RealtimeEventType.SPEECH_STOPPED]: SpeechStoppedPayload;

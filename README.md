@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0 a 7** estão concluídas. Esta versão contém:
+As **Phases 0 a 8** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -45,11 +45,16 @@ As **Phases 0 a 7** estão concluídas. Esta versão contém:
 - carregamento local de modelos Vosk;
 - enumeração e captura do microfone local;
 - transcrição parcial e final em tempo real;
-- controles de início/parada e status em `/settings`.
+- controles de início/parada e status em `/settings`;
+- Command Module com parser determinístico em `pt-BR`;
+- referências bíblicas estruturadas reutilizando aliases existentes;
+- comandos de próximo/anterior versículo e capítulo;
+- evento `COMMAND_IDENTIFIED`;
+- diagnóstico de transcrição e comando em `/settings`.
 
 Esta fase não inclui apresentação real da passagem no Holyrics, texto bíblico,
-louvor, interpretação de comandos, navegação bíblica automática, controle do
-Holyrics por voz, Command Module ou funcionalidades de fases futuras.
+louvor, execução de comandos, navegação bíblica automática, controle do
+Holyrics por voz, IA generativa ou funcionalidades de fases futuras.
 
 ## Requisitos
 
@@ -140,6 +145,8 @@ Endpoint disponível:
 - `POST /api/speech/initialize` — valida e carrega o modelo configurado.
 - `POST /api/speech/start` — inicia captura e transcrição.
 - `POST /api/speech/stop` — para a captura.
+- `GET /api/commands/status` — último diagnóstico e contexto interno.
+- `POST /api/commands/interpret` — interpreta texto sem executar ações.
 
 Exemplo:
 
@@ -291,7 +298,11 @@ Os testes atuais cobrem:
 - persistência/restauração da versão favorita no `localStorage`;
 - serviço e gateway de eventos em tempo real;
 - payloads seguros de configurações, Bíblia e Holyrics;
-- emissão de eventos sem depender de navegador ou Holyrics real.
+- emissão de eventos sem depender de navegador ou Holyrics real;
+- referências bíblicas, aliases e conteúdo inválido;
+- comandos de navegação de versículo e capítulo;
+- integração de transcrições finais com o Command Module;
+- ausência de emissão de `COMMAND_EXECUTED`.
 
 ## Estrutura
 
@@ -415,3 +426,15 @@ sem derrubar a aplicação.
 Transcrições são exibidas e transmitidas sem interpretação. A Phase 7 não cria
 Command Module, não acessa BibleModule e não controla o Holyrics. Consulte
 [`docs/speech-providers.md`](docs/speech-providers.md).
+
+## Decisões técnicas da Phase 8
+
+O `CommandModule` usa um parser local e determinístico. Nomes, abreviações e
+aliases são lidos dos dados existentes do `BibleModule`; nenhuma lista bíblica
+foi duplicada.
+
+Somente transcrições finais são interpretadas. O resultado é emitido como
+`COMMAND_IDENTIFIED` e pode ser consultado em `/settings`. O contexto interno
+do módulo não altera o `BibleModule`, a tela do pregador ou o Holyrics.
+`COMMAND_EXECUTED` não é emitido. Consulte
+[`docs/command-interpreter.md`](docs/command-interpreter.md).

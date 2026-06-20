@@ -313,14 +313,15 @@ Apenas transformar áudio em texto.
 
 # Command Module
 
-Cérebro principal da aplicação.
+Responsável por transformar texto em comandos internos estruturados.
 
 Responsabilidades:
 
 - interpretar textos
-- interpretar ações da interface
 - determinar intenção
-- decidir ação final
+- validar referências bíblicas determinísticas
+- manter contexto interno para uso futuro
+- emitir comandos identificados
 
 Exemplos:
 
@@ -330,7 +331,39 @@ próximo versículo
 Romanos capítulo 8
 ```
 
-O módulo deve converter entradas em comandos internos.
+Implementação da Phase 8:
+
+```txt
+src/modules/command/
+├── controllers/
+├── dto/
+├── enums/
+├── interfaces/
+├── parsers/
+├── services/
+├── tests/
+└── command.module.ts
+```
+
+O `PtBrCommandParser` usa os nomes, abreviações e aliases definidos nos dados
+locais do `BibleModule`, sem duplicar a lista. O parser aceita somente regras
+explícitas e retorna `UNKNOWN` para conteúdo inválido.
+
+O `CommandService` recebe transcrições finais do `SpeechService`, mantém o
+último diagnóstico e emite `COMMAND_IDENTIFIED`. O contexto de livro, capítulo
+e versículo pertence ao próprio `CommandModule` e não altera o
+`BibleContextService`.
+
+Endpoints:
+
+```txt
+GET  /api/commands/status
+POST /api/commands/interpret
+```
+
+O módulo não executa ações, não chama o `HolyricsModule`, não altera a passagem
+exibida e não emite `COMMAND_EXECUTED`. Consulte
+`docs/command-interpreter.md`.
 
 ---
 
@@ -551,10 +584,12 @@ Na Phase 7, também são emitidos `SPEECH_STARTED`, `SPEECH_STOPPED` e
 `TRANSCRIPTION_RECEIVED`. Erros do provider usam `SYSTEM_ERROR` com
 `source: "speech"`.
 
-Os tipos `COMMAND_IDENTIFIED`, `COMMAND_EXECUTED` e `SONG_CHANGED` continuam
-reservados e não são emitidos. Payloads não podem conter áudio, token, host,
-porta ou configurações sensíveis. O WebSocket comunica somente NestJS e
-navegadores; não acessa o Holyrics. Consulte `docs/realtime.md`.
+Na Phase 8, `COMMAND_IDENTIFIED` também é emitido para comandos reconhecidos ou
+`UNKNOWN`. O payload contém apenas comando estruturado e confiança, sem a
+transcrição. `COMMAND_EXECUTED` e `SONG_CHANGED` continuam reservados e não são
+emitidos. Payloads não podem conter áudio, token, host, porta ou configurações
+sensíveis. O WebSocket comunica somente NestJS e navegadores; não acessa o
+Holyrics. Consulte `docs/realtime.md`.
 
 ---
 

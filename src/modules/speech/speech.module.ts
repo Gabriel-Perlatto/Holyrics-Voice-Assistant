@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CommandModule } from '../command/command.module';
 import { SettingsModule } from '../settings/settings.module';
 import { SpeechController } from './controllers/speech.controller';
 import { SPEECH_PROVIDER } from './interfaces/speech-provider.interface';
@@ -12,7 +13,7 @@ import { VoskSpeechProvider } from './providers/vosk-speech.provider';
 import { SpeechService } from './services/speech.service';
 
 @Module({
-  imports: [SettingsModule],
+  imports: [CommandModule, SettingsModule],
   controllers: [SpeechController],
   providers: [
     FfmpegAudioCapture,

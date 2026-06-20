@@ -510,39 +510,48 @@ Fora de escopo nesta fase:
 
 Objetivo:
 
-Transformar texto transcrito em comandos úteis.
+Transformar texto transcrito em comandos estruturados, sem executar ações.
+
+Status: **Concluída em 20 de junho de 2026.**
 
 Tarefas:
 
-- criar Command Module
-- criar estrutura de intents
-- criar parser básico para referências bíblicas em `pt-BR`
-- interpretar livro, capítulo e versículo
-- interpretar comandos:
-  - próximo
-  - próximo versículo
-  - versículo seguinte
-  - anterior
-  - voltar
-  - versículo anterior
-
-- manter contexto bíblico atual
-- evitar falsos positivos simples
-- integrar comandos com Bible Module
-- integrar comandos com Holyrics Module
-- emitir eventos de comando identificado/executado
+- [x] criar Command Module
+- [x] criar estrutura de intents
+- [x] criar parser determinístico para referências bíblicas em `pt-BR`
+- [x] interpretar livro, capítulo e versículo
+- [x] interpretar próximo/anterior versículo
+- [x] interpretar próximo/anterior capítulo
+- [x] reutilizar aliases existentes do Bible Module sem duplicar listas
+- [x] criar contexto interno para referência futura
+- [x] evitar falsos positivos simples por correspondência integral
+- [x] interpretar somente transcrições finais
+- [x] emitir `COMMAND_IDENTIFIED` com payload seguro
+- [x] retornar `UNKNOWN` para conteúdo não reconhecido
+- [x] adicionar diagnóstico somente leitura em `/settings`
+- [x] manter `COMMAND_EXECUTED` sem emissão
+- [x] não integrar com Holyrics
+- [x] não alterar o contexto ou a navegação do Bible Module
 
 Critérios de aceite:
 
-- comando “João 3:16” abre João 3:16
-- comando “próximo versículo” avança para João 3:17 quando o contexto atual é João 3:16
-- frase “o próximo irmão” não deve avançar versículo
-- comandos usam a versão bíblica selecionada
-- comandos são testáveis sem Holyrics real
+- [x] comando “João 3:16” gera referência estruturada para João 3:16
+- [x] comando “próximo versículo” gera `NEXT_VERSE`
+- [x] frase “o próximo irmão” gera `UNKNOWN`
+- [x] nenhum comando é executado
+- [x] nenhuma passagem é alterada automaticamente
+- [x] comandos são testáveis sem Holyrics real
+- [x] testes passam
+- [x] build passa
 
 Fora de escopo nesta fase:
 
+- execução de comandos
+- controle ou chamadas ao Holyrics
+- alteração automática da passagem exibida
+- integração com a interface do pregador
 - interpretação avançada com IA
+- LLMs e NLP externo
 - suporte completo a todos os idiomas
 - comandos complexos de louvor
 

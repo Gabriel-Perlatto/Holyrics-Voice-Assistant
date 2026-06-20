@@ -21,6 +21,23 @@
     }
   };
 
+  const formatCommand = (command) => {
+    if (!command?.type) {
+      return 'Nenhum comando identificado.';
+    }
+
+    const reference =
+      command.type === 'BIBLE_REFERENCE'
+        ? ` · ${command.book} ${command.chapter}:${command.verse}`
+        : '';
+    const confidence =
+      typeof command.confidence === 'number'
+        ? ` · confiança ${command.confidence}`
+        : '';
+
+    return `${command.type}${reference}${confidence}`;
+  };
+
   const loadStatus = async () => {
     const stateElement = document.querySelector('[data-system-state]');
     const urlElement = document.querySelector('[data-system-url]');
@@ -556,6 +573,40 @@
     }
   };
 
+  const initializeCommandDiagnostics = async () => {
+    const transcriptionElement = document.querySelector(
+      '[data-command-transcription]',
+    );
+    const commandElement = document.querySelector(
+      '[data-command-identified]',
+    );
+
+    if (!transcriptionElement || !commandElement) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/commands/status', {
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const status = await response.json();
+      transcriptionElement.textContent = status.lastTranscription
+        ? `"${status.lastTranscription}"`
+        : 'Nenhuma transcrição processada.';
+      commandElement.textContent = formatCommand(status.lastCommand);
+    } catch {
+      transcriptionElement.textContent =
+        'Não foi possível consultar o diagnóstico.';
+      commandElement.textContent =
+        'Não foi possível consultar o diagnóstico.';
+    }
+  };
+
   const initializeRealtime = () => {
     const statusElement = document.querySelector(
       '[data-realtime-status]',
@@ -647,11 +698,29 @@
           const transcription = document.querySelector(
             '[data-speech-transcription]',
           );
+          const commandTranscription = document.querySelector(
+            '[data-command-transcription]',
+          );
 
           if (transcription) {
             transcription.textContent =
               `"${event.payload.text}"` +
               (event.payload.final ? '' : ' (parcial)');
+          }
+          if (commandTranscription) {
+            commandTranscription.textContent =
+              `"${event.payload.text}"` +
+              (event.payload.final ? '' : ' (parcial)');
+          }
+        }
+
+        if (event.type === 'COMMAND_IDENTIFIED') {
+          const command = document.querySelector(
+            '[data-command-identified]',
+          );
+
+          if (command) {
+            command.textContent = formatCommand(event.payload);
           }
         }
 
@@ -762,5 +831,6 @@
   void loadStatus();
   void initializeSettingsForm();
   void initializeSpeechPanel();
+  void initializeCommandDiagnostics();
   initializeRealtime();
 })();

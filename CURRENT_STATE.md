@@ -6,7 +6,7 @@ Holyrics Voice Assistant
 
 ## Status Geral
 
-Fase atual: 7 (Speech Recognition MVP)
+Fase atual: 8 (Command Interpreter MVP)
 
 ## Fases concluídas
 
@@ -19,6 +19,8 @@ Fase atual: 7 (Speech Recognition MVP)
 - Phase 5.5 — Holyrics Authentication & Real API Integration
 - Phase 6 — Realtime Events MVP
 - Phase 6.5 — Speech Infrastructure Preparation
+- Phase 7 — Speech Recognition MVP
+- Phase 8 — Command Interpreter MVP
 
 ## Módulos existentes
 
@@ -27,6 +29,8 @@ Fase atual: 7 (Speech Recognition MVP)
 - HolyricsModule
 - BibleModule
 - RealtimeModule
+- SpeechModule
+- CommandModule
 
 ## Funcionalidades prontas
 
@@ -39,14 +43,21 @@ Fase atual: 7 (Speech Recognition MVP)
 - Eventos em tempo real
 - Estrutura de modelos de voz
 - Validação de caminho do modelo
+- Reconhecimento de voz local com Vosk
+- Parser determinístico de comandos bíblicos em `pt-BR`
+- Referências bíblicas estruturadas com aliases existentes
+- Comandos de próximo/anterior versículo e capítulo
+- Evento `COMMAND_IDENTIFIED`
+- Diagnóstico somente leitura em `/settings`
 
 ## Limitações atuais
 
-- Sem reconhecimento de voz
-- Sem interpretação de comandos
 - Sem controle automático do Holyrics
+- Sem execução de comandos
+- Sem alteração automática da passagem exibida
 - Sem módulo de louvor
 - Sem polling do Holyrics
+- Números por extenso não são interpretados pelo parser
 
 ## Modelo disponível
 
@@ -54,4 +65,6 @@ Modelo Vosk português já configurado localmente.
 
 ## Próxima fase
 
-Phase 7 — Speech Recognition MVP
+Phase 9 — Worship Interface MVP
+
+A Phase 9 ainda não foi iniciada.

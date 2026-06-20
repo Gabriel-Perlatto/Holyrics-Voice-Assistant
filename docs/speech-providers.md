@@ -148,14 +148,16 @@ POST /api/speech/start
 POST /api/speech/stop
 ```
 
-## Eventos
+## Eventos próprios do Speech Module
 
 - `SPEECH_STARTED`;
 - `SPEECH_STOPPED`;
 - `TRANSCRIPTION_RECEIVED`;
 - `SYSTEM_ERROR` com origem `speech`.
 
-Não são emitidos eventos de comando.
+O Speech Module não interpreta o texto. Na Phase 8, ele encaminha somente
+transcrições finais ao `CommandService`, que é responsável por emitir
+`COMMAND_IDENTIFIED`. Transcrições parciais não são interpretadas.
 
 ## Providers futuros
 

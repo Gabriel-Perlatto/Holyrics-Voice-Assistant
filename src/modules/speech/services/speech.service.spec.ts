@@ -1,4 +1,5 @@
 import { ServiceUnavailableException } from '@nestjs/common';
+import type { CommandService } from '../../command/services/command.service';
 import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
 import type { RealtimeService } from '../../realtime/services/realtime.service';
 import type { SettingsService } from '../../settings/services/settings.service';
@@ -63,13 +64,24 @@ describe('SpeechService', () => {
       emitSystemError: jest.fn(),
     }) as unknown as jest.Mocked<RealtimeService>;
 
+  const createCommandService = (): jest.Mocked<CommandService> =>
+    ({
+      identify: jest.fn(),
+    }) as unknown as jest.Mocked<CommandService>;
+
   const createService = () => {
     const provider = createProvider();
     const settings = createSettingsService();
     const realtime = createRealtimeService();
-    const service = new SpeechService(provider, settings, realtime);
+    const command = createCommandService();
+    const service = new SpeechService(
+      provider,
+      settings,
+      realtime,
+      command,
+    );
 
-    return { provider, settings, realtime, service };
+    return { provider, settings, realtime, command, service };
   };
 
   it('inicializa o provider com as configurações persistidas', async () => {
@@ -141,8 +153,8 @@ describe('SpeechService', () => {
     );
   });
 
-  it('repassa transcrições sem interpretar o texto', async () => {
-    const { provider, realtime, service } = createService();
+  it('repassa transcrições finais ao Command Module', async () => {
+    const { provider, realtime, command, service } = createService();
     let handlers: SpeechProviderHandlers | undefined;
     provider.initialize.mockImplementation(async (_config, value) => {
       handlers = value;
@@ -169,10 +181,28 @@ describe('SpeechService', () => {
     expect(service.getStatus().lastTranscription?.text).toBe(
       'João capítulo três',
     );
-    expect(realtime.emit).not.toHaveBeenCalledWith(
-      RealtimeEventType.COMMAND_IDENTIFIED,
-      expect.anything(),
+    expect(command.identify).toHaveBeenCalledWith(
+      'João capítulo três',
     );
+  });
+
+  it('não interpreta transcrições parciais', async () => {
+    const { provider, command, service } = createService();
+    let handlers: SpeechProviderHandlers | undefined;
+    provider.initialize.mockImplementation(async (_config, value) => {
+      handlers = value;
+      return readyStatus;
+    });
+    await service.initialize();
+
+    handlers?.onTranscription({
+      text: 'João três',
+      final: false,
+      provider: 'vosk',
+      receivedAt: '2026-06-20T00:00:00.000Z',
+    });
+
+    expect(command.identify).not.toHaveBeenCalled();
   });
 
   it('respeita inicialização automática desativada', async () => {

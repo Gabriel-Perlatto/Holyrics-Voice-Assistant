@@ -7,6 +7,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { basename } from 'node:path';
+import { CommandService } from '../../command/services/command.service';
 import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
 import { RealtimeService } from '../../realtime/services/realtime.service';
 import { SettingsService } from '../../settings/services/settings.service';
@@ -37,6 +38,7 @@ export class SpeechService
     private readonly provider: SpeechProvider,
     private readonly settingsService: SettingsService,
     private readonly realtimeService: RealtimeService,
+    private readonly commandService: CommandService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -189,6 +191,10 @@ export class SpeechService
       RealtimeEventType.TRANSCRIPTION_RECEIVED,
       transcription,
     );
+
+    if (transcription.final) {
+      this.commandService.identify(transcription.text);
+    }
   }
 
   private handleProviderError(error: SpeechProviderError): void {
