@@ -252,11 +252,51 @@ diretório. Ele não inspeciona arquivos internos, não carrega modelos e não
 inicia bibliotecas de reconhecimento. Essa separação mantém provider, modelo e
 preferência de instalação independentes.
 
-O futuro Speech Module deverá selecionar o modelo configurado e depender de
-uma interface `SpeechProvider`. Providers não devem determinar a organização
-dos idiomas, e modelos não devem introduzir dependência direta na regra de
-negócio. Novos idiomas serão adicionados por diretório e configuração, sem
-alterar o contrato do provider.
+Implementação da Phase 7:
+
+```txt
+src/modules/speech/
+├── controllers/
+├── enums/
+├── interfaces/
+├── providers/
+├── services/
+└── speech.module.ts
+```
+
+O `SpeechService` obtém caminho, idioma, microfone e preferência de início
+automático do `SettingsModule`. Ele orquestra estado e eventos, mas não conhece
+o binding Vosk nem interpreta o texto.
+
+O contrato `SpeechProvider` define `initialize()`, `start()`, `stop()`,
+`getStatus()`, enumeração de microfones e liberação de recursos.
+
+O `VoskSpeechProvider` é a única camada que conhece `vosk`. Ele valida modelos
+legados e atuais, carrega modelo e reconhecedor e converte resultados parciais
+ou finais em `SpeechTranscription`. A dependência é opcional para que uma falha
+do binding nativo não impeça o restante da aplicação de iniciar.
+
+A captura local é encapsulada por `FfmpegAudioCapture`. O processo entrega PCM
+assinado de 16 bits, mono, a 16 kHz. Linux usa PulseAudio/PipeWire; Windows usa
+DirectShow; macOS usa AVFoundation. O identificador persistido em `microphone`
+é passado somente à camada de captura.
+
+Endpoints:
+
+```txt
+GET  /api/speech/status
+GET  /api/speech/microphones
+POST /api/speech/initialize
+POST /api/speech/start
+POST /api/speech/stop
+```
+
+O início automático é opt-in por `speechAutoStart`. Configuração incompleta,
+modelo inválido, microfone ausente ou falha nativa mantém o provider parado e
+produz erro seguro; nenhuma dessas situações encerra o NestJS.
+
+Novos providers devem implementar o mesmo contrato sem alterar o serviço,
+SettingsModule ou frontend.
 
 Responsabilidades:
 
@@ -439,6 +479,7 @@ Existe uma única configuração global nesta fase. O modelo contém:
 - `language`;
 - `microphone`;
 - `voskModelPath`;
+- `speechAutoStart`;
 - `updatedAt`.
 
 Os campos de microfone e modelo Vosk são valores opcionais persistidos. Para o
@@ -498,7 +539,7 @@ conexões e broadcast, sem regra de negócio.
 O namespace é `/realtime`. Todo evento usa o envelope
 `{ type, payload, occurredAt }`.
 
-Eventos emitidos na Phase 6:
+Eventos emitidos:
 
 - `SETTINGS_UPDATED`, pelo `SettingsModule`;
 - `BIBLE_CHANGED`, pelo `BibleModule`;
@@ -506,10 +547,14 @@ Eventos emitidos na Phase 6:
 - `HOLYRICS_DISCONNECTED`, pelo `HolyricsModule`;
 - `SYSTEM_ERROR`, disponível para erros seguros do sistema.
 
-Os tipos de voz, comando e louvor existem apenas como contrato reservado e
-não são emitidos. Payloads não podem conter token, host, porta ou
-configurações sensíveis. O WebSocket comunica somente NestJS e navegadores;
-não acessa o Holyrics. Consulte `docs/realtime.md`.
+Na Phase 7, também são emitidos `SPEECH_STARTED`, `SPEECH_STOPPED` e
+`TRANSCRIPTION_RECEIVED`. Erros do provider usam `SYSTEM_ERROR` com
+`source: "speech"`.
+
+Os tipos `COMMAND_IDENTIFIED`, `COMMAND_EXECUTED` e `SONG_CHANGED` continuam
+reservados e não são emitidos. Payloads não podem conter áudio, token, host,
+porta ou configurações sensíveis. O WebSocket comunica somente NestJS e
+navegadores; não acessa o Holyrics. Consulte `docs/realtime.md`.
 
 ---
 

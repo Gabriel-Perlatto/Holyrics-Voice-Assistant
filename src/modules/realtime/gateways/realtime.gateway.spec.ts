@@ -15,6 +15,7 @@ describe('RealtimeGateway', () => {
         language: 'pt-BR',
         microphoneConfigured: false,
         voskModelConfigured: false,
+        speechAutoStart: false,
         updatedAt: '2026-06-20T00:00:00.000Z',
       },
       occurredAt: '2026-06-20T00:00:00.000Z',

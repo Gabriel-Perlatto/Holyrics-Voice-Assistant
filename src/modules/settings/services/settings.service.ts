@@ -49,6 +49,11 @@ export class SettingsService {
     const voskModelPath = this.modelPathService.normalize(
       input.voskModelPath,
     );
+    const speechAutoStart = this.validateBoolean(
+      input.speechAutoStart,
+      currentSettings.speechAutoStart,
+      'Inicialização automática da captura',
+    );
 
     const settings = this.settingsRepository.save({
       holyricsHost,
@@ -57,6 +62,7 @@ export class SettingsService {
       language,
       microphone,
       voskModelPath,
+      speechAutoStart,
     });
 
     const publicSettings = this.toPublicSettings(settings);
@@ -73,6 +79,7 @@ export class SettingsService {
         language: publicSettings.language,
         microphoneConfigured: Boolean(publicSettings.microphone),
         voskModelConfigured: Boolean(publicSettings.voskModelPath),
+        speechAutoStart: publicSettings.speechAutoStart,
         updatedAt: publicSettings.updatedAt,
       },
     );
@@ -200,6 +207,22 @@ export class SettingsService {
     }
 
     return text;
+  }
+
+  private validateBoolean(
+    value: unknown,
+    currentValue: boolean,
+    fieldName: string,
+  ): boolean {
+    if (value === undefined) {
+      return currentValue;
+    }
+
+    if (typeof value !== 'boolean') {
+      throw new BadRequestException(`${fieldName} deve ser verdadeiro ou falso.`);
+    }
+
+    return value;
   }
 
   private toPublicSettings(settings: Settings): PublicSettings {

@@ -32,3 +32,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Vosk API
+
+O reconhecimento local utiliza o binding Node e a biblioteca Vosk:
+
+- Projeto: Vosk API
+- Versão do binding Node: `0.3.39`
+- Repositório: https://github.com/alphacep/vosk-api
+- Licença: Apache License 2.0
+
+O modelo de idioma não é distribuído pelo repositório. Cada instalação deve
+verificar a licença e a origem do modelo colocado em `models/`.

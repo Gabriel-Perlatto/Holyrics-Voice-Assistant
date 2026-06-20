@@ -5,6 +5,7 @@ export interface Settings {
   language: string;
   microphone: string | null;
   voskModelPath: string | null;
+  speechAutoStart: boolean;
   updatedAt: string;
 }
 

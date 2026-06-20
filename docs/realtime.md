@@ -49,6 +49,7 @@ Emitido pelo `SettingsService` após persistência bem-sucedida.
   "language": "pt-BR",
   "microphoneConfigured": false,
   "voskModelConfigured": false,
+  "speechAutoStart": false,
   "updatedAt": "2026-06-20T00:00:00.000Z"
 }
 ```
@@ -112,23 +113,57 @@ Estrutura disponível através de `RealtimeService.emitSystemError()`:
 }
 ```
 
-## Eventos reservados
+Na Phase 7, erros do provider usam `source: "speech"`.
 
-Os tipos abaixo existem, mas não são disparados na Phase 6:
+### SPEECH_STARTED
 
-- `TRANSCRIPTION_RECEIVED`;
+```json
+{
+  "provider": "vosk",
+  "model": "vosk-model-small-pt-0.3",
+  "microphone": "default"
+}
+```
+
+### SPEECH_STOPPED
+
+```json
+{
+  "provider": "vosk",
+  "reason": "requested"
+}
+```
+
+`reason` pode ser `requested`, `capture-error` ou `shutdown`.
+
+### TRANSCRIPTION_RECEIVED
+
+```json
+{
+  "text": "texto reconhecido",
+  "final": true,
+  "provider": "vosk",
+  "receivedAt": "2026-06-20T00:00:00.000Z"
+}
+```
+
+O texto é transmitido sem interpretação. Áudio bruto nunca é enviado pelo
+WebSocket.
+
+## Eventos ainda reservados
+
+Os tipos abaixo continuam sem emissão:
+
 - `COMMAND_IDENTIFIED`;
 - `COMMAND_EXECUTED`;
-- `SPEECH_STARTED`;
-- `SPEECH_STOPPED`;
 - `SONG_CHANGED`.
 
-Nenhuma funcionalidade de voz, comando ou louvor foi criada.
+Nenhuma funcionalidade de comando ou louvor foi criada.
 
 ## Frontend
 
 `/settings` exibe o estado da conexão, o último evento recebido e reflete
-eventos de configurações e conexão Holyrics.
+eventos de configurações, conexão Holyrics, captura e transcrição.
 
 `/preacher` exibe o estado da conexão e atualiza versão, livro, capítulo e
 versículo ao receber `BIBLE_CHANGED`, mantendo o fluxo manual HTTP existente.

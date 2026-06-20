@@ -462,32 +462,47 @@ Objetivo:
 
 Adicionar reconhecimento de voz local com Vosk.
 
+Status: **Concluída em 20 de junho de 2026.**
+
 Tarefas:
 
-- criar Speech Module
-- criar interface `SpeechProvider`
-- implementar `VoskSpeechProvider`
-- permitir selecionar modelo Vosk
-- permitir iniciar captura
-- permitir parar captura
-- emitir transcrições parciais, se disponível
-- emitir transcrições finais
-- exibir transcrição na tela de Configurações
-- salvar estado de captura automática
+- [x] criar Speech Module
+- [x] criar interface `SpeechProvider`
+- [x] implementar `VoskSpeechProvider`
+- [x] validar estrutura do modelo configurado
+- [x] enumerar e selecionar microfone local
+- [x] capturar PCM mono a 16 kHz com `ffmpeg`
+- [x] permitir iniciar captura
+- [x] permitir parar captura
+- [x] emitir transcrições parciais, quando disponíveis
+- [x] emitir transcrições finais
+- [x] exibir status e transcrição na tela de Configurações
+- [x] salvar estado de captura automática
+- [x] emitir eventos realtime de voz e erros seguros
+- [x] criar testes sem Vosk ou áudio real
 
 Critérios de aceite:
 
-- sistema transcreve áudio localmente
-- sistema funciona sem internet
-- Vosk fica atrás de uma interface
-- backend não fica acoplado diretamente ao Vosk
-- erros de microfone/modelo são exibidos claramente
+- [x] sistema transcreve áudio localmente
+- [x] pipeline local de áudio para transcrição está implementado
+- [x] sistema funciona sem internet durante a operação
+- [x] Vosk fica atrás de uma interface
+- [x] backend não fica acoplado diretamente ao Vosk
+- [x] erros de microfone/modelo são exibidos claramente
+- [x] modelo legado real carrega com sucesso
+- [x] captura real inicia e para no ambiente local
+- [x] testes passam
+- [x] build passa
 
 Fora de escopo nesta fase:
 
 - Whisper
 - IA generativa
 - reconhecimento automático de canto
+- interpretação de comandos
+- navegação bíblica por voz
+- controle do Holyrics
+- funcionalidades de louvor
 
 ---
 

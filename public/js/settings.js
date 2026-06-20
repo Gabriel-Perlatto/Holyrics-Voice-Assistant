@@ -100,6 +100,9 @@
     const modelPathStatus = document.querySelector(
       '[data-model-path-status]',
     );
+    const microphoneSelect = document.querySelector(
+      '[data-microphone-select]',
+    );
     const fields = [...document.querySelectorAll('[data-settings-field]')];
 
     if (
@@ -115,7 +118,8 @@
       !versionState ||
       !permissionsState ||
       !modelPathInput ||
-      !modelPathStatus
+      !modelPathStatus ||
+      !microphoneSelect
     ) {
       return;
     }
@@ -168,12 +172,57 @@
       form.elements.holyricsApiToken.value = '';
       form.elements.removeHolyricsApiToken.checked = false;
       form.elements.language.value = settings.language ?? 'pt-BR';
-      form.elements.microphone.value = settings.microphone ?? '';
+      const microphone = settings.microphone ?? '';
+
+      if (
+        microphone &&
+        ![...microphoneSelect.options].some(
+          (option) => option.value === microphone,
+        )
+      ) {
+        microphoneSelect.add(
+          new Option(`${microphone} (indisponível)`, microphone),
+        );
+      }
+
+      form.elements.microphone.value = microphone;
       form.elements.voskModelPath.value = settings.voskModelPath ?? '';
+      form.elements.speechAutoStart.checked =
+        settings.speechAutoStart ?? false;
       tokenState.textContent = settings.holyricsApiTokenConfigured
         ? 'Um token está salvo. Deixe o campo vazio para mantê-lo.'
         : 'Nenhum token está salvo.';
       setModelPathStatus(settings.voskModelPathStatus);
+    };
+
+    const loadMicrophones = async () => {
+      try {
+        const response = await fetch('/api/speech/microphones', {
+          headers: { Accept: 'application/json' },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const microphones = await response.json();
+        microphoneSelect.replaceChildren(
+          new Option('Selecione um microfone', ''),
+          ...microphones.map(
+            (microphone) =>
+              new Option(
+                microphone.isDefault
+                  ? `${microphone.name} — padrão`
+                  : microphone.name,
+                microphone.id,
+              ),
+          ),
+        );
+      } catch {
+        microphoneSelect.replaceChildren(
+          new Option('Não foi possível listar os microfones', ''),
+        );
+      }
     };
 
     const resetHolyricsStatus = () => {
@@ -195,6 +244,7 @@
 
     try {
       setBusy(true);
+      await loadMicrophones();
 
       const response = await fetch('/api/settings', {
         headers: { Accept: 'application/json' },
@@ -243,6 +293,7 @@
         language: form.elements.language.value,
         microphone: form.elements.microphone.value,
         voskModelPath: form.elements.voskModelPath.value,
+        speechAutoStart: form.elements.speechAutoStart.checked,
       };
       const tokenValue = form.elements.holyricsApiToken.value.trim();
 
@@ -348,6 +399,163 @@
     });
   };
 
+  const initializeSpeechPanel = async () => {
+    const stateElement = document.querySelector('[data-speech-state]');
+    const providerElement = document.querySelector(
+      '[data-speech-provider]',
+    );
+    const modelElement = document.querySelector('[data-speech-model]');
+    const microphoneElement = document.querySelector(
+      '[data-speech-microphone]',
+    );
+    const autoStartElement = document.querySelector(
+      '[data-speech-auto-start]',
+    );
+    const transcriptionElement = document.querySelector(
+      '[data-speech-transcription]',
+    );
+    const feedbackElement = document.querySelector(
+      '[data-speech-feedback]',
+    );
+    const startButton = document.querySelector('[data-speech-start]');
+    const stopButton = document.querySelector('[data-speech-stop]');
+
+    if (
+      !stateElement ||
+      !providerElement ||
+      !modelElement ||
+      !microphoneElement ||
+      !autoStartElement ||
+      !transcriptionElement ||
+      !feedbackElement ||
+      !startButton ||
+      !stopButton
+    ) {
+      return;
+    }
+
+    const stateLabels = {
+      idle: 'Parado',
+      initializing: 'Inicializando',
+      ready: 'Pronto',
+      starting: 'Iniciando',
+      listening: 'Ativo',
+      stopped: 'Parado',
+      error: 'Erro',
+    };
+
+    const renderStatus = (status) => {
+      stateElement.textContent =
+        stateLabels[status.state] ?? status.state ?? 'Indisponível';
+      stateElement.classList.toggle(
+        'status-badge--online',
+        status.state === 'ready' || status.state === 'listening',
+      );
+      stateElement.classList.toggle(
+        'status-badge--error',
+        status.state === 'error',
+      );
+      providerElement.textContent = status.provider ?? 'Vosk';
+      modelElement.textContent = status.modelLoaded
+        ? status.modelName
+        : 'Não carregado';
+      microphoneElement.textContent =
+        status.microphone ?? 'Não configurado';
+      autoStartElement.textContent = status.autoStart
+        ? 'Ativada'
+        : 'Desativada';
+      feedbackElement.textContent = status.message;
+      feedbackElement.classList.toggle(
+        'connection-result--error',
+        status.state === 'error',
+      );
+      feedbackElement.classList.toggle(
+        'connection-result--success',
+        status.state === 'ready' || status.state === 'listening',
+      );
+      startButton.disabled =
+        status.state === 'initializing' ||
+        status.state === 'starting' ||
+        status.state === 'listening';
+      stopButton.disabled = status.state !== 'listening';
+
+      if (status.lastTranscription?.text) {
+        transcriptionElement.textContent =
+          `"${status.lastTranscription.text}"` +
+          (status.lastTranscription.final ? '' : ' (parcial)');
+      }
+    };
+
+    const requestAction = async (action) => {
+      startButton.disabled = true;
+      stopButton.disabled = true;
+      feedbackElement.classList.remove(
+        'connection-result--success',
+        'connection-result--error',
+      );
+      feedbackElement.textContent =
+        action === 'start'
+          ? 'Inicializando modelo e captura...'
+          : 'Parando captura...';
+
+      try {
+        const response = await fetch(`/api/speech/${action}`, {
+          method: 'POST',
+          headers: { Accept: 'application/json' },
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            await getErrorMessage(
+              response,
+              'Não foi possível alterar a captura de voz.',
+            ),
+          );
+        }
+
+        renderStatus(await response.json());
+      } catch (error) {
+        stateElement.textContent = 'Erro';
+        stateElement.classList.remove('status-badge--online');
+        stateElement.classList.add('status-badge--error');
+        feedbackElement.textContent =
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível alterar a captura de voz.';
+        feedbackElement.classList.add('connection-result--error');
+        startButton.disabled = false;
+      }
+    };
+
+    startButton.addEventListener('click', () => {
+      void requestAction('start');
+    });
+    stopButton.addEventListener('click', () => {
+      void requestAction('stop');
+    });
+
+    try {
+      const response = await fetch('/api/speech/status', {
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      renderStatus(await response.json());
+    } catch {
+      renderStatus({
+        state: 'error',
+        provider: 'vosk',
+        modelLoaded: false,
+        microphone: null,
+        autoStart: false,
+        message: 'Não foi possível consultar o Speech Provider.',
+      });
+    }
+  };
+
   const initializeRealtime = () => {
     const statusElement = document.querySelector(
       '[data-realtime-status]',
@@ -435,6 +643,88 @@
         lastEventElement.textContent = `${event.type} às ${eventTime}`;
         updateHolyricsStatus(event);
 
+        if (event.type === 'TRANSCRIPTION_RECEIVED') {
+          const transcription = document.querySelector(
+            '[data-speech-transcription]',
+          );
+
+          if (transcription) {
+            transcription.textContent =
+              `"${event.payload.text}"` +
+              (event.payload.final ? '' : ' (parcial)');
+          }
+        }
+
+        if (event.type === 'SPEECH_STARTED') {
+          const speechState = document.querySelector(
+            '[data-speech-state]',
+          );
+          const speechModel = document.querySelector(
+            '[data-speech-model]',
+          );
+          const speechMicrophone = document.querySelector(
+            '[data-speech-microphone]',
+          );
+          const speechFeedback = document.querySelector(
+            '[data-speech-feedback]',
+          );
+
+          if (speechState) {
+            speechState.textContent = 'Ativo';
+            speechState.classList.remove('status-badge--error');
+            speechState.classList.add('status-badge--online');
+          }
+          if (speechModel) {
+            speechModel.textContent = event.payload.model;
+          }
+          if (speechMicrophone) {
+            speechMicrophone.textContent = event.payload.microphone;
+          }
+          if (speechFeedback) {
+            speechFeedback.textContent =
+              'Captura e transcrição em andamento.';
+            speechFeedback.classList.remove('connection-result--error');
+            speechFeedback.classList.add('connection-result--success');
+          }
+        }
+
+        if (event.type === 'SPEECH_STOPPED') {
+          const speechState = document.querySelector(
+            '[data-speech-state]',
+          );
+          const speechFeedback = document.querySelector(
+            '[data-speech-feedback]',
+          );
+
+          if (speechState) {
+            speechState.textContent = 'Parado';
+            speechState.classList.remove(
+              'status-badge--online',
+              'status-badge--error',
+            );
+          }
+          if (speechFeedback) {
+            speechFeedback.textContent =
+              event.payload.reason === 'capture-error'
+                ? 'A captura foi interrompida por uma falha.'
+                : 'Captura parada.';
+          }
+        }
+
+        if (
+          event.type === 'SYSTEM_ERROR' &&
+          event.payload.source === 'speech'
+        ) {
+          const speechFeedback = document.querySelector(
+            '[data-speech-feedback]',
+          );
+
+          if (speechFeedback) {
+            speechFeedback.textContent = event.payload.message;
+            speechFeedback.classList.add('connection-result--error');
+          }
+        }
+
         if (event.type === 'SETTINGS_UPDATED') {
           const tokenState = document.querySelector(
             '[data-holyrics-token-state]',
@@ -454,6 +744,16 @@
             feedback.textContent =
               'Configurações atualizadas em um cliente conectado.';
           }
+
+          const autoStart = document.querySelector(
+            '[data-speech-auto-start]',
+          );
+
+          if (autoStart) {
+            autoStart.textContent = event.payload.speechAutoStart
+              ? 'Ativada'
+              : 'Desativada';
+          }
         }
       },
     });
@@ -461,5 +761,6 @@
 
   void loadStatus();
   void initializeSettingsForm();
+  void initializeSpeechPanel();
   initializeRealtime();
 })();

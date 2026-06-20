@@ -21,8 +21,8 @@
         <h1 id="page-title">Configurações</h1>
         <p>
           Defina os dados locais e valide a autenticação no API Server oficial
-          do Holyrics. O teste consulta apenas informações e permissões; não
-          inicia apresentações nem reconhecimento de voz.
+          do Holyrics. Configure também o reconhecimento local, que transforma
+          áudio em texto sem interpretar ou executar comandos.
         </p>
       </section>
 
@@ -146,16 +146,15 @@
 
               <label class="field-group">
                 <span>Microfone selecionado</span>
-                <input
-                  type="text"
+                <select
                   name="microphone"
-                  maxlength="255"
-                  placeholder="Opcional"
-                  autocomplete="off"
                   data-settings-field
-                />
+                  data-microphone-select
+                >
+                  <option value="">Carregando entradas de áudio...</option>
+                </select>
                 <small>
-                  O dispositivo não será acessado nesta fase.
+                  A captura ocorre no computador onde o NestJS está rodando.
                 </small>
               </label>
 
@@ -172,7 +171,7 @@
                 />
                 <small>
                   Use um diretório relativo à raiz do projeto ou um caminho
-                  absoluto. O modelo não será carregado nesta fase.
+                  absoluto.
                 </small>
                 <span
                   class="model-path-status"
@@ -181,6 +180,18 @@
                   data-model-path-status
                 >
                   Verificando caminho configurado...
+                </span>
+              </label>
+
+              <label class="checkbox-field">
+                <input
+                  type="checkbox"
+                  name="speechAutoStart"
+                  data-settings-field
+                />
+                <span>
+                  Iniciar captura automaticamente quando modelo e microfone
+                  estiverem disponíveis
                 </span>
               </label>
             </div>
@@ -198,6 +209,65 @@
             ></p>
           </div>
         </form>
+      </section>
+
+      <section class="settings-panel" aria-labelledby="speech-title">
+        <div class="settings-panel__header">
+          <div>
+            <p class="eyebrow">Reconhecimento local</p>
+            <h2 id="speech-title">Speech Provider</h2>
+          </div>
+          <span class="status-badge" data-speech-state>Consultando</span>
+        </div>
+
+        <dl class="holyrics-status-list speech-status-list" aria-live="polite">
+          <div>
+            <dt>Provider</dt>
+            <dd data-speech-provider>Vosk</dd>
+          </div>
+          <div>
+            <dt>Modelo</dt>
+            <dd data-speech-model>Não carregado</dd>
+          </div>
+          <div>
+            <dt>Microfone</dt>
+            <dd data-speech-microphone>Não configurado</dd>
+          </div>
+          <div>
+            <dt>Captura automática</dt>
+            <dd data-speech-auto-start>Desativada</dd>
+          </div>
+        </dl>
+
+        <div class="transcription-panel">
+          <span>Última transcrição</span>
+          <p data-speech-transcription>Nenhuma transcrição recebida.</p>
+        </div>
+
+        <div class="speech-actions">
+          <button
+            class="primary-button"
+            type="button"
+            data-speech-start
+          >
+            Iniciar captura
+          </button>
+          <button
+            class="secondary-button"
+            type="button"
+            data-speech-stop
+          >
+            Parar captura
+          </button>
+        </div>
+        <p
+          class="connection-result"
+          role="status"
+          aria-live="polite"
+          data-speech-feedback
+        >
+          Salve o modelo e o microfone antes de iniciar.
+        </p>
       </section>
 
       <section class="status-panel" aria-labelledby="system-status-title">

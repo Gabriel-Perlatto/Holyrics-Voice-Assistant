@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0 a 6.5** estão concluídas. Esta versão contém:
+As **Phases 0 a 7** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -40,22 +40,35 @@ As **Phases 0 a 6.5** estão concluídas. Esta versão contém:
 - status em tempo real nas telas de Configurações e Pregador;
 - convenção local de modelos por idioma em `models/`;
 - validação de existência do diretório de modelo configurado;
-- status válido/inválido do caminho na tela de Configurações.
+- status válido/inválido do caminho na tela de Configurações;
+- Speech Module desacoplado por `SpeechProvider`;
+- carregamento local de modelos Vosk;
+- enumeração e captura do microfone local;
+- transcrição parcial e final em tempo real;
+- controles de início/parada e status em `/settings`.
 
 Esta fase não inclui apresentação real da passagem no Holyrics, texto bíblico,
-louvor, acesso ao microfone, carregamento do Vosk, reconhecimento de voz,
-Command Module ou funcionalidades de fases futuras.
+louvor, interpretação de comandos, navegação bíblica automática, controle do
+Holyrics por voz, Command Module ou funcionalidades de fases futuras.
 
 ## Requisitos
 
 - Node.js 20 ou superior;
-- npm 10 ou superior.
+- npm 10 ou superior;
+- `ffmpeg`;
+- PulseAudio/PipeWire e `pactl` no Linux.
 
 ## Instalação
 
 ```bash
 npm install
+npm run install:vosk
 ```
+
+O binding Vosk é opcional porque usa uma dependência nativa antiga. O segundo
+comando instala os binários N-API sem recompilá-los. Sem ele, as interfaces
+manuais continuam funcionando e o Speech Module informa que o Vosk está
+indisponível.
 
 ## Execução
 
@@ -122,6 +135,11 @@ Endpoint disponível:
 - `GET /api/bible/books/:book/chapters/:chapter/verses` — números dos
   versículos.
 - `POST /api/bible/selection` — valida e registra a passagem localmente.
+- `GET /api/speech/status` — estado atual do provider e da captura.
+- `GET /api/speech/microphones` — entradas de áudio locais disponíveis.
+- `POST /api/speech/initialize` — valida e carrega o modelo configurado.
+- `POST /api/speech/start` — inicia captura e transcrição.
+- `POST /api/speech/stop` — para a captura.
 
 Exemplo:
 
@@ -148,15 +166,16 @@ curl --request PUT http://localhost:3000/api/settings \
     "holyricsPort": 8091,
     "holyricsApiToken": "token-criado-no-holyrics",
     "language": "pt-BR",
-    "microphone": "Microfone USB",
-    "voskModelPath": "/opt/modelos/vosk-pt"
+    "microphone": "default",
+    "voskModelPath": "models/pt-BR/vosk-model-small-pt-0.3",
+    "speechAutoStart": false
   }'
 ```
 
 O token é aceito apenas para gravação e nunca é devolvido por
 `GET /api/settings`. Se o campo for omitido, o valor salvo é preservado; envie
-`null` para removê-lo. Salvar não testa automaticamente o Holyrics, não acessa
-o microfone e não carrega o modelo Vosk. A resposta inclui
+`null` para removê-lo. Salvar não testa automaticamente o Holyrics nem inicia
+a captura. A resposta inclui
 `voskModelPathStatus`, que verifica apenas se o caminho existe e é um
 diretório.
 
@@ -175,6 +194,15 @@ Depois configure `models/pt-BR/vosk-model-small-pt-0.3` em `/settings`.
 Caminhos absolutos também são aceitos para reutilizar modelos instalados em
 outro local. Consulte
 [`docs/speech-providers.md`](docs/speech-providers.md).
+
+Para testar por HTTP:
+
+```bash
+curl http://localhost:3000/api/speech/microphones
+curl --request POST http://localhost:3000/api/speech/initialize
+curl --request POST http://localhost:3000/api/speech/start
+curl --request POST http://localhost:3000/api/speech/stop
+```
 
 Teste de conexão:
 
@@ -369,6 +397,21 @@ Os modelos ficam fora do controle de versão e são organizados por código BCP
 diretório; caminhos inexistentes podem ser persistidos para que a interface
 mostre o estado inválido até o artefato ser instalado.
 
-Nenhum arquivo interno é lido e nenhuma dependência de Vosk foi adicionada.
-Provider, modelo e preferência persistida permanecem desacoplados para a
-Phase 7.
+Na Phase 6.5, nenhum arquivo interno era lido e nenhuma dependência de Vosk
+existia. Provider, modelo e preferência persistida foram mantidos
+desacoplados para permitir a implementação da Phase 7.
+
+## Decisões técnicas da Phase 7
+
+O `SpeechService` depende do contrato `SpeechProvider`. A implementação
+`VoskSpeechProvider` concentra o binding nativo, valida o conteúdo mínimo do
+modelo e recebe PCM da camada `FfmpegAudioCapture`.
+
+A captura usa 16 kHz, mono e PCM assinado de 16 bits. No Linux, fontes
+PulseAudio/PipeWire são enumeradas por `pactl`. Falhas de modelo, binding,
+microfone ou processo de captura são convertidas em estado e eventos seguros,
+sem derrubar a aplicação.
+
+Transcrições são exibidas e transmitidas sem interpretação. A Phase 7 não cria
+Command Module, não acessa BibleModule e não controla o Holyrics. Consulte
+[`docs/speech-providers.md`](docs/speech-providers.md).

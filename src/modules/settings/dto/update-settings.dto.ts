@@ -5,4 +5,5 @@ export interface UpdateSettingsDto {
   language: unknown;
   microphone: unknown;
   voskModelPath: unknown;
+  speechAutoStart?: unknown;
 }

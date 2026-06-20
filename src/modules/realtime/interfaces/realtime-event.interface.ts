@@ -33,6 +33,7 @@ export interface SettingsUpdatedPayload {
   language: string;
   microphoneConfigured: boolean;
   voskModelConfigured: boolean;
+  speechAutoStart: boolean;
   updatedAt: string;
 }
 
@@ -41,17 +42,35 @@ export interface SystemErrorPayload {
   message: string;
 }
 
+export interface SpeechStartedPayload {
+  provider: 'vosk';
+  model: string;
+  microphone: string;
+}
+
+export interface SpeechStoppedPayload {
+  provider: 'vosk';
+  reason: 'requested' | 'capture-error' | 'shutdown';
+}
+
+export interface TranscriptionReceivedPayload {
+  text: string;
+  final: boolean;
+  provider: 'vosk';
+  receivedAt: string;
+}
+
 export interface RealtimeEventPayloadMap {
   [RealtimeEventType.HOLYRICS_CONNECTED]: HolyricsConnectedPayload;
   [RealtimeEventType.HOLYRICS_DISCONNECTED]: HolyricsDisconnectedPayload;
   [RealtimeEventType.BIBLE_CHANGED]: BibleChangedPayload;
   [RealtimeEventType.SETTINGS_UPDATED]: SettingsUpdatedPayload;
   [RealtimeEventType.SYSTEM_ERROR]: SystemErrorPayload;
-  [RealtimeEventType.TRANSCRIPTION_RECEIVED]: Record<string, never>;
+  [RealtimeEventType.TRANSCRIPTION_RECEIVED]: TranscriptionReceivedPayload;
   [RealtimeEventType.COMMAND_IDENTIFIED]: Record<string, never>;
   [RealtimeEventType.COMMAND_EXECUTED]: Record<string, never>;
-  [RealtimeEventType.SPEECH_STARTED]: Record<string, never>;
-  [RealtimeEventType.SPEECH_STOPPED]: Record<string, never>;
+  [RealtimeEventType.SPEECH_STARTED]: SpeechStartedPayload;
+  [RealtimeEventType.SPEECH_STOPPED]: SpeechStoppedPayload;
   [RealtimeEventType.SONG_CHANGED]: Record<string, never>;
 }
 

@@ -13,6 +13,7 @@ describe('SettingsService', () => {
     language: 'pt-BR',
     microphone: null,
     voskModelPath: null,
+    speechAutoStart: false,
     updatedAt: '2026-06-20T00:00:00.000Z',
   };
 
@@ -55,6 +56,7 @@ describe('SettingsService', () => {
       language: 'pt-BR',
       microphone: null,
       voskModelPath: null,
+      speechAutoStart: false,
       updatedAt: '2026-06-20T00:00:00.000Z',
       voskModelPathStatus: {
         configured: false,
@@ -77,6 +79,7 @@ describe('SettingsService', () => {
       language: 'pt-BR',
       microphone: ' Microfone USB ',
       voskModelPath: ' /modelos/vosk-pt ',
+      speechAutoStart: true,
     });
 
     expect(repository.save).toHaveBeenCalledWith({
@@ -86,6 +89,7 @@ describe('SettingsService', () => {
       language: 'pt-BR',
       microphone: 'Microfone USB',
       voskModelPath: '/modelos/vosk-pt',
+      speechAutoStart: true,
     });
     expect(result.holyricsHost).toBe('192.168.1.20');
     expect(result.holyricsApiTokenConfigured).toBe(true);
@@ -102,6 +106,7 @@ describe('SettingsService', () => {
         language: 'pt-BR',
         microphoneConfigured: true,
         voskModelConfigured: true,
+        speechAutoStart: true,
         updatedAt: '2026-06-20T01:00:00.000Z',
       },
     );
@@ -120,6 +125,7 @@ describe('SettingsService', () => {
       language: 'pt-BR',
       microphone: '',
       voskModelPath: null,
+      speechAutoStart: false,
     });
 
     expect(repository.save).toHaveBeenCalledWith(

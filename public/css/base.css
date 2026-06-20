@@ -395,6 +395,37 @@ h1 {
   font-weight: 700;
 }
 
+.speech-status-list {
+  margin-top: 0;
+}
+
+.transcription-panel {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: rgb(12 18 32 / 55%);
+}
+
+.transcription-panel span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.transcription-panel p {
+  min-height: 1.5rem;
+  margin: 0.55rem 0 0;
+  line-height: 1.55;
+}
+
+.speech-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
 .form-feedback {
   min-height: 1.4rem;
   margin: 0;

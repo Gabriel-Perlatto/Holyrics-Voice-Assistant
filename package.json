@@ -9,6 +9,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
+    "install:vosk": "npm install vosk@0.3.39 --save-optional --ignore-scripts",
     "test": "jest",
     "test:watch": "jest --watch"
   },
@@ -55,5 +56,8 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "optionalDependencies": {
+    "vosk": "^0.3.39"
   }
 }

@@ -30,8 +30,17 @@ models/pt-BR/vosk-model-small-pt-0.3
 
 Configure esse caminho na tela de Configurações. Caminhos relativos são
 resolvidos a partir da raiz do projeto; caminhos absolutos também são aceitos.
-Nesta fase, o sistema verifica apenas se o caminho existe e é um diretório. O
-conteúdo não é carregado nem validado pelo Vosk.
+O SettingsModule verifica se o caminho é um diretório. Ao inicializar o Speech
+Provider, a estrutura do modelo é validada e o Vosk carrega os arquivos
+localmente.
+
+O modelo não é baixado automaticamente. Instale também o binding local:
+
+```bash
+npm run install:vosk
+```
+
+Depois selecione o microfone e use os controles de captura em `/settings`.
 
 Todo conteúdo abaixo de `models/` é ignorado pelo Git, exceto este README e
 arquivos `.gitkeep`. Não force a inclusão de modelos, arquivos compactados ou

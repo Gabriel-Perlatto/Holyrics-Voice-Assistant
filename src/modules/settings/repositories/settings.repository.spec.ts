@@ -28,6 +28,7 @@ describe('SettingsRepository', () => {
         language: 'pt-BR',
         microphone: null,
         voskModelPath: null,
+        speechAutoStart: false,
       }),
     );
 
@@ -44,6 +45,7 @@ describe('SettingsRepository', () => {
       language: 'pt-BR',
       microphone: 'Microfone principal',
       voskModelPath: '/modelos/vosk',
+      speechAutoStart: true,
     });
     firstRepository.onModuleDestroy();
 
@@ -57,6 +59,7 @@ describe('SettingsRepository', () => {
         language: 'pt-BR',
         microphone: 'Microfone principal',
         voskModelPath: '/modelos/vosk',
+        speechAutoStart: true,
       }),
     );
 
@@ -104,6 +107,7 @@ describe('SettingsRepository', () => {
         holyricsHost: '192.168.1.40',
         holyricsPort: 8091,
         holyricsApiToken: null,
+        speechAutoStart: false,
       }),
     );
 

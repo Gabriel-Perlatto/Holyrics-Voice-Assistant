@@ -17,6 +17,7 @@ interface SettingsRow {
   language: string;
   microphone: string | null;
   vosk_model_path: string | null;
+  speech_auto_start: number;
   updated_at: string;
 }
 
@@ -49,6 +50,7 @@ export class SettingsRepository implements OnModuleDestroy {
             language,
             microphone,
             vosk_model_path,
+            speech_auto_start,
             updated_at
           FROM settings
           WHERE id = 1
@@ -73,11 +75,16 @@ export class SettingsRepository implements OnModuleDestroy {
             language = @language,
             microphone = @microphone,
             vosk_model_path = @voskModelPath,
+            speech_auto_start = @speechAutoStart,
             updated_at = @updatedAt
           WHERE id = 1
         `,
       )
-      .run({ ...settings, updatedAt });
+      .run({
+        ...settings,
+        speechAutoStart: Number(settings.speechAutoStart),
+        updatedAt,
+      });
 
     return this.find();
   }
@@ -96,11 +103,13 @@ export class SettingsRepository implements OnModuleDestroy {
         language TEXT NOT NULL,
         microphone TEXT,
         vosk_model_path TEXT,
+        speech_auto_start INTEGER NOT NULL DEFAULT 0,
         updated_at TEXT NOT NULL
       );
     `);
 
     this.migrateApiTokenColumn();
+    this.migrateSpeechAutoStartColumn();
 
     this.database
       .prepare(
@@ -113,8 +122,9 @@ export class SettingsRepository implements OnModuleDestroy {
             language,
             microphone,
             vosk_model_path,
+            speech_auto_start,
             updated_at
-          ) VALUES (1, '', NULL, NULL, 'pt-BR', NULL, NULL, @updatedAt)
+          ) VALUES (1, '', NULL, NULL, 'pt-BR', NULL, NULL, 0, @updatedAt)
         `,
       )
       .run({ updatedAt: new Date().toISOString() });
@@ -128,6 +138,7 @@ export class SettingsRepository implements OnModuleDestroy {
       language: row.language,
       microphone: row.microphone,
       voskModelPath: row.vosk_model_path,
+      speechAutoStart: Boolean(row.speech_auto_start),
       updatedAt: row.updated_at,
     };
   }
@@ -140,6 +151,18 @@ export class SettingsRepository implements OnModuleDestroy {
     if (!columns.some(({ name }) => name === 'holyrics_api_token')) {
       this.database.exec(
         'ALTER TABLE settings ADD COLUMN holyrics_api_token TEXT',
+      );
+    }
+  }
+
+  private migrateSpeechAutoStartColumn(): void {
+    const columns = this.database
+      .prepare('PRAGMA table_info(settings)')
+      .all() as Array<{ name: string }>;
+
+    if (!columns.some(({ name }) => name === 'speech_auto_start')) {
+      this.database.exec(
+        'ALTER TABLE settings ADD COLUMN speech_auto_start INTEGER NOT NULL DEFAULT 0',
       );
     }
   }
