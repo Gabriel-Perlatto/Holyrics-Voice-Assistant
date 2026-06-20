@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Configurações locais da aplicação" />
+    <title>Configurações | Holyrics Voice Assistant</title>
+    <link rel="stylesheet" href="/css/base.css" />
+    <script src="/js/base.js" defer></script>
+    <script src="/js/settings.js" defer></script>
+  </head>
+  <body>
+    <main class="page-shell">
+      <a class="back-link" href="/">← Voltar ao início</a>
+
+      <section class="placeholder-panel" aria-labelledby="page-title">
+        <span class="placeholder-panel__icon" aria-hidden="true">⚙</span>
+        <p class="eyebrow">Configuração local</p>
+        <h1 id="page-title">Configurações</h1>
+        <p>
+          Consulte o estado básico do servidor local. As configurações
+          persistentes serão implementadas na próxima fase do roadmap.
+        </p>
+      </section>
+
+      <section class="status-panel" aria-labelledby="system-status-title">
+        <div class="status-panel__header">
+          <div>
+            <p class="eyebrow">Servidor local</p>
+            <h2 id="system-status-title">Status do sistema</h2>
+          </div>
+          <span class="status-badge" data-system-state>Carregando</span>
+        </div>
+
+        <dl class="status-list" aria-live="polite">
+          <div>
+            <dt>Endereço local</dt>
+            <dd data-system-url>Consultando...</dd>
+          </div>
+          <div>
+            <dt>IP detectado</dt>
+            <dd data-system-ip>Consultando...</dd>
+          </div>
+          <div>
+            <dt>Tempo em execução</dt>
+            <dd data-system-uptime>Consultando...</dd>
+          </div>
+        </dl>
+
+        <p class="status-message" data-system-message>
+          Verificando o servidor local.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
