@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="/css/base.css" />
     <script src="/js/base.js" defer></script>
     <script src="/js/preacher-preferences.js" defer></script>
+    <script src="/socket.io/socket.io.js" defer></script>
+    <script src="/js/websocket.js" defer></script>
     <script src="/js/preacher.js" defer></script>
   </head>
   <body class="preacher-page">
@@ -18,7 +20,12 @@
       <header class="preacher-header">
         <div class="preacher-header__top">
           <a class="back-link preacher-header__home" href="/">← Início</a>
-          <p class="preacher-header__step" data-current-step>Livros</p>
+          <div class="preacher-header__status">
+            <span class="realtime-status" data-realtime-status>
+              Conectando
+            </span>
+            <p class="preacher-header__step" data-current-step>Livros</p>
+          </div>
         </div>
 
         <div class="preacher-reference" aria-live="polite">

@@ -1,6 +1,6 @@
 # Interface do pregador
 
-## Escopo da Phase 5
+## Escopo atual
 
 A rota `/preacher` permite selecionar manualmente:
 
@@ -8,8 +8,8 @@ A rota `/preacher` permite selecionar manualmente:
 2. capítulo;
 3. versículo.
 
-A interface não contém texto bíblico, comandos de voz, WebSocket ou
-sincronização entre dispositivos.
+A interface não contém texto bíblico nem comandos de voz. Na Phase 6, ela
+recebe eventos locais para sincronizar seleções entre dispositivos.
 
 ## Navegação
 
@@ -78,3 +78,17 @@ continua retornando:
 
 A interface mostra essa limitação de forma explícita. Nenhum sucesso de
 projeção é simulado. Consulte `docs/holyrics-api-research.md`.
+
+## Sincronização em tempo real
+
+O cliente `public/js/websocket.js` conecta ao namespace `/realtime`.
+
+Ao receber `BIBLE_CHANGED`, a tela:
+
+- localiza a versão e o livro nos dados já carregados;
+- consulta capítulos e versículos pelos endpoints HTTP existentes;
+- atualiza o cabeçalho, painéis e botões;
+- mantém o fluxo manual disponível.
+
+O evento não contém texto bíblico nem dados sensíveis. Consulte
+`docs/realtime.md`.

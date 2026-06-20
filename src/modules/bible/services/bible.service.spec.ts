@@ -2,21 +2,33 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
+import type { RealtimeService } from '../../realtime/services/realtime.service';
 import { LocalBibleContentProvider } from '../providers/local-bible-content.provider';
 import { BibleContextService } from './bible-context.service';
 import { BibleService } from './bible.service';
 import { BookAliasService } from './book-alias.service';
 
 describe('BibleService', () => {
-  const createService = () =>
-    new BibleService(
+  const createRealtimeService = (): jest.Mocked<RealtimeService> =>
+    ({
+      emit: jest.fn(),
+    }) as unknown as jest.Mocked<RealtimeService>;
+
+  const createService = (
+    realtimeService = createRealtimeService(),
+  ) => ({
+    realtimeService,
+    service: new BibleService(
       new LocalBibleContentProvider(),
       new BookAliasService(),
       new BibleContextService(),
-    );
+      realtimeService,
+    ),
+  });
 
   it('identifica claramente versões como fallback local', () => {
-    const response = createService().getVersions();
+    const response = createService().service.getVersions();
 
     expect(response).toEqual(
       expect.objectContaining({
@@ -29,8 +41,9 @@ describe('BibleService', () => {
   });
 
   it('consulta capítulos por id ou alias pt-BR', () => {
-    const byId = createService().getChapters('joao');
-    const byAlias = createService().getChapters('Evangelho de João');
+    const service = createService().service;
+    const byId = service.getChapters('joao');
+    const byAlias = service.getChapters('Evangelho de João');
 
     expect(byId.book.id).toBe('joao');
     expect(byAlias.book.id).toBe('joao');
@@ -38,7 +51,7 @@ describe('BibleService', () => {
   });
 
   it('consulta versículos e mantém a versão inicial no resultado', () => {
-    const response = createService().getVerses('Jo', '3');
+    const response = createService().service.getVerses('Jo', '3');
 
     expect(response).toEqual(
       expect.objectContaining({
@@ -53,7 +66,9 @@ describe('BibleService', () => {
   });
 
   it('rejeita livro inexistente', () => {
-    expect(() => createService().getChapters('inexistente')).toThrow(
+    expect(() =>
+      createService().service.getChapters('inexistente'),
+    ).toThrow(
       NotFoundException,
     );
   });
@@ -61,20 +76,25 @@ describe('BibleService', () => {
   it.each(['0', '-1', 'abc', '1.5'])(
     'rejeita capítulo inválido: %s',
     (chapter) => {
-      expect(() => createService().getVerses('joao', chapter)).toThrow(
+      expect(() =>
+        createService().service.getVerses('joao', chapter),
+      ).toThrow(
         BadRequestException,
       );
     },
   );
 
   it('rejeita capítulo fora do livro', () => {
-    expect(() => createService().getVerses('joao', '22')).toThrow(
+    expect(() =>
+      createService().service.getVerses('joao', '22'),
+    ).toThrow(
       NotFoundException,
     );
   });
 
   it('registra uma passagem local usando a versão selecionada', () => {
-    const response = createService().selectPassage({
+    const { service, realtimeService } = createService();
+    const response = service.selectPassage({
       versionId: 'acf',
       bookId: 'joao',
       chapter: 3,
@@ -96,11 +116,26 @@ describe('BibleService', () => {
         },
       }),
     );
+    expect(realtimeService.emit).toHaveBeenCalledWith(
+      RealtimeEventType.BIBLE_CHANGED,
+      {
+        book: {
+          id: 'joao',
+          name: 'João',
+        },
+        chapter: 3,
+        verse: 16,
+        version: 'acf',
+        source: 'local-fallback',
+        delivery: 'local-only',
+        deliveredToHolyrics: false,
+      },
+    );
   });
 
   it('rejeita versão inexistente na seleção', () => {
     expect(() =>
-      createService().selectPassage({
+      createService().service.selectPassage({
         versionId: 'inexistente',
         bookId: 'joao',
         chapter: 3,
@@ -111,7 +146,7 @@ describe('BibleService', () => {
 
   it('rejeita versículo fora do capítulo', () => {
     expect(() =>
-      createService().selectPassage({
+      createService().service.selectPassage({
         versionId: 'nvi',
         bookId: 'joao',
         chapter: 3,

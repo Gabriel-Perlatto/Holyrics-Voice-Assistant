@@ -1,4 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
+import { RealtimeService } from '../../realtime/services/realtime.service';
 import type { UpdateSettingsDto } from '../dto/update-settings.dto';
 import type {
   PublicSettings,
@@ -11,7 +13,10 @@ const LANGUAGE_PATTERN = /^[a-z]{2}(?:-[A-Z]{2})?$/;
 
 @Injectable()
 export class SettingsService {
-  constructor(private readonly settingsRepository: SettingsRepository) {}
+  constructor(
+    private readonly settingsRepository: SettingsRepository,
+    private readonly realtimeService: RealtimeService,
+  ) {}
 
   getSettings(): Settings {
     return this.settingsRepository.find();
@@ -54,7 +59,25 @@ export class SettingsService {
       voskModelPath,
     });
 
-    return this.toPublicSettings(settings);
+    const publicSettings = this.toPublicSettings(settings);
+
+    this.realtimeService.emit(
+      RealtimeEventType.SETTINGS_UPDATED,
+      {
+        holyricsConfigured: Boolean(
+          publicSettings.holyricsHost &&
+            publicSettings.holyricsPort,
+        ),
+        holyricsApiTokenConfigured:
+          publicSettings.holyricsApiTokenConfigured,
+        language: publicSettings.language,
+        microphoneConfigured: Boolean(publicSettings.microphone),
+        voskModelConfigured: Boolean(publicSettings.voskModelPath),
+        updatedAt: publicSettings.updatedAt,
+      },
+    );
+
+    return publicSettings;
   }
 
   private validateHost(value: unknown): string {

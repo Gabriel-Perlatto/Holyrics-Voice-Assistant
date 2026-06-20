@@ -7,6 +7,8 @@
     <title>Configurações | Holyrics Voice Assistant</title>
     <link rel="stylesheet" href="/css/base.css" />
     <script src="/js/base.js" defer></script>
+    <script src="/socket.io/socket.io.js" defer></script>
+    <script src="/js/websocket.js" defer></script>
     <script src="/js/settings.js" defer></script>
   </head>
   <body>
@@ -198,6 +200,18 @@
         </div>
 
         <dl class="status-list" aria-live="polite">
+          <div>
+            <dt>Tempo real</dt>
+            <dd>
+              <span class="realtime-status" data-realtime-status>
+                Conectando
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt>Último evento</dt>
+            <dd data-realtime-last-event>Nenhum evento recebido</dd>
+          </div>
           <div>
             <dt>Endereço local</dt>
             <dd data-system-url>Consultando...</dd>

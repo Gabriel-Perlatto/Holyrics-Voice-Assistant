@@ -362,21 +362,17 @@ Nesta fase foi adotado o token direto, por ser a opção oficial mais simples.
 O fluxo com nonce, `sid`, `rid` e `dtoken` permanece recomendado para evolução
 posterior.
 
-### Futura Phase 6
+### Phase 6 implementada
 
-A Phase 6 deve manter WebSocket somente entre o NestJS e os navegadores.
+A Phase 6 mantém WebSocket somente entre o NestJS e os navegadores.
 
-Para refletir estado do Holyrics:
+O estado do Holyrics é refletido apenas como consequência de ações explícitas:
 
-- conexão: polling moderado de uma ação autenticada, preferencialmente
-  `GetTokenInfo`;
-- apresentação: polling de `GetCurrentPresentation` quando necessário;
-- mudanças iniciadas pelo próprio projeto: emitir eventos internos após a
-  confirmação da chamada HTTP;
-- mudanças externas no Holyrics: avaliar posteriormente gatilhos/API Item
-  enviando HTTP ao NestJS, sem criar um WebSocket fictício.
+- teste/autenticação bem-sucedido emite `HOLYRICS_CONNECTED`;
+- falha no teste/autenticação emite `HOLYRICS_DISCONNECTED`.
 
-Essa pesquisa não inicia nem altera o escopo funcional da Phase 6.
+Não foi implementado polling contínuo, consulta de apresentação ou WebSocket
+com o Holyrics. Mudanças externas ao projeto continuam sem push nesta fase.
 
 ## Dúvidas restantes
 

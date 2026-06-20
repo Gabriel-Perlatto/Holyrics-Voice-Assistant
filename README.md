@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0 a 5.5** estão concluídas. Esta versão contém:
+As **Phases 0 a 6** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -33,11 +33,15 @@ As **Phases 0 a 5.5** estão concluídas. Esta versão contém:
 - interface mobile-first do pregador;
 - navegação em grade por livro, capítulo e versículo;
 - versão favorita persistida por dispositivo;
-- registro local da passagem selecionada no backend.
+- registro local da passagem selecionada no backend;
+- Realtime Module com Socket.IO local;
+- sincronização de configurações, passagem bíblica e estado testado do
+  Holyrics;
+- status em tempo real nas telas de Configurações e Pregador.
 
 Esta fase não inclui apresentação real da passagem no Holyrics, texto bíblico,
 louvor, acesso ao microfone, carregamento do Vosk, reconhecimento de voz,
-WebSocket ou funcionalidades de fases futuras.
+Command Module ou funcionalidades de fases futuras.
 
 ## Requisitos
 
@@ -235,7 +239,10 @@ Os testes atuais cobrem:
 - contexto bíblico inicial;
 - validação de livros e capítulos;
 - seleção validada de passagem e versão;
-- persistência/restauração da versão favorita no `localStorage`.
+- persistência/restauração da versão favorita no `localStorage`;
+- serviço e gateway de eventos em tempo real;
+- payloads seguros de configurações, Bíblia e Holyrics;
+- emissão de eventos sem depender de navegador ou Holyrics real.
 
 ## Estrutura
 
@@ -322,3 +329,14 @@ A versão favorita usa `localStorage`, por dispositivo. A ação oficial
 `ShowVerse` foi confirmada, mas ainda não está implementada. A seleção
 permanece registrada no contexto local e responde explicitamente que não foi
 entregue. Consulte `docs/holyrics-api-research.md`.
+
+## Decisões técnicas da Phase 6
+
+O `RealtimeModule` usa Socket.IO no namespace `/realtime`. Ele é global para
+garantir uma única instância do gateway. Os módulos de domínio emitem eventos
+através do `RealtimeService`; o gateway apenas transmite envelopes
+`{ type, payload, occurredAt }`.
+
+O cliente reutilizável está em `public/js/websocket.js`. O WebSocket comunica
+somente o NestJS com os navegadores, sem polling ou conexão direta com o
+Holyrics. Consulte [`docs/realtime.md`](docs/realtime.md).

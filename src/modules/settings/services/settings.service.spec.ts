@@ -1,4 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
+import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
+import type { RealtimeService } from '../../realtime/services/realtime.service';
 import type { SettingsRepository } from '../repositories/settings.repository';
 import { SettingsService } from './settings.service';
 
@@ -23,9 +25,22 @@ describe('SettingsService', () => {
       onModuleDestroy: jest.fn(),
     }) as unknown as jest.Mocked<SettingsRepository>;
 
+  const createRealtimeService = (): jest.Mocked<RealtimeService> =>
+    ({
+      emit: jest.fn(),
+    }) as unknown as jest.Mocked<RealtimeService>;
+
+  const createService = (
+    repository = createRepository(),
+    realtimeService = createRealtimeService(),
+  ) => ({
+    repository,
+    realtimeService,
+    service: new SettingsService(repository, realtimeService),
+  });
+
   it('retorna as configurações atuais', () => {
-    const repository = createRepository();
-    const service = new SettingsService(repository);
+    const { service } = createService();
 
     expect(service.getSettings()).toEqual(currentSettings);
     expect(service.getPublicSettings()).toEqual({
@@ -40,8 +55,7 @@ describe('SettingsService', () => {
   });
 
   it('normaliza e salva configurações válidas', () => {
-    const repository = createRepository();
-    const service = new SettingsService(repository);
+    const { repository, realtimeService, service } = createService();
 
     const result = service.updateSettings({
       holyricsHost: ' 192.168.1.20 ',
@@ -62,11 +76,24 @@ describe('SettingsService', () => {
     });
     expect(result.holyricsHost).toBe('192.168.1.20');
     expect(result.holyricsApiTokenConfigured).toBe(true);
+    expect(realtimeService.emit).toHaveBeenCalledWith(
+      RealtimeEventType.SETTINGS_UPDATED,
+      {
+        holyricsConfigured: true,
+        holyricsApiTokenConfigured: true,
+        language: 'pt-BR',
+        microphoneConfigured: true,
+        voskModelConfigured: true,
+        updatedAt: '2026-06-20T01:00:00.000Z',
+      },
+    );
+    expect(realtimeService.emit.mock.calls[0][1]).not.toHaveProperty(
+      'holyricsApiToken',
+    );
   });
 
   it('aceita campos opcionais vazios', () => {
-    const repository = createRepository();
-    const service = new SettingsService(repository);
+    const { repository, service } = createService();
 
     service.updateSettings({
       holyricsHost: '',
@@ -123,8 +150,7 @@ describe('SettingsService', () => {
       },
     ],
   ])('rejeita %s', (_description, input) => {
-    const repository = createRepository();
-    const service = new SettingsService(repository);
+    const { repository, service } = createService();
 
     expect(() => service.updateSettings(input)).toThrow(
       BadRequestException,
@@ -138,7 +164,7 @@ describe('SettingsService', () => {
       ...currentSettings,
       holyricsApiToken: 'saved-token',
     });
-    const service = new SettingsService(repository);
+    const { service } = createService(repository);
 
     service.updateSettings({
       holyricsHost: '192.168.1.20',
@@ -156,8 +182,7 @@ describe('SettingsService', () => {
   });
 
   it('remove o token quando recebe null', () => {
-    const repository = createRepository();
-    const service = new SettingsService(repository);
+    const { repository, service } = createService();
 
     service.updateSettings({
       holyricsHost: '192.168.1.20',
@@ -176,8 +201,7 @@ describe('SettingsService', () => {
   });
 
   it('rejeita token vazio quando enviado explicitamente', () => {
-    const repository = createRepository();
-    const service = new SettingsService(repository);
+    const { service } = createService();
 
     expect(() =>
       service.updateSettings({

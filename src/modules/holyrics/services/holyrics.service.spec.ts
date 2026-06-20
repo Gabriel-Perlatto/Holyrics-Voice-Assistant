@@ -6,6 +6,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { SettingsService } from '../../settings/services/settings.service';
+import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
+import type { RealtimeService } from '../../realtime/services/realtime.service';
 import { HolyricsApiError } from '../exceptions/holyrics-api.exception';
 import type {
   HolyricsApiRequestResult,
@@ -88,10 +90,34 @@ describe('HolyricsService', () => {
     } as unknown as jest.Mocked<HolyricsProvider>;
   };
 
+  const createRealtimeService = (): jest.Mocked<RealtimeService> =>
+    ({
+      emit: jest.fn(),
+    }) as unknown as jest.Mocked<RealtimeService>;
+
+  const createService = (
+    settingsService = createSettingsService(),
+    provider = createProvider(),
+    realtimeService = createRealtimeService(),
+  ) => ({
+    provider,
+    realtimeService,
+    service: new HolyricsService(
+      settingsService,
+      provider,
+      realtimeService,
+    ),
+  });
+
   it('testa a conexão usando somente ações oficiais autenticadas', async () => {
     const settingsService = createSettingsService();
     const provider = createProvider();
-    const service = new HolyricsService(settingsService, provider);
+    const realtimeService = createRealtimeService();
+    const service = createService(
+      settingsService,
+      provider,
+      realtimeService,
+    ).service;
 
     await expect(service.testConnection()).resolves.toEqual(
       expect.objectContaining({
@@ -132,13 +158,21 @@ describe('HolyricsService', () => {
       expect.any(Object),
       'GetAPIServerInfo',
     );
+    expect(realtimeService.emit).toHaveBeenCalledWith(
+      RealtimeEventType.HOLYRICS_CONNECTED,
+      expect.objectContaining({
+        connected: true,
+        authenticated: true,
+        version: '2.28.1',
+      }),
+    );
+    expect(realtimeService.emit.mock.calls[0][1]).not.toHaveProperty(
+      'token',
+    );
   });
 
   it('valida autenticação com GetTokenInfo', async () => {
-    const service = new HolyricsService(
-      createSettingsService(),
-      createProvider(),
-    );
+    const { service, realtimeService } = createService();
 
     await expect(service.validateAuthentication()).resolves.toEqual(
       expect.objectContaining({
@@ -146,14 +180,20 @@ describe('HolyricsService', () => {
         version: '2.28.1',
       }),
     );
+    expect(realtimeService.emit).toHaveBeenCalledWith(
+      RealtimeEventType.HOLYRICS_CONNECTED,
+      expect.objectContaining({
+        version: '2.28.1',
+      }),
+    );
   });
 
   it('verifica permissões solicitadas', async () => {
     const provider = createProvider();
-    const service = new HolyricsService(
+    const service = createService(
       createSettingsService(),
       provider,
-    );
+    ).service;
 
     await expect(
       service.checkPermissions({
@@ -173,14 +213,12 @@ describe('HolyricsService', () => {
   });
 
   it('exige host, porta e token antes do teste', async () => {
-    const missingAddress = new HolyricsService(
+    const missingAddress = createService(
       createSettingsService({ holyricsHost: '', holyricsPort: null }),
-      createProvider(),
-    );
-    const missingToken = new HolyricsService(
+    ).service;
+    const missingToken = createService(
       createSettingsService({ holyricsApiToken: null }),
-      createProvider(),
-    );
+    ).service;
 
     await expect(missingAddress.testConnection()).rejects.toBeInstanceOf(
       BadRequestException,
@@ -198,13 +236,26 @@ describe('HolyricsService', () => {
         'O token da API Holyrics é inválido.',
       ),
     );
-    const service = new HolyricsService(
+    const realtimeService = createRealtimeService();
+    const service = createService(
       createSettingsService(),
       provider,
-    );
+      realtimeService,
+    ).service;
 
     await expect(service.testConnection()).rejects.toBeInstanceOf(
       UnauthorizedException,
+    );
+    expect(realtimeService.emit).toHaveBeenCalledWith(
+      RealtimeEventType.HOLYRICS_DISCONNECTED,
+      expect.objectContaining({
+        connected: false,
+        authenticated: false,
+        reason: 'O token da API Holyrics é inválido.',
+      }),
+    );
+    expect(realtimeService.emit.mock.calls[0][1]).not.toHaveProperty(
+      'token',
     );
   });
 
@@ -224,10 +275,10 @@ describe('HolyricsService', () => {
         { unauthorizedActions: ['GetVersion'] },
       );
     });
-    const service = new HolyricsService(
+    const service = createService(
       createSettingsService(),
       provider,
-    );
+    ).service;
 
     await expect(service.testConnection()).rejects.toBeInstanceOf(
       ForbiddenException,
@@ -242,10 +293,10 @@ describe('HolyricsService', () => {
         permissions: 'GetTokenInfo',
       }),
     );
-    const service = new HolyricsService(
+    const service = createService(
       createSettingsService(),
       provider,
-    );
+    ).service;
 
     await expect(service.testConnection()).rejects.toBeInstanceOf(
       ConflictException,
@@ -261,10 +312,10 @@ describe('HolyricsService', () => {
         'O Holyrics não respondeu dentro do tempo limite.',
       ),
     );
-    const service = new HolyricsService(
+    const service = createService(
       createSettingsService(),
       provider,
-    );
+    ).service;
 
     await expect(service.testConnection()).rejects.toBeInstanceOf(
       ServiceUnavailableException,

@@ -14,7 +14,6 @@ Ainda não estão implementados:
 - consulta de versões instaladas com `GetBibleVersionsV2`;
 - controles de músicas, playlists ou louvor;
 - polling contínuo;
-- WebSocket;
 - API remota pela internet.
 
 Os fallbacks bíblicos e o comportamento local da tela do pregador permanecem
@@ -146,6 +145,15 @@ A tela `/settings`:
 
 Não existe polling. A validação ocorre somente quando o usuário aciona o
 botão.
+
+Na Phase 6, o resultado explícito dessas validações emite:
+
+- `HOLYRICS_CONNECTED` em caso de sucesso;
+- `HOLYRICS_DISCONNECTED` em caso de falha.
+
+Esses eventos são enviados somente aos navegadores locais e não contêm token,
+host, porta ou lista de permissões. O WebSocket não se comunica diretamente
+com o Holyrics. Consulte `docs/realtime.md`.
 
 ## Testes
 

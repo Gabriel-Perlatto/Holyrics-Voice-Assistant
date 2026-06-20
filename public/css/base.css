@@ -422,6 +422,29 @@ h1 {
   color: #ffb0b0;
 }
 
+.realtime-status {
+  display: inline-flex;
+  min-height: 1.8rem;
+  align-items: center;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.realtime-status--online {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.realtime-status--error {
+  border-color: #ef7b7b;
+  color: #ffb0b0;
+}
+
 .status-list {
   display: grid;
   gap: 0;
@@ -492,6 +515,12 @@ h1 {
 .preacher-header__home {
   min-height: 2.5rem;
   margin: 0;
+}
+
+.preacher-header__status {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
 }
 
 .preacher-header__step {

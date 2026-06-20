@@ -25,6 +25,7 @@
     backBooks: document.querySelector('[data-back-books]'),
     backChapters: document.querySelector('[data-back-chapters]'),
     feedback: document.querySelector('[data-preacher-feedback]'),
+    realtimeStatus: document.querySelector('[data-realtime-status]'),
   };
 
   if (Object.values(elements).some((element) => !element)) {
@@ -46,6 +47,8 @@
       verses: 0,
     },
   };
+  let initialized = false;
+  let pendingBibleEvent = null;
 
   const apiGet = async (url) => {
     const response = await fetch(url, {
@@ -348,6 +351,104 @@
     }
   };
 
+  const applyBibleChangedEvent = async (event) => {
+    const { payload } = event;
+    const book = state.books.find(({ id }) => id === payload.book.id);
+
+    if (!initialized || !book) {
+      pendingBibleEvent = event;
+      return;
+    }
+
+    const version = state.versions.find(
+      ({ id }) => id === payload.version,
+    );
+
+    state.selectedBook = book;
+    state.selectedChapter = payload.chapter;
+    state.selectedVerse = payload.verse;
+    state.pages.books = Math.floor(
+      state.books.findIndex(({ id }) => id === book.id) /
+        PAGE_SIZES.books,
+    );
+    state.pages.chapters = Math.floor(
+      (payload.chapter - 1) / PAGE_SIZES.chapters,
+    );
+    state.pages.verses = Math.floor(
+      (payload.verse - 1) / PAGE_SIZES.verses,
+    );
+
+    if (version) {
+      state.selectedVersion = version;
+    }
+
+    try {
+      const chaptersResponse = await apiGet(
+        `/api/bible/books/${encodeURIComponent(book.id)}/chapters`,
+      );
+      const versesResponse = await apiGet(
+        `/api/bible/books/${encodeURIComponent(book.id)}/chapters/${payload.chapter}/verses`,
+      );
+
+      state.chapters = chaptersResponse.items;
+      state.verses = versesResponse.items;
+      renderVersions();
+      renderBooks();
+      renderChapters();
+      renderVerses();
+      updateHeader();
+      updatePanels('verses');
+      showFeedback(
+        `${book.name} ${payload.chapter}:${payload.verse} sincronizado em tempo real.`,
+        'success',
+      );
+    } catch {
+      updateHeader();
+      showFeedback(
+        'A passagem mudou em outro dispositivo, mas os dados não puderam ser atualizados.',
+        'error',
+      );
+    }
+  };
+
+  const initializeRealtime = () => {
+    if (!window.RealtimeClient) {
+      elements.realtimeStatus.textContent = 'Indisponível';
+      elements.realtimeStatus.classList.add('realtime-status--error');
+      return;
+    }
+
+    window.RealtimeClient.connect({
+      onStatus: (status) => {
+        const labels = {
+          connecting: 'Conectando',
+          connected: 'Tempo real',
+          disconnected: 'Desconectado',
+          error: 'Erro',
+        };
+
+        elements.realtimeStatus.textContent = labels[status] ?? status;
+        elements.realtimeStatus.classList.toggle(
+          'realtime-status--online',
+          status === 'connected',
+        );
+        elements.realtimeStatus.classList.toggle(
+          'realtime-status--error',
+          status === 'disconnected' || status === 'error',
+        );
+      },
+      onEvent: (event) => {
+        if (event.type === 'BIBLE_CHANGED') {
+          void applyBibleChangedEvent(event);
+        }
+
+        if (event.type === 'SYSTEM_ERROR') {
+          showFeedback(event.payload.message, 'error');
+        }
+      },
+    });
+  };
+
   elements.backBooks.addEventListener('click', () => {
     state.selectedBook = null;
     state.selectedChapter = null;
@@ -395,6 +496,13 @@
       updateHeader();
       updatePanels('books');
       showFeedback('Escolha um livro.');
+      initialized = true;
+
+      if (pendingBibleEvent) {
+        const event = pendingBibleEvent;
+        pendingBibleEvent = null;
+        await applyBibleChangedEvent(event);
+      }
     } catch (error) {
       showFeedback(
         error instanceof Error
@@ -405,5 +513,6 @@
     }
   };
 
+  initializeRealtime();
   void initialize();
 })();

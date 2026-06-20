@@ -438,10 +438,10 @@ token. O `GET` e a resposta do `PUT` nunca expõem o segredo, retornando apenas
 
 Responsável por comunicação em tempo real.
 
-Tecnologia padrão:
+Tecnologia:
 
 ```txt
-WebSocket
+Socket.IO sobre WebSocket
 ```
 
 Responsabilidades:
@@ -449,6 +449,37 @@ Responsabilidades:
 - broadcast de eventos
 - sincronização de clientes
 - atualização em tempo real
+
+Implementação:
+
+```txt
+src/modules/realtime/
+├── enums/
+├── gateways/
+├── interfaces/
+├── services/
+└── realtime.module.ts
+```
+
+O `RealtimeModule` é global e possui uma única instância do gateway. Os
+módulos de domínio dependem somente do `RealtimeService`. O gateway gerencia
+conexões e broadcast, sem regra de negócio.
+
+O namespace é `/realtime`. Todo evento usa o envelope
+`{ type, payload, occurredAt }`.
+
+Eventos emitidos na Phase 6:
+
+- `SETTINGS_UPDATED`, pelo `SettingsModule`;
+- `BIBLE_CHANGED`, pelo `BibleModule`;
+- `HOLYRICS_CONNECTED`, pelo `HolyricsModule`;
+- `HOLYRICS_DISCONNECTED`, pelo `HolyricsModule`;
+- `SYSTEM_ERROR`, disponível para erros seguros do sistema.
+
+Os tipos de voz, comando e louvor existem apenas como contrato reservado e
+não são emitidos. Payloads não podem conter token, host, porta ou
+configurações sensíveis. O WebSocket comunica somente NestJS e navegadores;
+não acessa o Holyrics. Consulte `docs/realtime.md`.
 
 ---
 

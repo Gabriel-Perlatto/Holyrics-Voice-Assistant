@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
+import { RealtimeService } from '../../realtime/services/realtime.service';
 import type {
   BibleBook,
   BibleBooksResponse,
@@ -27,6 +29,7 @@ export class BibleService {
     private readonly contentProvider: BibleContentProvider,
     private readonly aliasService: BookAliasService,
     private readonly contextService: BibleContextService,
+    private readonly realtimeService: RealtimeService,
   ) {}
 
   getVersions(): BibleVersionsResponse {
@@ -113,7 +116,7 @@ export class BibleService {
       verse,
     });
 
-    return {
+    const response: BibleSelectionResponse = {
       accepted: true,
       delivery: 'local-only',
       deliveredToHolyrics: false,
@@ -129,6 +132,21 @@ export class BibleService {
       },
       selectedAt: new Date().toISOString(),
     };
+
+    this.realtimeService.emit(RealtimeEventType.BIBLE_CHANGED, {
+      book: {
+        id: response.selection.bookId,
+        name: response.selection.bookName,
+      },
+      chapter: response.selection.chapter,
+      verse: response.selection.verse,
+      version: response.selection.versionId,
+      source: 'local-fallback',
+      delivery: response.delivery,
+      deliveredToHolyrics: response.deliveredToHolyrics,
+    });
+
+    return response;
   }
 
   private resolveBook(identifier: string): BibleBook {

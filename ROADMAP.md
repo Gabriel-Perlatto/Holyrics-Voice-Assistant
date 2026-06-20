@@ -351,46 +351,64 @@ Objetivo:
 
 Sincronizar interfaces em tempo real.
 
+Status: **Concluída em 20 de junho de 2026.**
+
 Nota arquitetural: o WebSocket desta fase pertence ao NestJS e sincroniza os
 navegadores. A API oficial do Holyrics pesquisada não documenta WebSocket de
-entrada. Eventos derivados do Holyrics deverão usar chamadas HTTP
-autenticadas, polling controlado ou uma ponte explícita por gatilhos/API Item,
-sempre encapsulados no `HolyricsModule`.
+entrada. Os eventos Holyrics são consequência dos testes HTTP explícitos já
+executados pelo `HolyricsModule`; não existe polling contínuo.
 
 Tarefas:
 
-- criar Realtime Module
-- configurar WebSocket
-- criar eventos principais
-- emitir evento quando passagem bíblica mudar
-- emitir evento quando conexão Holyrics mudar
-- emitir evento quando captura de áudio iniciar/parar
-- criar JS cliente para WebSocket
-- exibir status em tempo real nas interfaces
+- [x] criar Realtime Module
+- [x] configurar WebSocket com Socket.IO
+- [x] criar gateway sem regra de negócio
+- [x] criar serviço interno de emissão
+- [x] criar enum e payloads tipados
+- [x] emitir evento quando passagem bíblica mudar
+- [x] emitir evento quando configurações forem salvas
+- [x] emitir evento quando teste/autenticação Holyrics funcionar ou falhar
+- [x] criar JS cliente reutilizável para WebSocket
+- [x] exibir status em tempo real em `/settings`
+- [x] exibir status e refletir passagem em `/preacher`
+- [x] garantir payloads sem token e dados sensíveis
 
-Eventos mínimos:
+Eventos implementados e emitidos:
 
 - `HOLYRICS_CONNECTED`
 - `HOLYRICS_DISCONNECTED`
 - `BIBLE_CHANGED`
+- `SETTINGS_UPDATED`
+- `SYSTEM_ERROR` disponível no serviço
+
+Eventos reservados, ainda não emitidos:
+
 - `TRANSCRIPTION_RECEIVED`
 - `COMMAND_IDENTIFIED`
 - `COMMAND_EXECUTED`
 - `SPEECH_STARTED`
 - `SPEECH_STOPPED`
-- `SYSTEM_ERROR`
+- `SONG_CHANGED`
 
 Critérios de aceite:
 
-- múltiplos dispositivos recebem atualizações
-- tela de Configurações mostra status em tempo real
-- tela do Pregador reflete mudanças relevantes
-- WebSocket não contém lógica de negócio
+- [x] múltiplos dispositivos podem receber atualizações
+- [x] tela de Configurações mostra status em tempo real
+- [x] tela do Pregador reflete mudanças relevantes
+- [x] WebSocket não contém lógica de negócio
+- [x] testes passam
+- [x] build passa
+- [x] conexão WebSocket validada localmente
 
 Fora de escopo nesta fase:
 
 - sincronização com nuvem
 - usuários autenticados
+- polling contínuo do Holyrics
+- reconhecimento de voz
+- Vosk
+- Command Module
+- funcionalidades de louvor
 
 ---
 

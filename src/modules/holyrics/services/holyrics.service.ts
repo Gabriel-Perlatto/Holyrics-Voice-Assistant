@@ -10,6 +10,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { SettingsService } from '../../settings/services/settings.service';
+import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
+import { RealtimeService } from '../../realtime/services/realtime.service';
 import type { CheckHolyricsPermissionsDto } from '../dto/check-holyrics-permissions.dto';
 import { HolyricsApiError } from '../exceptions/holyrics-api.exception';
 import type {
@@ -43,12 +45,14 @@ export class HolyricsService {
     private readonly settingsService: SettingsService,
     @Inject(HOLYRICS_PROVIDER)
     private readonly holyricsProvider: HolyricsProvider,
+    private readonly realtimeService: RealtimeService,
   ) {}
 
   async testConnection(): Promise<HolyricsConnectionResult> {
-    const target = this.getTarget();
+    let target: HolyricsApiTarget | undefined;
 
     try {
+      target = this.getTarget();
       const tokenResult = await this.requestTokenInfo(target);
       this.ensureCompatibleVersion(tokenResult.data.version);
       const permissionResult = await this.requestPermissionCheck(
@@ -81,32 +85,44 @@ export class HolyricsService {
 
       this.logger.log(`API Server do Holyrics autenticado (${result.version}).`);
 
-      return {
+      const connectionResult = {
         ...result,
         latencyMs,
         checkedAt: new Date().toISOString(),
       };
+
+      this.emitConnected(connectionResult.version, connectionResult.checkedAt);
+
+      return connectionResult;
     } catch (error) {
+      this.emitDisconnected(error);
       this.handleApiError(error, target);
     }
   }
 
   async validateAuthentication(): Promise<HolyricsAuthenticationResult> {
-    const target = this.getTarget();
+    let target: HolyricsApiTarget | undefined;
 
     try {
+      target = this.getTarget();
       const result = await this.requestTokenInfo(target);
       const permissions = this.parsePermissions(result.data.permissions);
+      const checkedAt = new Date().toISOString();
 
-      return {
+      const authenticationResult: HolyricsAuthenticationResult = {
         connected: true,
         authenticated: true,
         version: result.data.version,
         permissions,
         message: 'Token autenticado pelo API Server do Holyrics.',
-        checkedAt: new Date().toISOString(),
+        checkedAt,
       };
+
+      this.emitConnected(authenticationResult.version, checkedAt);
+
+      return authenticationResult;
     } catch (error) {
+      this.emitDisconnected(error);
       this.handleApiError(error, target);
     }
   }
@@ -322,15 +338,21 @@ export class HolyricsService {
 
   private handleApiError(
     error: unknown,
-    target: HolyricsApiTarget,
+    target?: HolyricsApiTarget,
   ): never {
+    if (error instanceof BadRequestException) {
+      throw error;
+    }
+
     if (error instanceof ConflictException) {
       throw error;
     }
 
     if (error instanceof HolyricsApiError) {
       this.logger.warn(
-        `Falha na API do Holyrics em ${target.host}:${target.port}: ${error.code}.`,
+        target
+          ? `Falha na API do Holyrics em ${target.host}:${target.port}: ${error.code}.`
+          : `Falha na API do Holyrics: ${error.code}.`,
       );
 
       if (error.code === 'AUTHENTICATION_FAILED') {
@@ -353,11 +375,49 @@ export class HolyricsService {
     }
 
     this.logger.error(
-      `Erro inesperado na API do Holyrics em ${target.host}:${target.port}.`,
+      target
+        ? `Erro inesperado na API do Holyrics em ${target.host}:${target.port}.`
+        : 'Erro inesperado na API do Holyrics.',
     );
 
     throw new ServiceUnavailableException(
       'Não foi possível acessar o API Server do Holyrics.',
     );
+  }
+
+  private emitConnected(version: string, checkedAt: string): void {
+    this.realtimeService.emit(
+      RealtimeEventType.HOLYRICS_CONNECTED,
+      {
+        connected: true,
+        authenticated: true,
+        version,
+        checkedAt,
+      },
+    );
+  }
+
+  private emitDisconnected(error: unknown): void {
+    this.realtimeService.emit(
+      RealtimeEventType.HOLYRICS_DISCONNECTED,
+      {
+        connected: false,
+        authenticated: false,
+        reason: this.getSafeErrorMessage(error),
+        checkedAt: new Date().toISOString(),
+      },
+    );
+  }
+
+  private getSafeErrorMessage(error: unknown): string {
+    if (
+      error instanceof BadRequestException ||
+      error instanceof ConflictException ||
+      error instanceof HolyricsApiError
+    ) {
+      return error.message;
+    }
+
+    return 'Não foi possível acessar o API Server do Holyrics.';
   }
 }

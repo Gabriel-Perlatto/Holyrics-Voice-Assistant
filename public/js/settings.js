@@ -308,6 +308,118 @@
     });
   };
 
+  const initializeRealtime = () => {
+    const statusElement = document.querySelector(
+      '[data-realtime-status]',
+    );
+    const lastEventElement = document.querySelector(
+      '[data-realtime-last-event]',
+    );
+
+    if (
+      !statusElement ||
+      !lastEventElement ||
+      !window.RealtimeClient
+    ) {
+      return;
+    }
+
+    const setRealtimeStatus = (status) => {
+      const labels = {
+        connecting: 'Conectando',
+        connected: 'Conectado',
+        disconnected: 'Desconectado',
+        error: 'Erro',
+      };
+
+      statusElement.textContent = labels[status] ?? status;
+      statusElement.classList.toggle(
+        'realtime-status--online',
+        status === 'connected',
+      );
+      statusElement.classList.toggle(
+        'realtime-status--error',
+        status === 'disconnected' || status === 'error',
+      );
+    };
+
+    const updateHolyricsStatus = (event) => {
+      const connectedElement = document.querySelector(
+        '[data-holyrics-connected]',
+      );
+      const authenticatedElement = document.querySelector(
+        '[data-holyrics-authenticated]',
+      );
+      const versionElement = document.querySelector(
+        '[data-holyrics-version]',
+      );
+      const resultElement = document.querySelector(
+        '[data-holyrics-result]',
+      );
+
+      if (
+        !connectedElement ||
+        !authenticatedElement ||
+        !versionElement ||
+        !resultElement
+      ) {
+        return;
+      }
+
+      if (event.type === 'HOLYRICS_CONNECTED') {
+        connectedElement.textContent = 'Conectado';
+        authenticatedElement.textContent = 'Autenticado';
+        versionElement.textContent = event.payload.version;
+        resultElement.textContent =
+          'Outro cliente confirmou a conexão autenticada com o Holyrics.';
+        resultElement.classList.remove('connection-result--error');
+        resultElement.classList.add('connection-result--success');
+      }
+
+      if (event.type === 'HOLYRICS_DISCONNECTED') {
+        connectedElement.textContent = 'Falha';
+        authenticatedElement.textContent = 'Falha';
+        versionElement.textContent = 'Não disponível';
+        resultElement.textContent = event.payload.reason;
+        resultElement.classList.remove('connection-result--success');
+        resultElement.classList.add('connection-result--error');
+      }
+    };
+
+    window.RealtimeClient.connect({
+      onStatus: setRealtimeStatus,
+      onEvent: (event) => {
+        const eventTime = new Date(event.occurredAt).toLocaleTimeString(
+          'pt-BR',
+        );
+        lastEventElement.textContent = `${event.type} às ${eventTime}`;
+        updateHolyricsStatus(event);
+
+        if (event.type === 'SETTINGS_UPDATED') {
+          const tokenState = document.querySelector(
+            '[data-holyrics-token-state]',
+          );
+          const feedback = document.querySelector(
+            '[data-settings-feedback]',
+          );
+
+          if (tokenState) {
+            tokenState.textContent =
+              event.payload.holyricsApiTokenConfigured
+                ? 'Um token está salvo. Deixe o campo vazio para mantê-lo.'
+                : 'Nenhum token está salvo.';
+          }
+
+          if (feedback) {
+            feedback.textContent =
+              'Configurações atualizadas em um cliente conectado.';
+          }
+        }
+      },
+    });
+  };
+
   void loadStatus();
   void initializeSettingsForm();
+  initializeRealtime();
 })();
