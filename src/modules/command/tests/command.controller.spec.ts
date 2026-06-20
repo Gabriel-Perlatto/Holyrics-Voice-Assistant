@@ -4,9 +4,11 @@ import type { CommandService } from '../services/command.service';
 
 describe('CommandController', () => {
   const service = {
-    identify: jest.fn(() => ({
-      type: CommandType.UNKNOWN,
+    identify: jest.fn(async () => ({
+      command: { type: CommandType.UNKNOWN },
       confidence: 0,
+      intentDecision: 'ignore',
+      intentReason: 'unknown_or_unsafe',
     })),
     getStatus: jest.fn(() => ({
       lastTranscription: null,
@@ -30,14 +32,18 @@ describe('CommandController', () => {
     });
   });
 
-  it('repassa texto para interpretação', () => {
-    controller.interpret({ text: 'próximo' });
+  it('repassa texto para interpretação', async () => {
+    await controller.interpret({ text: 'próximo' });
 
     expect(service.identify).toHaveBeenCalledWith('próximo');
   });
 
-  it('aceita corpo inválido sem lançar erro de conteúdo', () => {
-    expect(() => controller.interpret({})).not.toThrow();
+  it('aceita corpo inválido sem lançar erro de conteúdo', async () => {
+    await expect(controller.interpret({})).resolves.toEqual(
+      expect.objectContaining({
+        command: { type: CommandType.UNKNOWN },
+      }),
+    );
     expect(service.identify).toHaveBeenCalledWith(undefined);
   });
 });

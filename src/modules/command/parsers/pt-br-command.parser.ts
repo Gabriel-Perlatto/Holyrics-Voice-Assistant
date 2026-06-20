@@ -28,6 +28,14 @@ const EXACT_COMMANDS = new Map<
   ['capitulo anterior', CommandType.PREVIOUS_CHAPTER],
 ]);
 
+const EMBEDDED_NAVIGATION_COMMANDS = [
+  ...EXACT_COMMANDS.entries(),
+]
+  .filter(([expression]) => expression.includes(' '))
+  .sort(
+    ([left], [right]) => right.length - left.length,
+  );
+
 @Injectable()
 export class PtBrCommandParser {
   private readonly aliases: BookAliasEntry[];
@@ -76,6 +84,41 @@ export class PtBrCommandParser {
         type: CommandType.UNKNOWN,
       }
     );
+  }
+
+  parseTranscription(input: unknown): StructuredCommand {
+    const strictCommand = this.parse(input);
+
+    if (strictCommand.type !== CommandType.UNKNOWN) {
+      return strictCommand;
+    }
+
+    if (typeof input !== 'string') {
+      return strictCommand;
+    }
+
+    const normalized = this.normalize(input);
+    const embeddedReference =
+      this.parseEmbeddedBibleReference(normalized);
+
+    if (embeddedReference) {
+      return embeddedReference;
+    }
+
+    const navigationText =
+      this.normalizeNavigationCommand(normalized);
+
+    for (const [expression, type] of EMBEDDED_NAVIGATION_COMMANDS) {
+      if (
+        new RegExp(`(?:^| )${expression}(?: |$)`).test(
+          navigationText,
+        )
+      ) {
+        return { type };
+      }
+    }
+
+    return strictCommand;
   }
 
   private parseBibleReference(
@@ -141,6 +184,71 @@ export class PtBrCommandParser {
         chapter,
         verse,
       };
+    }
+
+    return null;
+  }
+
+  private parseEmbeddedBibleReference(
+    normalized: string,
+  ): StructuredCommand | null {
+    for (const entry of this.aliases) {
+      let offset = normalized.indexOf(entry.alias);
+
+      while (offset >= 0) {
+        const before = normalized[offset - 1];
+        const after = normalized[offset + entry.alias.length];
+        const hasBoundaryBefore =
+          offset === 0 || before === ' ';
+        const hasBoundaryAfter =
+          after === undefined || after === ' ';
+
+        if (hasBoundaryBefore && hasBoundaryAfter) {
+          const tail = this.normalizeNavigationCommand(
+            normalized
+              .slice(offset + entry.alias.length)
+              .trim(),
+          );
+          const referenceMatch =
+            /^(?:capitulo )?(\d{1,3})(?: (?:versiculo )?(\d{1,3}))?/.exec(
+              tail,
+            );
+
+          if (referenceMatch) {
+            const chapter = Number(referenceMatch[1]);
+            const verse = referenceMatch[2]
+              ? Number(referenceMatch[2])
+              : 1;
+
+            if (
+              this.isValidReference(
+                entry.bookIndex,
+                chapter,
+                verse,
+              )
+            ) {
+              return {
+                type: CommandType.BIBLE_REFERENCE,
+                book: entry.book,
+                chapter,
+                verse,
+              };
+            }
+          } else if (!tail) {
+            return {
+              type: CommandType.BIBLE_REFERENCE,
+              book: entry.book,
+              chapter: null,
+              verse: null,
+            };
+          }
+        }
+
+        offset = normalized.indexOf(
+          entry.alias,
+          offset + entry.alias.length,
+        );
+      }
     }
 
     return null;

@@ -18,6 +18,7 @@ interface SettingsRow {
   microphone: string | null;
   vosk_model_path: string | null;
   speech_auto_start: number;
+  voice_command_mode: string;
   updated_at: string;
 }
 
@@ -51,6 +52,7 @@ export class SettingsRepository implements OnModuleDestroy {
             microphone,
             vosk_model_path,
             speech_auto_start,
+            voice_command_mode,
             updated_at
           FROM settings
           WHERE id = 1
@@ -76,6 +78,7 @@ export class SettingsRepository implements OnModuleDestroy {
             microphone = @microphone,
             vosk_model_path = @voskModelPath,
             speech_auto_start = @speechAutoStart,
+            voice_command_mode = @voiceCommandMode,
             updated_at = @updatedAt
           WHERE id = 1
         `,
@@ -104,12 +107,14 @@ export class SettingsRepository implements OnModuleDestroy {
         microphone TEXT,
         vosk_model_path TEXT,
         speech_auto_start INTEGER NOT NULL DEFAULT 0,
+        voice_command_mode TEXT NOT NULL DEFAULT 'conservative',
         updated_at TEXT NOT NULL
       );
     `);
 
     this.migrateApiTokenColumn();
     this.migrateSpeechAutoStartColumn();
+    this.migrateVoiceCommandModeColumn();
 
     this.database
       .prepare(
@@ -123,8 +128,9 @@ export class SettingsRepository implements OnModuleDestroy {
             microphone,
             vosk_model_path,
             speech_auto_start,
+            voice_command_mode,
             updated_at
-          ) VALUES (1, '', NULL, NULL, 'pt-BR', NULL, NULL, 0, @updatedAt)
+          ) VALUES (1, '', NULL, NULL, 'pt-BR', NULL, NULL, 0, 'conservative', @updatedAt)
         `,
       )
       .run({ updatedAt: new Date().toISOString() });
@@ -139,6 +145,8 @@ export class SettingsRepository implements OnModuleDestroy {
       microphone: row.microphone,
       voskModelPath: row.vosk_model_path,
       speechAutoStart: Boolean(row.speech_auto_start),
+      voiceCommandMode:
+        row.voice_command_mode === 'fast' ? 'fast' : 'conservative',
       updatedAt: row.updated_at,
     };
   }
@@ -163,6 +171,18 @@ export class SettingsRepository implements OnModuleDestroy {
     if (!columns.some(({ name }) => name === 'speech_auto_start')) {
       this.database.exec(
         'ALTER TABLE settings ADD COLUMN speech_auto_start INTEGER NOT NULL DEFAULT 0',
+      );
+    }
+  }
+
+  private migrateVoiceCommandModeColumn(): void {
+    const columns = this.database
+      .prepare('PRAGMA table_info(settings)')
+      .all() as Array<{ name: string }>;
+
+    if (!columns.some(({ name }) => name === 'voice_command_mode')) {
+      this.database.exec(
+        "ALTER TABLE settings ADD COLUMN voice_command_mode TEXT NOT NULL DEFAULT 'conservative'",
       );
     }
   }

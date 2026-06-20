@@ -1,6 +1,6 @@
 # Integração com Holyrics
 
-## Estado implementado — Phase 5.5
+## Estado implementado — Phases 5.5 e 9.5
 
 O `HolyricsModule` usa o API Server HTTP oficial do Holyrics para autenticar,
 consultar versão, verificar permissões e obter informações do servidor.
@@ -8,9 +8,10 @@ consultar versão, verificar permissões e obter informações do servidor.
 Não são usados `GET /`, endpoints especulativos ou protocolos internos do
 aplicativo móvel.
 
+Também está implementada a apresentação de passagens com `ShowVerse`.
+
 Ainda não estão implementados:
 
-- apresentação real de passagens com `ShowVerse`;
 - consulta de versões instaladas com `GetBibleVersionsV2`;
 - controles de músicas, playlists ou louvor;
 - polling contínuo;
@@ -33,6 +34,7 @@ No computador que executa o Holyrics:
    - `CheckPermissions`;
    - `GetVersion`;
    - `GetAPIServerInfo`.
+   - `ShowVerse`.
 
 Depois, em `/settings`, informe host/IP, porta e token, salve e clique em
 “Validar API Holyrics”.
@@ -73,6 +75,51 @@ O banco não é criptografado. O arquivo `data/settings.sqlite` deve permanecer
 restrito ao usuário do sistema operacional que executa a aplicação.
 
 ## Endpoints locais
+
+### Último envio bíblico
+
+```http
+GET /api/holyrics/bible-projection/status
+```
+
+Retorna somente referência, versão, resultado, mensagem segura e horário. O
+token, host e porta não são retornados.
+
+## Projeção bíblica — Phase 9.5
+
+A ação oficial utilizada é:
+
+```http
+POST /api/ShowVerse?token=<TOKEN>
+Content-Type: application/json
+```
+
+```json
+{
+  "references": "João 3:16",
+  "version": "NVI"
+}
+```
+
+`ShowVerse` foi escolhido porque inicia a apresentação. `SelectVerse` apenas
+seleciona a referência na janela bíblica. `SetBibleSettings` não é usado para
+evitar alterar configurações globais do Holyrics.
+
+A versão local é convertida para sua abreviação (`NVI`, `ACF`, `NAA` ou
+`ARC`) e enviada junto da referência. O sistema não consulta
+`GetBibleVersionsV2` nesta fase; portanto, a igreja deve confirmar que a
+abreviação está instalada e reconhecida pelo Holyrics.
+
+Resultados:
+
+- `holyrics`: `ShowVerse` foi aceito;
+- `local-only`: host/porta não estão configurados;
+- `failed`: token ausente, token inválido, timeout, indisponibilidade,
+  permissão insuficiente ou erro da ação.
+
+Em todos os casos a navegação local permanece válida. Falhas emitem
+`SYSTEM_ERROR` com `source: "holyrics-bible-projection"` e mensagem sem
+segredos.
 
 ### Teste completo
 
@@ -142,6 +189,7 @@ A tela `/settings`:
 - mostra versão do Holyrics;
 - mostra as permissões disponíveis;
 - apresenta erros retornados pelo backend.
+- mostra o último envio bíblico e o último erro seguro.
 
 Não existe polling. A validação ocorre somente quando o usuário aciona o
 botão.
@@ -167,5 +215,27 @@ Os testes usam mocks e não dependem de Holyrics real. Cobrem:
 - versão incompatível;
 - persistência, preservação e remoção do token;
 - não exposição do token pela resposta pública de configurações.
+- `ShowVerse` bem-sucedido;
+- fallback sem configuração;
+- token ausente ou inválido;
+- timeout e permissão insuficiente;
+- payload seguro da projeção.
+
+## Validação na igreja
+
+1. conceda `ShowVerse` ao token;
+2. confirme que a abreviação escolhida existe no Holyrics;
+3. valide conexão em `/settings`;
+4. selecione uma passagem em `/preacher`;
+5. confirme “Enviado ao Holyrics” e a projeção visível;
+6. teste também um comando de voz.
+
+Erros comuns:
+
+- “token inválido”: recrie ou substitua o token;
+- “sem permissão para ShowVerse”: ajuste as permissões;
+- timeout/conexão recusada: confira API Server, IP, porta e firewall;
+- erro de versão bíblica: selecione uma versão instalada ou alinhe a
+  abreviação configurada no Holyrics.
 
 Consulte também [`holyrics-api-research.md`](holyrics-api-research.md).

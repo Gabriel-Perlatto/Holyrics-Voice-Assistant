@@ -29,6 +29,7 @@ describe('SettingsRepository', () => {
         microphone: null,
         voskModelPath: null,
         speechAutoStart: false,
+        voiceCommandMode: 'conservative',
       }),
     );
 
@@ -46,6 +47,7 @@ describe('SettingsRepository', () => {
       microphone: 'Microfone principal',
       voskModelPath: '/modelos/vosk',
       speechAutoStart: true,
+      voiceCommandMode: 'fast',
     });
     firstRepository.onModuleDestroy();
 
@@ -60,6 +62,7 @@ describe('SettingsRepository', () => {
         microphone: 'Microfone principal',
         voskModelPath: '/modelos/vosk',
         speechAutoStart: true,
+        voiceCommandMode: 'fast',
       }),
     );
 
@@ -108,6 +111,7 @@ describe('SettingsRepository', () => {
         holyricsPort: 8091,
         holyricsApiToken: null,
         speechAutoStart: false,
+        voiceCommandMode: 'conservative',
       }),
     );
 

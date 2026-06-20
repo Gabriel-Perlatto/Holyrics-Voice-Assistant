@@ -374,6 +374,22 @@ O estado do Holyrics é refletido apenas como consequência de ações explícit
 Não foi implementado polling contínuo, consulta de apresentação ou WebSocket
 com o Holyrics. Mudanças externas ao projeto continuam sem push nesta fase.
 
+### Phase 9.5 implementada
+
+A projeção bíblica usa exclusivamente `ShowVerse` com:
+
+```json
+{
+  "references": "João 3:16",
+  "version": "NVI"
+}
+```
+
+A ação fica encapsulada no `HolyricsModule`. `SelectVerse` não foi usado
+porque apenas seleciona a referência, e `SetBibleSettings` não foi usado para
+evitar alteração global. O sistema mantém fallback local e não implementa
+polling, API remota ou endpoints especulativos.
+
 ## Dúvidas restantes
 
 - comportamento exato de CORS para chamadas de navegador;

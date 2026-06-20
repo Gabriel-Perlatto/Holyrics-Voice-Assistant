@@ -14,6 +14,7 @@ describe('SettingsService', () => {
     microphone: null,
     voskModelPath: null,
     speechAutoStart: false,
+    voiceCommandMode: 'conservative' as const,
     updatedAt: '2026-06-20T00:00:00.000Z',
   };
 
@@ -57,6 +58,7 @@ describe('SettingsService', () => {
       microphone: null,
       voskModelPath: null,
       speechAutoStart: false,
+      voiceCommandMode: 'conservative',
       updatedAt: '2026-06-20T00:00:00.000Z',
       voskModelPathStatus: {
         configured: false,
@@ -80,6 +82,7 @@ describe('SettingsService', () => {
       microphone: ' Microfone USB ',
       voskModelPath: ' /modelos/vosk-pt ',
       speechAutoStart: true,
+      voiceCommandMode: 'fast',
     });
 
     expect(repository.save).toHaveBeenCalledWith({
@@ -90,6 +93,7 @@ describe('SettingsService', () => {
       microphone: 'Microfone USB',
       voskModelPath: '/modelos/vosk-pt',
       speechAutoStart: true,
+      voiceCommandMode: 'fast',
     });
     expect(result.holyricsHost).toBe('192.168.1.20');
     expect(result.holyricsApiTokenConfigured).toBe(true);
@@ -107,6 +111,7 @@ describe('SettingsService', () => {
         microphoneConfigured: true,
         voskModelConfigured: true,
         speechAutoStart: true,
+        voiceCommandMode: 'fast',
         updatedAt: '2026-06-20T01:00:00.000Z',
       },
     );
@@ -126,6 +131,7 @@ describe('SettingsService', () => {
       microphone: '',
       voskModelPath: null,
       speechAutoStart: false,
+      voiceCommandMode: 'conservative',
     });
 
     expect(repository.save).toHaveBeenCalledWith(
@@ -135,6 +141,7 @@ describe('SettingsService', () => {
         holyricsApiToken: null,
         microphone: null,
         voskModelPath: null,
+        voiceCommandMode: 'conservative',
       }),
     );
   });
@@ -203,6 +210,44 @@ describe('SettingsService', () => {
         holyricsApiToken: 'saved-token',
       }),
     );
+  });
+
+  it('preserva o modo atual quando o campo não é enviado', () => {
+    const repository = createRepository();
+    repository.find.mockReturnValue({
+      ...currentSettings,
+      voiceCommandMode: 'fast',
+    });
+    const { service } = createService(repository);
+
+    service.updateSettings({
+      holyricsHost: '',
+      holyricsPort: null,
+      language: 'pt-BR',
+      microphone: null,
+      voskModelPath: null,
+    });
+
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        voiceCommandMode: 'fast',
+      }),
+    );
+  });
+
+  it('rejeita modo de comando desconhecido', () => {
+    const { service } = createService();
+
+    expect(() =>
+      service.updateSettings({
+        holyricsHost: '',
+        holyricsPort: null,
+        language: 'pt-BR',
+        microphone: null,
+        voskModelPath: null,
+        voiceCommandMode: 'automatic',
+      }),
+    ).toThrow(BadRequestException);
   });
 
   it('remove o token quando recebe null', () => {

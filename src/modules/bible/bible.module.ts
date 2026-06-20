@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { HolyricsModule } from '../holyrics/holyrics.module';
 import { BibleController } from './controllers/bible.controller';
 import { BibleNavigationController } from './controllers/bible-navigation.controller';
 import { BIBLE_CONTENT_PROVIDER } from './interfaces/bible-content-provider.interface';
@@ -9,6 +10,7 @@ import { BibleService } from './services/bible.service';
 import { BookAliasService } from './services/book-alias.service';
 
 @Module({
+  imports: [HolyricsModule],
   controllers: [BibleController, BibleNavigationController],
   providers: [
     LocalBibleContentProvider,

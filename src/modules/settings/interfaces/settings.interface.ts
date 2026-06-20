@@ -1,3 +1,5 @@
+export type VoiceCommandMode = 'conservative' | 'fast';
+
 export interface Settings {
   holyricsHost: string;
   holyricsPort: number | null;
@@ -6,6 +8,7 @@ export interface Settings {
   microphone: string | null;
   voskModelPath: string | null;
   speechAutoStart: boolean;
+  voiceCommandMode: VoiceCommandMode;
   updatedAt: string;
 }
 

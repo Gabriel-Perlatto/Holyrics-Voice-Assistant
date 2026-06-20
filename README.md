@@ -58,6 +58,8 @@ As **Phases 0 a 8.5** estão concluídas. Esta versão contém:
 - motor de navegação bíblica local orientado por comandos;
 - transições entre versículos, capítulos e livros;
 - sincronização automática do pregador por `BIBLE_CHANGED`;
+- projeção bíblica oficial com `ShowVerse`;
+- fallback local e erro seguro quando o Holyrics falha;
 - diagnóstico de transcrição, comando, referência atual e último comando
   aplicado em `/settings`.
 
@@ -151,13 +153,15 @@ Endpoint disponível:
   versículos.
 - `POST /api/bible/selection` — valida e registra a passagem localmente.
 - `GET /api/bible/navigation/status` — contexto e último comando aplicado.
+- `GET /api/holyrics/bible-projection/status` — último envio bíblico seguro.
 - `GET /api/speech/status` — estado atual do provider e da captura.
 - `GET /api/speech/microphones` — entradas de áudio locais disponíveis.
 - `POST /api/speech/initialize` — valida e carrega o modelo configurado.
 - `POST /api/speech/start` — inicia captura e transcrição.
 - `POST /api/speech/stop` — para a captura.
 - `GET /api/commands/status` — último diagnóstico e contexto interno.
-- `POST /api/commands/interpret` — interpreta texto e aplica navegação local.
+- `POST /api/commands/interpret` — interpreta texto, aplica o guard e só
+  navega quando a intenção é autorizada.
 
 Exemplo:
 
@@ -186,7 +190,8 @@ curl --request PUT http://localhost:3000/api/settings \
     "language": "pt-BR",
     "microphone": "default",
     "voskModelPath": "models/pt-BR/vosk-model-small-pt-0.3",
-    "speechAutoStart": false
+    "speechAutoStart": false,
+    "voiceCommandMode": "conservative"
   }'
 ```
 
@@ -475,3 +480,29 @@ O motor atravessa limites de capítulos e livros sem duplicar dados bíblicos.
 O contexto permanece em memória, `COMMAND_EXECUTED` não é emitido e nenhuma
 chamada ao Holyrics foi adicionada. Consulte
 [`docs/bible-navigation.md`](docs/bible-navigation.md).
+
+## Decisões técnicas da Phase 9.5
+
+A projeção usa exclusivamente `ShowVerse`, enviando `references` e `version`
+na mesma requisição oficial. A comunicação permanece encapsulada no
+`HolyricsModule`.
+
+O contexto local é atualizado mesmo quando o Holyrics está ausente ou falha.
+`BIBLE_CHANGED` informa `holyrics`, `local-only` ou `failed`, sem expor token.
+Não há polling, nuvem, `SetBibleSettings` ou funcionalidades de louvor.
+
+## Decisões técnicas da Phase 9.6
+
+O `CommandIntentGuardService` atua somente em comandos originados de
+transcrição ou do endpoint de interpretação. A seleção manual em `/preacher`
+continua usando diretamente o fluxo do `BibleModule`.
+
+O modo `conservative`, usado por padrão, exige ação explícita antes de uma
+referência. O modo `fast` também aceita referências diretas, mas continua
+bloqueando contextos claramente casuais. Comandos relativos só executam como
+frases diretas.
+
+Comandos ignorados emitem `COMMAND_IDENTIFIED` com decisão e motivo, sem
+`BIBLE_CHANGED` e sem chamada ao Holyrics. As regras são locais e
+determinísticas; não há IA, LLM ou NLP externo. Consulte
+[`docs/command-interpreter.md`](docs/command-interpreter.md).

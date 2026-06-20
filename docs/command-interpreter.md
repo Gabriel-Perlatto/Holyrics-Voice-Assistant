@@ -1,18 +1,18 @@
 # Interpretador de comandos
 
-## Escopo das Phases 8 e 8.5
+## Escopo das Phases 8, 8.5 e 9.6
 
 O `CommandModule` transforma texto em comandos estruturados de forma local,
 determinística e sem dependência de internet.
 
-Ele não:
+O parser e o normalizador não:
 
-- executa comandos;
-- chama o Holyrics;
-- altera a passagem exibida;
-- altera o `BibleModule`;
-- acessa a interface do pregador;
-- usa IA generativa, LLM ou NLP externo.
+- executam comandos;
+- chamam o Holyrics;
+- alteram a passagem exibida;
+- alteram o `BibleModule`;
+- acessam a interface do pregador;
+- usam IA generativa, LLM ou NLP externo.
 
 ## Fluxo
 
@@ -27,7 +27,11 @@ PtBrCommandParser
         ↓
 StructuredCommand
         ↓
+CommandIntentGuardService
+        ↓
 COMMAND_IDENTIFIED
+        ↓ execute
+BibleNavigationService
 ```
 
 Somente transcrições finais são interpretadas. Transcrições parciais continuam
@@ -36,6 +40,10 @@ disponíveis como diagnóstico, mas não geram comandos.
 Na Phase 8.5, o texto final passa primeiro pelo `NumberNormalizerService`. O
 serviço devolve somente texto e não conhece intents, comandos estruturados,
 BibleModule ou Holyrics.
+
+Na Phase 9.6, o parser também consegue extrair uma referência válida de uma
+frase completa. A extração apenas identifica o comando; o
+`CommandIntentGuardService` decide se a intenção permite navegar.
 
 ## Comandos suportados
 
@@ -50,23 +58,27 @@ Exemplos:
 
 ```json
 {
-  "type": "BIBLE_REFERENCE",
-  "book": "joao",
-  "chapter": 3,
-  "verse": 16,
-  "confidence": 1
+  "command": {
+    "type": "BIBLE_REFERENCE",
+    "book": "joao",
+    "chapter": 3,
+    "verse": 16
+  },
+  "confidence": 1,
+  "intentDecision": "execute",
+  "intentReason": "explicit_action"
 }
 ```
 
-Referência somente de livro:
+O comando interno continua usando `BIBLE_REFERENCE`. Referência somente de
+livro:
 
 ```json
 {
   "type": "BIBLE_REFERENCE",
   "book": "genesis",
   "chapter": null,
-  "verse": null,
-  "confidence": 1
+  "verse": null
 }
 ```
 
@@ -77,16 +89,12 @@ Referência de capítulo:
   "type": "BIBLE_REFERENCE",
   "book": "joao",
   "chapter": 3,
-  "verse": 1,
-  "confidence": 1
+  "verse": 1
 }
 ```
 
 ```json
-{
-  "type": "NEXT_VERSE",
-  "confidence": 1
-}
+{ "type": "NEXT_VERSE" }
 ```
 
 Entradas não reconhecidas retornam `UNKNOWN` com confiança zero e não lançam
@@ -132,9 +140,10 @@ Os nomes, abreviações e aliases são lidos de
 `src/modules/bible/data/pt-BR/books.ts`. Nenhuma segunda lista de livros foi
 criada no `CommandModule`.
 
-Comandos de navegação são reconhecidos somente quando a transcrição normalizada
-corresponde integralmente a uma expressão suportada. Isso evita casos simples
-como `o próximo irmão`.
+Comandos relativos diretos são reconhecidos integralmente. Em frases maiores,
+somente expressões relativas específicas, como `versículo anterior`, são
+extraídas para que o guard possa bloqueá-las. Expressões comuns como
+`o próximo irmão` e `a próxima pessoa` permanecem `UNKNOWN`.
 
 Expressões suportadas:
 
@@ -166,10 +175,64 @@ O `POST` recebe:
 }
 ```
 
-Os dois endpoints interpretam ou consultam estado; nenhum executa ações.
+O `POST` representa o mesmo fluxo de uma transcrição final. Ele só navega
+quando o guard retorna `execute`.
 
 O status contém a última transcrição original e
 `lastNormalizedTranscription`. A tela `/settings` mostra ambos separadamente.
+
+## Guard de intenção
+
+O guard recebe a transcrição original, a normalizada e o comando identificado.
+Ele retorna:
+
+```json
+{
+  "decision": "execute",
+  "reason": "explicit_action"
+}
+```
+
+Decisões:
+
+- `execute`: encaminha ao `BibleNavigationService`;
+- `ignore`: emite somente `COMMAND_IDENTIFIED`.
+
+Motivos:
+
+- `explicit_action`;
+- `casual_reference`;
+- `relative_reference_context`;
+- `unknown_or_unsafe`.
+
+No modo `conservative`, referências bíblicas exigem uma expressão de ação
+determinística, como `vamos para`, `abra em`, `mostre`, `coloque`, `projete`,
+`vamos ler` ou `agora em`.
+
+No modo `fast`, uma referência direta como `Apocalipse 12 13` também executa.
+Frases claramente casuais continuam bloqueadas nos dois modos.
+
+Exemplos executados:
+
+```text
+agora vamos para Apocalipse 12 13
+abra em João 3 16
+mostre Salmos 23 1
+próximo versículo
+```
+
+Exemplos ignorados:
+
+```text
+Apocalipse 12 13                 # modo conservador
+como vimos em Apocalipse 12 13
+segundo Apocalipse 12 13
+no próximo versículo veremos
+o próximo irmão pode vir
+```
+
+`voiceCommandMode` é persistido nas configurações locais. O valor padrão é
+`conservative`; o outro valor aceito é `fast`.
 
 ## Números suportados
 
@@ -184,11 +247,12 @@ pelos aliases existentes do BibleModule. Nenhuma lista bíblica foi duplicada.
 
 ## Evento
 
-`COMMAND_IDENTIFIED` transmite o comando estruturado e a confiança. O payload
-não inclui a transcrição, áudio, configurações ou dados do Holyrics.
+`COMMAND_IDENTIFIED` transmite `command`, `confidence`, `intentDecision` e
+`intentReason`. O payload não inclui a transcrição, áudio, configurações,
+token ou dados de conexão do Holyrics.
 
-Na Phase 9, o comando identificado segue para o `BibleNavigationService`, que
-pode atualizar o contexto local e emitir `BIBLE_CHANGED`.
+Somente decisões `execute` seguem para o `BibleNavigationService`. Uma decisão
+`ignore` não emite `BIBLE_CHANGED` e não aciona o Holyrics.
 `COMMAND_EXECUTED` não é emitido.
 
 ## Limitações
@@ -201,4 +265,5 @@ pode atualizar o contexto local e emitir `BIBLE_CHANGED`.
 - não há intervalos de versículos;
 - não há composição de múltiplos comandos;
 - o contexto fica somente em memória;
-- a navegação não controla ou envia dados ao Holyrics.
+- o guard é determinístico e não compreende contexto livre como uma IA;
+- novas formas de pedir uma passagem precisam ser adicionadas explicitamente.

@@ -340,9 +340,16 @@
       }
 
       const result = await response.json();
+      const deliveryMessages = {
+        holyrics: `${result.selection.reference} enviado ao Holyrics.`,
+        'local-only':
+          `${result.selection.reference} selecionado somente no sistema local.`,
+        failed:
+          `${result.selection.reference} selecionado localmente, mas o envio ao Holyrics falhou.`,
+      };
       showFeedback(
-        `${result.selection.reference} (${state.selectedVersion.abbreviation}) selecionado. Envio ao Holyrics ainda indisponível.`,
-        'success',
+        deliveryMessages[result.delivery] ?? result.message,
+        result.delivery === 'failed' ? 'error' : 'success',
       );
     } catch (error) {
       showFeedback(
@@ -356,7 +363,7 @@
 
   const applyBibleChangedEvent = async (event) => {
     const { payload } = event;
-    const book = state.books.find(({ id }) => id === payload.book.id);
+    const book = state.books.find(({ id }) => id === payload.book);
 
     if (!initialized || !book) {
       pendingBibleEvent = event;
@@ -364,7 +371,9 @@
     }
 
     const version = state.versions.find(
-      ({ id }) => id === payload.version,
+      ({ id, abbreviation }) =>
+        id === String(payload.version).toLocaleLowerCase('pt-BR') ||
+        abbreviation === payload.version,
     );
 
     state.selectedBook = book;
@@ -402,8 +411,12 @@
       updateHeader();
       updatePanels('verses');
       showFeedback(
-        `${book.name} ${payload.chapter}:${payload.verse} sincronizado em tempo real.`,
-        'success',
+        payload.delivery === 'holyrics'
+          ? `${book.name} ${payload.chapter}:${payload.verse} enviado ao Holyrics.`
+          : payload.delivery === 'failed'
+            ? `${book.name} ${payload.chapter}:${payload.verse} atualizado localmente; envio ao Holyrics falhou.`
+            : `${book.name} ${payload.chapter}:${payload.verse} atualizado somente no sistema local.`,
+        payload.delivery === 'failed' ? 'error' : 'success',
       );
     } catch {
       updateHeader();

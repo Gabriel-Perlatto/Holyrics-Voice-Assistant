@@ -35,6 +35,7 @@ const PHASE_REQUIRED_PERMISSIONS = [
   'CheckPermissions',
   'GetVersion',
   'GetAPIServerInfo',
+  'ShowVerse',
 ];
 
 @Injectable()

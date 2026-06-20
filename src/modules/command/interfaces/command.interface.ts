@@ -28,6 +28,26 @@ export type IdentifiedCommand = StructuredCommand & {
   confidence: number;
 };
 
+export type CommandIntentDecision = 'execute' | 'ignore';
+
+export type CommandIntentReason =
+  | 'explicit_action'
+  | 'casual_reference'
+  | 'relative_reference_context'
+  | 'unknown_or_unsafe';
+
+export interface CommandIntentGuardDecision {
+  decision: CommandIntentDecision;
+  reason: CommandIntentReason;
+}
+
+export interface CommandIdentification {
+  command: StructuredCommand;
+  confidence: number;
+  intentDecision: CommandIntentDecision;
+  intentReason: CommandIntentReason;
+}
+
 export interface CommandContext {
   book: string | null;
   chapter: number | null;
@@ -37,6 +57,6 @@ export interface CommandContext {
 export interface CommandStatus {
   lastTranscription: string | null;
   lastNormalizedTranscription: string | null;
-  lastCommand: IdentifiedCommand | null;
+  lastCommand: CommandIdentification | null;
   context: CommandContext;
 }

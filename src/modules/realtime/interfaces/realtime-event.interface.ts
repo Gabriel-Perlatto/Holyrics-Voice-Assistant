@@ -1,5 +1,6 @@
 import { RealtimeEventType } from '../enums/realtime-event-type.enum';
-import type { IdentifiedCommand } from '../../command/interfaces/command.interface';
+import type { CommandIdentification } from '../../command/interfaces/command.interface';
+import type { VoiceCommandMode } from '../../settings/interfaces/settings.interface';
 
 export interface HolyricsConnectedPayload {
   connected: true;
@@ -16,16 +17,13 @@ export interface HolyricsDisconnectedPayload {
 }
 
 export interface BibleChangedPayload {
-  book: {
-    id: string;
-    name: string;
-  };
+  book: string;
   chapter: number;
   verse: number;
   version: string;
-  source: 'local-fallback';
-  delivery: 'local-only';
-  deliveredToHolyrics: false;
+  source: 'voice' | 'manual';
+  delivery: 'holyrics' | 'local-only' | 'failed';
+  deliveredToHolyrics: boolean;
 }
 
 export interface SettingsUpdatedPayload {
@@ -35,6 +33,7 @@ export interface SettingsUpdatedPayload {
   microphoneConfigured: boolean;
   voskModelConfigured: boolean;
   speechAutoStart: boolean;
+  voiceCommandMode: VoiceCommandMode;
   updatedAt: string;
 }
 
@@ -68,7 +67,7 @@ export interface RealtimeEventPayloadMap {
   [RealtimeEventType.SETTINGS_UPDATED]: SettingsUpdatedPayload;
   [RealtimeEventType.SYSTEM_ERROR]: SystemErrorPayload;
   [RealtimeEventType.TRANSCRIPTION_RECEIVED]: TranscriptionReceivedPayload;
-  [RealtimeEventType.COMMAND_IDENTIFIED]: IdentifiedCommand;
+  [RealtimeEventType.COMMAND_IDENTIFIED]: CommandIdentification;
   [RealtimeEventType.COMMAND_EXECUTED]: Record<string, never>;
   [RealtimeEventType.SPEECH_STARTED]: SpeechStartedPayload;
   [RealtimeEventType.SPEECH_STOPPED]: SpeechStoppedPayload;

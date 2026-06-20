@@ -1,236 +1,233 @@
+import type { BibleNavigationService } from '../../bible/services/bible-navigation.service';
 import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
 import type { RealtimeService } from '../../realtime/services/realtime.service';
-import type { BibleNavigationService } from '../../bible/services/bible-navigation.service';
+import type { SettingsService } from '../../settings/services/settings.service';
+import type { VoiceCommandMode } from '../../settings/interfaces/settings.interface';
 import { CommandType } from '../enums/command-type.enum';
 import { PtBrCommandParser } from '../parsers/pt-br-command.parser';
 import { CommandContextService } from '../services/command-context.service';
+import { CommandIntentGuardService } from '../services/command-intent-guard.service';
 import { CommandService } from '../services/command.service';
 import { NumberNormalizerService } from '../services/number-normalizer.service';
 
 describe('CommandService', () => {
-  const createService = () => {
+  const createService = (
+    voiceCommandMode: VoiceCommandMode = 'conservative',
+  ) => {
     const realtime = {
       emit: jest.fn(),
     } as unknown as jest.Mocked<RealtimeService>;
-    const context = new CommandContextService();
     const navigation = {
-      apply: jest.fn(),
+      apply: jest.fn(async () => undefined),
     } as unknown as jest.Mocked<BibleNavigationService>;
+    const settings = {
+      getSettings: jest.fn(() => ({ voiceCommandMode })),
+    } as unknown as jest.Mocked<SettingsService>;
+    const parser = new PtBrCommandParser();
     const service = new CommandService(
-      new PtBrCommandParser(),
+      parser,
       new NumberNormalizerService(),
-      context,
+      new CommandContextService(),
       realtime,
       navigation,
+      new CommandIntentGuardService(parser),
+      settings,
     );
 
     return { realtime, navigation, service };
   };
 
-  it('identifica, emite e encaminha uma referência para navegação', () => {
-    const { realtime, navigation, service } = createService();
+  it.each([
+    'agora vamos para apocalipse 12 13',
+    'abra em apocalipse 12 13',
+    'mostre apocalipse 12 13',
+    'coloque apocalipse 12 13',
+    'projete apocalipse 12 13',
+    'vamos ler apocalipse 12 13',
+    'agora em apocalipse 12 13',
+  ])('executa referência com ação explícita: "%s"', async (input) => {
+    const { navigation, service } = createService();
 
-    const command = service.identify('João 3 16');
+    const result = await service.identify(input);
 
-    expect(command).toEqual({
-      type: CommandType.BIBLE_REFERENCE,
-      book: 'joao',
-      chapter: 3,
-      verse: 16,
+    expect(result).toEqual({
+      command: {
+        type: CommandType.BIBLE_REFERENCE,
+        book: 'apocalipse',
+        chapter: 12,
+        verse: 13,
+      },
+      confidence: 1,
+      intentDecision: 'execute',
+      intentReason: 'explicit_action',
+    });
+    expect(navigation.apply).toHaveBeenCalledWith({
+      ...result.command,
       confidence: 1,
     });
-    expect(realtime.emit).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    'como vimos em apocalipse 12 13',
+    'como está em apocalipse 12 13',
+    'isso também aparece em apocalipse 12 13',
+    'segundo apocalipse 12 13',
+    'lá em apocalipse 12 13 vemos',
+    'em apocalipse 12 13 temos a mesma informação',
+  ])('ignora referência casual: "%s"', async (input) => {
+    const { navigation, service } = createService();
+
+    const result = await service.identify(input);
+
+    expect(result).toMatchObject({
+      command: {
+        type: CommandType.BIBLE_REFERENCE,
+        book: 'apocalipse',
+        chapter: 12,
+        verse: 13,
+      },
+      confidence: 1,
+      intentDecision: 'ignore',
+      intentReason: 'casual_reference',
+    });
+    expect(navigation.apply).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'como vimos no versículo anterior',
+    'o versículo anterior mostra',
+    'no próximo versículo veremos',
+  ])('ignora comando relativo contextual: "%s"', async (input) => {
+    const { navigation, service } = createService();
+
+    const result = await service.identify(input);
+
+    expect(result).toMatchObject({
+      confidence: 1,
+      intentDecision: 'ignore',
+      intentReason: 'relative_reference_context',
+    });
+    expect(navigation.apply).not.toHaveBeenCalled();
+  });
+
+  it.each(['o próximo irmão pode vir', 'a próxima pessoa'])(
+    'mantém frase comum como UNKNOWN: "%s"',
+    async (input) => {
+      const { navigation, service } = createService();
+
+      expect(await service.identify(input)).toEqual({
+        command: { type: CommandType.UNKNOWN },
+        confidence: 0,
+        intentDecision: 'ignore',
+        intentReason: 'unknown_or_unsafe',
+      });
+      expect(navigation.apply).not.toHaveBeenCalled();
+    },
+  );
+
+  it('modo conservador ignora referência direta', async () => {
+    const { navigation, service } = createService('conservative');
+
+    expect(await service.identify('Apocalipse 12 13')).toMatchObject({
+      intentDecision: 'ignore',
+      intentReason: 'unknown_or_unsafe',
+    });
+    expect(navigation.apply).not.toHaveBeenCalled();
+  });
+
+  it('modo rápido executa referência direta', async () => {
+    const { navigation, service } = createService('fast');
+
+    expect(await service.identify('Apocalipse 12 13')).toMatchObject({
+      intentDecision: 'execute',
+      intentReason: 'explicit_action',
+    });
+    expect(navigation.apply).toHaveBeenCalledTimes(1);
+  });
+
+  it('modo rápido continua ignorando referência casual', async () => {
+    const { navigation, service } = createService('fast');
+
+    expect(
+      await service.identify('como vimos em Apocalipse 12 13'),
+    ).toMatchObject({
+      intentDecision: 'ignore',
+      intentReason: 'casual_reference',
+    });
+    expect(navigation.apply).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['próximo versículo', CommandType.NEXT_VERSE],
+    ['versículo anterior', CommandType.PREVIOUS_VERSE],
+    ['capítulo seguinte', CommandType.NEXT_CHAPTER],
+    ['capítulo anterior', CommandType.PREVIOUS_CHAPTER],
+  ])('executa comando relativo direto: "%s"', async (input, type) => {
+    const { navigation, service } = createService();
+
+    const result = await service.identify(input);
+
+    expect(result).toMatchObject({
+      command: { type },
+      intentDecision: 'execute',
+      intentReason: 'explicit_action',
+    });
+    expect(navigation.apply).toHaveBeenCalledTimes(1);
+  });
+
+  it('normaliza números antes de extrair a referência', async () => {
+    const { service } = createService();
+
+    const result = await service.identify(
+      'vamos para primeira coríntios capítulo treze',
+    );
+
+    expect(result.command).toEqual({
+      type: CommandType.BIBLE_REFERENCE,
+      book: '1-corintios',
+      chapter: 13,
+      verse: 1,
+    });
+    expect(service.getStatus().lastNormalizedTranscription).toBe(
+      'vamos para 1 coríntios capítulo 13',
+    );
+  });
+
+  it('emite payload estruturado e seguro', async () => {
+    const { realtime, service } = createService();
+
+    const result = await service.identify(
+      'vamos para João capítulo três versículo dezesseis',
+    );
+
     expect(realtime.emit).toHaveBeenCalledWith(
       RealtimeEventType.COMMAND_IDENTIFIED,
-      command,
+      result,
     );
+    expect(result).toEqual({
+      command: {
+        type: CommandType.BIBLE_REFERENCE,
+        book: 'joao',
+        chapter: 3,
+        verse: 16,
+      },
+      confidence: 1,
+      intentDecision: 'execute',
+      intentReason: 'explicit_action',
+    });
+    expect(result).not.toHaveProperty('text');
+    expect(result).not.toHaveProperty('transcription');
+    expect(JSON.stringify(result)).not.toContain('token');
+  });
+
+  it('não emite COMMAND_EXECUTED', async () => {
+    const { realtime, service } = createService();
+
+    await service.identify('vamos para João 3 16');
+
     expect(realtime.emit).not.toHaveBeenCalledWith(
       RealtimeEventType.COMMAND_EXECUTED,
       expect.anything(),
     );
-    expect(navigation.apply).toHaveBeenCalledWith(command);
-  });
-
-  it('mantém somente contexto interno para uso futuro', () => {
-    const { service } = createService();
-
-    service.identify('Romanos 8 1');
-
-    expect(service.getStatus()).toEqual({
-      lastTranscription: 'Romanos 8 1',
-      lastNormalizedTranscription: 'Romanos 8 1',
-      lastCommand: {
-        type: CommandType.BIBLE_REFERENCE,
-        book: 'romanos',
-        chapter: 8,
-        verse: 1,
-        confidence: 1,
-      },
-      context: {
-        book: 'romanos',
-        chapter: 8,
-        verse: 1,
-      },
-    });
-  });
-
-  it('normaliza números antes de interpretar e preserva o original', () => {
-    const { service } = createService();
-
-    const command = service.identify(
-      'Primeira Coríntios capítulo dois versículo quatro',
-    );
-
-    expect(command).toEqual({
-      type: CommandType.BIBLE_REFERENCE,
-      book: '1-corintios',
-      chapter: 2,
-      verse: 4,
-      confidence: 1,
-    });
-    expect(service.getStatus()).toEqual(
-      expect.objectContaining({
-        lastTranscription:
-          'Primeira Coríntios capítulo dois versículo quatro',
-        lastNormalizedTranscription:
-          '1 Coríntios capítulo 2 versículo 4',
-      }),
-    );
-  });
-
-  it.each([
-    [
-      'João capítulo três versículo dezesseis',
-      'joao',
-      3,
-      16,
-    ],
-    [
-      'João três dezesseis',
-      'joao',
-      3,
-      16,
-    ],
-    [
-      'Segundo Samuel capítulo vinte e dois versículo três',
-      '2-samuel',
-      22,
-      3,
-    ],
-    [
-      'Salmos cento e cinquenta versículo seis',
-      'salmos',
-      150,
-      6,
-    ],
-  ])(
-    'interpreta referência completa normalizada: "%s"',
-    (input, book, chapter, verse) => {
-      const { service } = createService();
-
-      expect(service.identify(input)).toEqual({
-        type: CommandType.BIBLE_REFERENCE,
-        book,
-        chapter,
-        verse,
-        confidence: 1,
-      });
-    },
-  );
-
-  it.each([
-    [
-      'gênesis',
-      'genesis',
-      null,
-    ],
-    [
-      'gênesis capítulo um',
-      'genesis',
-      1,
-    ],
-    [
-      'joão capítulo três',
-      'joao',
-      3,
-    ],
-    [
-      'joão três',
-      'joao',
-      3,
-    ],
-    [
-      'primeira coríntios capítulo treze',
-      '1-corintios',
-      13,
-    ],
-    [
-      'salmos cento e cinquenta',
-      'salmos',
-      150,
-    ],
-  ])(
-    'interpreta referência parcial normalizada: "%s"',
-    (input, book, chapter) => {
-      const { service } = createService();
-
-      expect(service.identify(input)).toEqual({
-        type: CommandType.BIBLE_REFERENCE,
-        book,
-        chapter,
-        verse: chapter === null ? null : 1,
-        confidence: 1,
-      });
-    },
-  );
-
-  it('mantém frase comum sem referência como UNKNOWN', () => {
-    const { service } = createService();
-
-    expect(service.identify('vamos estudar um texto hoje')).toEqual({
-      type: CommandType.UNKNOWN,
-      confidence: 0,
-    });
-  });
-
-  it('mantém comandos já suportados sem alteração', () => {
-    const { service } = createService();
-
-    expect(service.identify('próximo versículo')).toEqual({
-      type: CommandType.NEXT_VERSE,
-      confidence: 1,
-    });
-    expect(service.getStatus().lastNormalizedTranscription).toBe(
-      'próximo versículo',
-    );
-  });
-
-  it('emite UNKNOWN com confiança zero para texto inválido', () => {
-    const { realtime, service } = createService();
-
-    const command = service.identify('o próximo irmão');
-
-    expect(command).toEqual({
-      type: CommandType.UNKNOWN,
-      confidence: 0,
-    });
-    expect(realtime.emit).toHaveBeenCalledWith(
-      RealtimeEventType.COMMAND_IDENTIFIED,
-      command,
-    );
-  });
-
-  it('não inclui a transcrição no payload realtime', () => {
-    const { realtime, service } = createService();
-
-    service.identify('próximo');
-
-    const payload = realtime.emit.mock.calls[0][1];
-    expect(payload).toEqual({
-      type: CommandType.NEXT_VERSE,
-      confidence: 1,
-    });
-    expect(payload).not.toHaveProperty('text');
-    expect(payload).not.toHaveProperty('transcription');
   });
 });

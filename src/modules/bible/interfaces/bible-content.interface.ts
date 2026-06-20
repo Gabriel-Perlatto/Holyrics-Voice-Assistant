@@ -44,9 +44,10 @@ export interface BibleSelection {
 
 export interface BibleSelectionResponse {
   accepted: true;
-  delivery: 'local-only';
-  deliveredToHolyrics: false;
+  delivery: 'holyrics' | 'local-only' | 'failed';
+  deliveredToHolyrics: boolean;
   message: string;
+  deliveryError: string | null;
   selection: BibleSelection;
   selectedAt: string;
 }

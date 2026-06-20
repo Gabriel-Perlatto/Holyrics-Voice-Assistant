@@ -53,7 +53,7 @@ export class BibleController {
   @HttpCode(HttpStatus.OK)
   selectPassage(
     @Body() input: SelectBiblePassageDto,
-  ): BibleSelectionResponse {
+  ): Promise<BibleSelectionResponse> {
     return this.bibleService.selectPassage(input);
   }
 }

@@ -1,4 +1,5 @@
 import { RealtimeEventType } from '../enums/realtime-event-type.enum';
+import type { RealtimeEvent } from '../interfaces/realtime-event.interface';
 import { RealtimeGateway } from './realtime.gateway';
 
 describe('RealtimeGateway', () => {
@@ -7,7 +8,7 @@ describe('RealtimeGateway', () => {
     const server = {
       emit: jest.fn(),
     };
-    const event = {
+    const event: RealtimeEvent<RealtimeEventType.SETTINGS_UPDATED> = {
       type: RealtimeEventType.SETTINGS_UPDATED,
       payload: {
         holyricsConfigured: true,
@@ -16,6 +17,7 @@ describe('RealtimeGateway', () => {
         microphoneConfigured: false,
         voskModelConfigured: false,
         speechAutoStart: false,
+        voiceCommandMode: 'conservative',
         updatedAt: '2026-06-20T00:00:00.000Z',
       },
       occurredAt: '2026-06-20T00:00:00.000Z',

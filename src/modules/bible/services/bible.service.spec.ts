@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
 import type { RealtimeService } from '../../realtime/services/realtime.service';
+import type { HolyricsBibleProjectionService } from '../../holyrics/services/holyrics-bible-projection.service';
 import { LocalBibleContentProvider } from '../providers/local-bible-content.provider';
 import { BibleContextService } from './bible-context.service';
 import { BibleService } from './bible.service';
@@ -17,13 +18,26 @@ describe('BibleService', () => {
 
   const createService = (
     realtimeService = createRealtimeService(),
+    projectionService = {
+      project: jest.fn(async () => ({
+        reference: 'João 3:16',
+        version: 'ACF',
+        delivery: 'local-only' as const,
+        deliveredToHolyrics: false,
+        message: 'Somente local.',
+        error: null,
+        attemptedAt: '2026-06-20T00:00:00.000Z',
+      })),
+    } as unknown as jest.Mocked<HolyricsBibleProjectionService>,
   ) => ({
     realtimeService,
+    projectionService,
     service: new BibleService(
       new LocalBibleContentProvider(),
       new BookAliasService(),
       new BibleContextService(),
       realtimeService,
+      projectionService,
     ),
   });
 
@@ -92,9 +106,9 @@ describe('BibleService', () => {
     );
   });
 
-  it('registra uma passagem local usando a versão selecionada', () => {
-    const { service, realtimeService } = createService();
-    const response = service.selectPassage({
+  it('registra e projeta seleção manual sem passar pelo guard de voz', async () => {
+    const { service, realtimeService, projectionService } = createService();
+    const response = await service.selectPassage({
       versionId: 'acf',
       bookId: 'joao',
       chapter: 3,
@@ -106,6 +120,7 @@ describe('BibleService', () => {
         accepted: true,
         delivery: 'local-only',
         deliveredToHolyrics: false,
+        deliveryError: null,
         selection: {
           versionId: 'acf',
           bookId: 'joao',
@@ -116,42 +131,43 @@ describe('BibleService', () => {
         },
       }),
     );
+    expect(projectionService.project).toHaveBeenCalledWith({
+      reference: 'João 3:16',
+      version: 'ACF',
+    });
     expect(realtimeService.emit).toHaveBeenCalledWith(
       RealtimeEventType.BIBLE_CHANGED,
       {
-        book: {
-          id: 'joao',
-          name: 'João',
-        },
+        book: 'joao',
         chapter: 3,
         verse: 16,
-        version: 'acf',
-        source: 'local-fallback',
+        version: 'ACF',
+        source: 'manual',
         delivery: 'local-only',
         deliveredToHolyrics: false,
       },
     );
   });
 
-  it('rejeita versão inexistente na seleção', () => {
-    expect(() =>
+  it('rejeita versão inexistente na seleção', async () => {
+    await expect(
       createService().service.selectPassage({
         versionId: 'inexistente',
         bookId: 'joao',
         chapter: 3,
         verse: 16,
       }),
-    ).toThrow(NotFoundException);
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('rejeita versículo fora do capítulo', () => {
-    expect(() =>
+  it('rejeita versículo fora do capítulo', async () => {
+    await expect(
       createService().service.selectPassage({
         versionId: 'nvi',
         bookId: 'joao',
         chapter: 3,
         verse: 37,
       }),
-    ).toThrow(NotFoundException);
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

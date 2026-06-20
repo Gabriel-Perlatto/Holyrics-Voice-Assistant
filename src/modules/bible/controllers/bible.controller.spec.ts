@@ -11,7 +11,7 @@ describe('BibleController', () => {
       book,
       chapter,
     })),
-    selectPassage: jest.fn((input) => ({
+    selectPassage: jest.fn(async (input) => ({
       endpoint: 'selection',
       input,
     })),

@@ -721,6 +721,107 @@ futura:
 
 ---
 
+# Phase 9.5 - Holyrics Bible Projection Integration
+
+Objetivo:
+
+Projetar no Holyrics as passagens selecionadas manualmente ou pela navegação
+por voz, mantendo fallback local.
+
+Status: **Concluída em 20 de junho de 2026.**
+
+Tarefas:
+
+- [x] encapsular projeção no HolyricsModule
+- [x] usar somente a ação oficial `ShowVerse`
+- [x] enviar `references` e `version` no mesmo payload
+- [x] integrar seleção manual
+- [x] integrar navegação interna por comando
+- [x] manter fallback local quando Holyrics não está configurado
+- [x] preservar navegação local em timeout, token inválido ou permissão ausente
+- [x] emitir `SYSTEM_ERROR` seguro em falhas
+- [x] informar resultado em `BIBLE_CHANGED`
+- [x] não expor token em payloads ou diagnóstico
+- [x] atualizar `/settings` e `/preacher`
+- [x] não implementar polling
+- [x] não alterar SpeechModule ou VoskSpeechProvider
+- [x] não implementar louvor
+
+Critérios de aceite:
+
+- [x] seleção manual tenta `ShowVerse`
+- [x] navegação por voz tenta `ShowVerse`
+- [x] ausência de configuração resulta em `local-only`
+- [x] falha externa resulta em `failed`
+- [x] sucesso resulta em `holyrics`
+- [x] navegação local nunca é desfeita por falha externa
+- [x] testes usam mocks sem Holyrics real
+- [x] testes passam
+- [x] build passa
+
+Fora de escopo:
+
+- `SelectVerse`, pois não afirma apresentação
+- alteração global com `SetBibleSettings`
+- polling ou leitura contínua da apresentação
+- nuvem e API remota do Holyrics
+- login
+- funcionalidades de louvor
+- Phase 10
+
+---
+
+# Phase 9.6 - Command Intent Guard
+
+Objetivo:
+
+Impedir que referências bíblicas mencionadas casualmente sejam tratadas como
+ordens de navegação ou projeção.
+
+Status: **Concluída em 20 de junho de 2026.**
+
+Tarefas:
+
+- [x] criar `CommandIntentGuardService`
+- [x] aplicar o guard somente ao fluxo originado de voz/transcrição
+- [x] extrair referências de frases completas de forma determinística
+- [x] exigir ação explícita no modo conservador
+- [x] permitir referência direta no modo rápido
+- [x] bloquear contextos claramente casuais nos dois modos
+- [x] aceitar comandos relativos somente como frases diretas
+- [x] persistir `voiceCommandMode` em SQLite
+- [x] usar `conservative` como padrão e em migrações
+- [x] incluir decisão e motivo em `COMMAND_IDENTIFIED`
+- [x] não chamar navegação ou Holyrics quando ignorado
+- [x] preservar integralmente a seleção manual
+- [x] atualizar diagnóstico em `/settings`
+- [x] manter `COMMAND_EXECUTED` sem emissão
+
+Critérios de aceite:
+
+- [x] “vamos para Apocalipse 12 13” executa
+- [x] “como vimos em Apocalipse 12 13” é ignorado
+- [x] referência direta é ignorada no modo conservador
+- [x] referência direta executa no modo rápido
+- [x] contexto casual permanece bloqueado no modo rápido
+- [x] “o próximo irmão” e “a próxima pessoa” não navegam
+- [x] seleção manual não passa pelo guard
+- [x] comandos ignorados não emitem `BIBLE_CHANGED`
+- [x] comandos ignorados não acionam `ShowVerse`
+- [x] testes passam
+- [x] build passa
+
+Fora de escopo:
+
+- IA, LLM ou NLP externo
+- aprendizagem de novas expressões
+- alteração do reconhecimento de voz
+- alteração da autenticação Holyrics
+- funcionalidades de louvor
+- Phase 10
+
+---
+
 # Phase 10 - System Hardening
 
 Objetivo:

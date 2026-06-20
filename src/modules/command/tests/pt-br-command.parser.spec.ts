@@ -28,6 +28,41 @@ describe('PtBrCommandParser', () => {
     );
   });
 
+  describe('extração em transcrições completas', () => {
+    it.each([
+      ['vamos para Apocalipse 12 13', 'apocalipse', 12, 13],
+      ['como vimos em João 3 16', 'joao', 3, 16],
+      ['lá em Romanos 8 1 vemos', 'romanos', 8, 1],
+      ['mostre Gênesis', 'genesis', null, null],
+    ])(
+      'extrai uma referência de "%s"',
+      (input, book, chapter, verse) => {
+        expect(parser.parseTranscription(input)).toEqual({
+          type: CommandType.BIBLE_REFERENCE,
+          book,
+          chapter,
+          verse,
+        });
+      },
+    );
+
+    it.each([
+      ['como vimos no versículo anterior', CommandType.PREVIOUS_VERSE],
+      ['no próximo versículo veremos', CommandType.NEXT_VERSE],
+    ])('extrai comando relativo de "%s"', (input, type) => {
+      expect(parser.parseTranscription(input)).toEqual({ type });
+    });
+
+    it.each(['o próximo irmão pode vir', 'a próxima pessoa'])(
+      'não transforma contexto comum em navegação: "%s"',
+      (input) => {
+        expect(parser.parseTranscription(input)).toEqual({
+          type: CommandType.UNKNOWN,
+        });
+      },
+    );
+  });
+
   describe('referências bíblicas parciais', () => {
     it.each([
       ['gênesis', 'genesis'],

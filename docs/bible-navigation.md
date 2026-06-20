@@ -3,8 +3,10 @@
 ## Escopo da Phase 9
 
 O `BibleNavigationService` aplica comandos estruturados ao contexto bíblico
-local. Ele não acessa o Holyrics, não controla apresentações e não persiste
-estado em banco.
+local. Na Phase 9.5, ele solicita projeção através do
+`HolyricsBibleProjectionService`; não monta URLs nem conhece o contrato HTTP.
+Na Phase 9.6, comandos de voz só chegam ao serviço quando o guard retorna
+`execute`.
 
 ```text
 TRANSCRIPTION_RECEIVED
@@ -13,11 +15,24 @@ NumberNormalizerService
         ↓
 CommandService
         ↓
-COMMAND_IDENTIFIED
+CommandIntentGuardService
         ↓
+COMMAND_IDENTIFIED
+        ↓ execute
 BibleNavigationService
         ↓
+HolyricsBibleProjectionService
+        ↓
 BIBLE_CHANGED
+```
+
+Quando a decisão é `ignore`, o fluxo termina após `COMMAND_IDENTIFIED`:
+
+```text
+COMMAND_IDENTIFIED (ignore)
+        ↓
+sem BIBLE_CHANGED
+sem ShowVerse
 ```
 
 `COMMAND_EXECUTED` não é emitido.
@@ -36,26 +51,29 @@ versículo em memória.
 - comandos relativos sem contexto são ignorados com segurança.
 
 Todos os limites usam `BibleContentProvider`; nenhum dado bíblico foi
-duplicado.
+duplicado. O contexto local é atualizado antes da tentativa de projeção e não
+é desfeito se o Holyrics falhar.
+
+O guard não faz parte do fluxo manual. `POST /api/bible/selection` continua
+atualizando o contexto, emitindo `BIBLE_CHANGED` com `source: "manual"` e
+tentando projetar normalmente.
 
 ## Evento
 
 ```json
 {
-  "book": {
-    "id": "joao",
-    "name": "João"
-  },
+  "book": "joao",
   "chapter": 3,
   "verse": 16,
-  "version": "nvi",
-  "source": "local-fallback",
-  "delivery": "local-only",
-  "deliveredToHolyrics": false
+  "version": "NVI",
+  "source": "voice",
+  "delivery": "holyrics",
+  "deliveredToHolyrics": true
 }
 ```
 
-O payload declara explicitamente que nenhuma entrega ao Holyrics ocorreu.
+`source` pode ser `voice` ou `manual`. `delivery` pode ser `holyrics`,
+`local-only` ou `failed`.
 
 ## Diagnóstico
 
@@ -73,5 +91,9 @@ e versículos pelos endpoints existentes e mostra a seleção sem exigir clique.
 - contexto não persiste após reiniciar;
 - comandos relativos precisam de contexto válido;
 - limites absolutos não emitem mudanças redundantes;
-- não existe controle do Holyrics;
-- não existem funcionalidades de louvor.
+- a versão local é enviada como abreviação, mas precisa existir na instalação
+  do Holyrics;
+- não há confirmação posterior de qual versão ficou visível;
+- não existem funcionalidades de louvor;
+- o guard usa regras determinísticas e pode exigir novas expressões explícitas
+  conforme o vocabulário real da igreja.

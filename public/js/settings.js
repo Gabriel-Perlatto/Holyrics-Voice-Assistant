@@ -22,6 +22,13 @@
   };
 
   const formatCommand = (command) => {
+    if (command?.command) {
+      command = {
+        ...command.command,
+        confidence: command.confidence,
+      };
+    }
+
     if (!command?.type) {
       return 'Nenhum comando identificado.';
     }
@@ -47,6 +54,18 @@
     return `${command.type}${reference}${confidence}`;
   };
 
+  const intentDecisionLabels = {
+    execute: 'Executado',
+    ignore: 'Ignorado',
+  };
+
+  const intentReasonLabels = {
+    explicit_action: 'Ação explícita ou referência direta no modo rápido',
+    casual_reference: 'Referência mencionada em contexto casual',
+    relative_reference_context: 'Comando relativo dentro de outra frase',
+    unknown_or_unsafe: 'Intenção desconhecida ou insegura',
+  };
+
   const loadCommandDiagnostics = async () => {
     const originalElement = document.querySelector(
       '[data-command-transcription-original]',
@@ -57,8 +76,20 @@
     const commandElement = document.querySelector(
       '[data-command-identified]',
     );
+    const decisionElement = document.querySelector(
+      '[data-command-intent-decision]',
+    );
+    const reasonElement = document.querySelector(
+      '[data-command-intent-reason]',
+    );
 
-    if (!originalElement || !normalizedElement || !commandElement) {
+    if (
+      !originalElement ||
+      !normalizedElement ||
+      !commandElement ||
+      !decisionElement ||
+      !reasonElement
+    ) {
       return;
     }
 
@@ -80,6 +111,14 @@
           ? `"${status.lastNormalizedTranscription}"`
           : 'Nenhuma transcrição normalizada.';
       commandElement.textContent = formatCommand(status.lastCommand);
+      decisionElement.textContent = status.lastCommand
+        ? intentDecisionLabels[status.lastCommand.intentDecision] ??
+          status.lastCommand.intentDecision
+        : 'Nenhuma decisão registrada.';
+      reasonElement.textContent = status.lastCommand
+        ? intentReasonLabels[status.lastCommand.intentReason] ??
+          status.lastCommand.intentReason
+        : 'Nenhum motivo registrado.';
     } catch {
       originalElement.textContent =
         'Não foi possível consultar o diagnóstico.';
@@ -87,6 +126,10 @@
         'Não foi possível consultar o diagnóstico.';
       commandElement.textContent =
         'Não foi possível consultar o diagnóstico.';
+      decisionElement.textContent =
+        'Não foi possível consultar a decisão.';
+      reasonElement.textContent =
+        'Não foi possível consultar o motivo.';
     }
   };
 
@@ -122,6 +165,54 @@
         'Não foi possível consultar a navegação.';
       commandElement.textContent =
         'Não foi possível consultar a navegação.';
+    }
+  };
+
+  const loadProjectionDiagnostics = async () => {
+    const statusElement = document.querySelector(
+      '[data-projection-status]',
+    );
+    const errorElement = document.querySelector(
+      '[data-projection-error]',
+    );
+
+    if (!statusElement || !errorElement) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        '/api/holyrics/bible-projection/status',
+        { headers: { Accept: 'application/json' } },
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const status = await response.json();
+
+      if (!status) {
+        statusElement.textContent = 'Nenhum envio realizado.';
+        errorElement.textContent = 'Nenhum erro registrado.';
+        return;
+      }
+
+      const labels = {
+        holyrics: 'Enviado ao Holyrics',
+        'local-only': 'Somente local',
+        failed: 'Falha no envio',
+      };
+      statusElement.textContent =
+        `${labels[status.delivery] ?? status.delivery}: ` +
+        `${status.reference} (${status.version})`;
+      errorElement.textContent =
+        status.error ?? 'Nenhum erro registrado.';
+    } catch {
+      statusElement.textContent =
+        'Não foi possível consultar o último envio.';
+      errorElement.textContent =
+        'Não foi possível consultar o último erro.';
     }
   };
 
@@ -276,6 +367,8 @@
       form.elements.holyricsApiToken.value = '';
       form.elements.removeHolyricsApiToken.checked = false;
       form.elements.language.value = settings.language ?? 'pt-BR';
+      form.elements.voiceCommandMode.value =
+        settings.voiceCommandMode ?? 'conservative';
       const microphone = settings.microphone ?? '';
 
       if (
@@ -395,6 +488,7 @@
         holyricsHost: form.elements.holyricsHost.value,
         holyricsPort: portValue ? Number(portValue) : null,
         language: form.elements.language.value,
+        voiceCommandMode: form.elements.voiceCommandMode.value,
         microphone: form.elements.microphone.value,
         voskModelPath: form.elements.voskModelPath.value,
         speechAutoStart: form.elements.speechAutoStart.checked,
@@ -779,11 +873,43 @@
             command.textContent = formatCommand(event.payload);
           }
 
+          const decision = document.querySelector(
+            '[data-command-intent-decision]',
+          );
+          const reason = document.querySelector(
+            '[data-command-intent-reason]',
+          );
+
+          if (decision) {
+            decision.textContent =
+              intentDecisionLabels[event.payload.intentDecision] ??
+              event.payload.intentDecision;
+          }
+          if (reason) {
+            reason.textContent =
+              intentReasonLabels[event.payload.intentReason] ??
+              event.payload.intentReason;
+          }
+
           void loadCommandDiagnostics();
         }
 
         if (event.type === 'BIBLE_CHANGED') {
           void loadNavigationDiagnostics();
+          void loadProjectionDiagnostics();
+        }
+
+        if (
+          event.type === 'SYSTEM_ERROR' &&
+          event.payload.source === 'holyrics-bible-projection'
+        ) {
+          const projectionError = document.querySelector(
+            '[data-projection-error]',
+          );
+
+          if (projectionError) {
+            projectionError.textContent = event.payload.message;
+          }
         }
 
         if (event.type === 'SPEECH_STARTED') {
@@ -895,5 +1021,6 @@
   void initializeSpeechPanel();
   void initializeCommandDiagnostics();
   void loadNavigationDiagnostics();
+  void loadProjectionDiagnostics();
   initializeRealtime();
 })();

@@ -146,6 +146,17 @@
               </label>
 
               <label class="field-group">
+                <span>Modo de comando por voz</span>
+                <select name="voiceCommandMode" data-settings-field>
+                  <option value="conservative">Conservador</option>
+                  <option value="fast">Rápido</option>
+                </select>
+                <small>
+                  Conservador exige uma ação explícita antes da referência.
+                </small>
+              </label>
+
+              <label class="field-group">
                 <span>Microfone selecionado</span>
                 <select
                   name="microphone"
@@ -281,8 +292,8 @@
         </div>
 
         <p class="field-group__description">
-          Esta seção mostra o interpretador e a navegação interna. Nenhum
-          comando é enviado ao Holyrics.
+          Esta seção mostra interpretação, decisão de segurança, navegação
+          interna e o resultado do envio ao Holyrics.
         </p>
 
         <div class="transcription-panel">
@@ -305,6 +316,16 @@
         </div>
 
         <div class="transcription-panel">
+          <span>Decisão do guard</span>
+          <p data-command-intent-decision>Nenhuma decisão registrada.</p>
+        </div>
+
+        <div class="transcription-panel">
+          <span>Motivo</span>
+          <p data-command-intent-reason>Nenhum motivo registrado.</p>
+        </div>
+
+        <div class="transcription-panel">
           <span>Referência atual</span>
           <p data-navigation-reference>Nenhuma referência selecionada.</p>
         </div>
@@ -312,6 +333,16 @@
         <div class="transcription-panel">
           <span>Último comando aplicado</span>
           <p data-navigation-command>Nenhum comando aplicado.</p>
+        </div>
+
+        <div class="transcription-panel">
+          <span>Último envio ao Holyrics</span>
+          <p data-projection-status>Nenhum envio realizado.</p>
+        </div>
+
+        <div class="transcription-panel">
+          <span>Último erro de envio</span>
+          <p data-projection-error>Nenhum erro registrado.</p>
         </div>
       </section>
 

@@ -148,7 +148,7 @@ describe('HolyricsService', () => {
       'CheckPermissions',
       {
         actions:
-          'GetTokenInfo,CheckPermissions,GetVersion,GetAPIServerInfo',
+          'GetTokenInfo,CheckPermissions,GetVersion,GetAPIServerInfo,ShowVerse',
       },
     );
     expect(provider.request).toHaveBeenCalledWith(

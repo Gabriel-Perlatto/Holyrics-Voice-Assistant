@@ -360,6 +360,12 @@ texto original, normaliza uma cópia, mantém o último diagnóstico e emite
 `COMMAND_IDENTIFIED`. Na Phase 9, ele entrega o comando ao
 `BibleNavigationService`.
 
+Na Phase 9.6, o `CommandIntentGuardService` avalia a intenção antes desse
+encaminhamento. O modo conservador exige ação explícita para referências; o
+modo rápido também aceita referências diretas. Uma decisão `ignore` termina o
+fluxo sem `BIBLE_CHANGED` e sem acesso ao Holyrics. A seleção manual do
+`BibleModule` não passa pelo guard.
+
 Endpoints:
 
 ```txt
@@ -455,7 +461,8 @@ oficial `ShowVerse` não estiver implementada no `HolyricsModule`.
 
 Na Phase 9, o `BibleNavigationService` resolve referências e comandos
 relativos usando `BibleContextService` e `BibleContentProvider`. Ele atravessa
-limites de capítulos e livros, emite `BIBLE_CHANGED` e não acessa o Holyrics.
+limites de capítulos e livros. Na Phase 9.5, solicita projeção através do
+`HolyricsBibleProjectionService`, sem conhecer URL, token ou payload HTTP.
 
 Consulte `docs/bible-data.md` e `docs/bible-navigation.md`.
 
@@ -596,11 +603,12 @@ Na Phase 7, também são emitidos `SPEECH_STARTED`, `SPEECH_STOPPED` e
 `source: "speech"`.
 
 Na Phase 8, `COMMAND_IDENTIFIED` também é emitido para comandos reconhecidos ou
-`UNKNOWN`. O payload contém apenas comando estruturado e confiança, sem a
-transcrição. `COMMAND_EXECUTED` e `SONG_CHANGED` continuam reservados e não são
-emitidos. Payloads não podem conter áudio, token, host, porta ou configurações
-sensíveis. O WebSocket comunica somente NestJS e navegadores; não acessa o
-Holyrics. Consulte `docs/realtime.md`.
+`UNKNOWN`. Desde a Phase 9.6, o payload contém `command`, `confidence`,
+`intentDecision` e `intentReason`, sem a transcrição. `COMMAND_EXECUTED` e
+`SONG_CHANGED` continuam reservados e não são emitidos. Payloads não podem
+conter áudio, token, host, porta ou configurações sensíveis. O WebSocket
+comunica somente NestJS e navegadores; não acessa o Holyrics. Consulte
+`docs/realtime.md`.
 
 ---
 

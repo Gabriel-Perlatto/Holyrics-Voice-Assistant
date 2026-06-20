@@ -68,6 +68,7 @@ Ao tocar em um versículo, o frontend envia:
 ```
 
 O backend valida todos os campos e atualiza o contexto bíblico em memória.
+Na Phase 9.5, também tenta projetar a passagem com `ShowVerse`.
 
 ## Limitação da implementação atual
 
@@ -83,8 +84,9 @@ continua retornando:
 }
 ```
 
-A interface mostra essa limitação de forma explícita. Nenhum sucesso de
-projeção é simulado. Consulte `docs/holyrics-api-research.md`.
+A interface informa de forma compacta se a passagem foi enviada ao Holyrics,
+ficou somente local ou falhou. A seleção local permanece mesmo em falha.
+Consulte `docs/holyrics-api-research.md`.
 
 ## Sincronização em tempo real
 

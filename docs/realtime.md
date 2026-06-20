@@ -64,18 +64,19 @@ Emitido pelo `BibleService` após uma seleção manual válida e, na Phase 9, pe
 
 ```json
 {
-  "book": {
-    "id": "joao",
-    "name": "João"
-  },
+  "book": "joao",
   "chapter": 3,
   "verse": 16,
-  "version": "nvi",
-  "source": "local-fallback",
-  "delivery": "local-only",
-  "deliveredToHolyrics": false
+  "version": "NVI",
+  "source": "voice",
+  "delivery": "holyrics",
+  "deliveredToHolyrics": true
 }
 ```
+
+`source` é `manual` ou `voice`. `delivery` é `holyrics`, `local-only` ou
+`failed`. O evento nunca contém token, host, porta ou mensagem interna do API
+Server.
 
 ### HOLYRICS_CONNECTED
 
@@ -115,6 +116,9 @@ Estrutura disponível através de `RealtimeService.emitSystemError()`:
 ```
 
 Na Phase 7, erros do provider usam `source: "speech"`.
+
+Na Phase 9.5, falhas de `ShowVerse` usam
+`source: "holyrics-bible-projection"` e mensagem segura.
 
 ### SPEECH_STARTED
 
@@ -159,22 +163,28 @@ explícita ao endpoint de interpretação:
 
 ```json
 {
-  "type": "BIBLE_REFERENCE",
-  "book": "joao",
-  "chapter": 3,
-  "verse": 16,
-  "confidence": 1
+  "command": {
+    "type": "BIBLE_REFERENCE",
+    "book": "joao",
+    "chapter": 3,
+    "verse": 16
+  },
+  "confidence": 1,
+  "intentDecision": "execute",
+  "intentReason": "explicit_action"
 }
 ```
 
-O payload não repete o texto transcrito.
+O payload não repete o texto transcrito. `intentDecision` pode ser `execute`
+ou `ignore`. Comandos ignorados não geram `BIBLE_CHANGED`.
 
 ## Eventos ainda reservados
 
 - `COMMAND_EXECUTED`;
 - `SONG_CHANGED`.
 
-Nenhum comando é executado e nenhuma funcionalidade de louvor foi criada.
+`COMMAND_EXECUTED` continua sem emissão e nenhuma funcionalidade de louvor foi
+criada.
 
 ## Frontend
 

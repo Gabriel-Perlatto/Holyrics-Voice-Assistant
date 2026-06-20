@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post } from '@nestjs/common';
 import { InterpretCommandDto } from '../dto/interpret-command.dto';
 import type {
   CommandStatus,
-  IdentifiedCommand,
+  CommandIdentification,
 } from '../interfaces/command.interface';
 import { CommandService } from '../services/command.service';
 
@@ -16,7 +16,9 @@ export class CommandController {
   }
 
   @Post('interpret')
-  interpret(@Body() input: InterpretCommandDto): IdentifiedCommand {
+  interpret(
+    @Body() input: InterpretCommandDto,
+  ): Promise<CommandIdentification> {
     return this.commandService.identify(input?.text);
   }
 }

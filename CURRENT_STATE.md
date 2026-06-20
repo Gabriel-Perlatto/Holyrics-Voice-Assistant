@@ -6,7 +6,7 @@ Holyrics Voice Assistant
 
 ## Status Geral
 
-Fase atual: 9 (Bible Navigation Engine MVP)
+Fase atual: 9.6 (Command Intent Guard)
 
 ## Fases concluídas
 
@@ -23,6 +23,8 @@ Fase atual: 9 (Bible Navigation Engine MVP)
 - Phase 8 — Command Interpreter MVP
 - Phase 8.5 — Portuguese Number Normalization
 - Phase 9 — Bible Navigation Engine MVP
+- Phase 9.5 — Holyrics Bible Projection Integration
+- Phase 9.6 — Command Intent Guard
 
 ## Módulos existentes
 
@@ -66,16 +68,25 @@ Fase atual: 9 (Bible Navigation Engine MVP)
 - Evento `BIBLE_CHANGED` após navegação por comando
 - Tela do pregador sincronizada automaticamente com a navegação
 - Diagnóstico de referência atual e último comando aplicado
+- Projeção de seleções manuais e por voz via ação oficial `ShowVerse`
+- Versão bíblica enviada junto da referência ao Holyrics
+- Fallback local quando Holyrics não está configurado
+- Falhas externas preservam a navegação e emitem erro seguro
+- Diagnóstico do último envio ao Holyrics
+- Guard determinístico de intenção antes da navegação por voz
+- Modo conservador padrão e modo rápido configurável
+- Referências casuais bloqueadas sem `BIBLE_CHANGED` ou envio ao Holyrics
+- Diagnóstico da decisão e do motivo do último comando
 
 ## Limitações atuais
 
-- Sem controle automático do Holyrics
 - Sem emissão de `COMMAND_EXECUTED`
-- Sem envio da navegação ao Holyrics
+- Sem polling contínuo do Holyrics
 - Sem módulo de louvor
 - Sem polling do Holyrics
 - Números acima de cento e cinquenta não são normalizados
 - Ordinais compostos não são normalizados
+- O guard depende de expressões determinísticas e não compreende contexto livre
 
 ## Modelo disponível
 

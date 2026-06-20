@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { HolyricsBibleProjectionService } from '../../holyrics/services/holyrics-bible-projection.service';
 import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
 import { RealtimeService } from '../../realtime/services/realtime.service';
 import type {
@@ -30,6 +31,7 @@ export class BibleService {
     private readonly aliasService: BookAliasService,
     private readonly contextService: BibleContextService,
     private readonly realtimeService: RealtimeService,
+    private readonly projectionService: HolyricsBibleProjectionService,
   ) {}
 
   getVersions(): BibleVersionsResponse {
@@ -85,7 +87,9 @@ export class BibleService {
     };
   }
 
-  selectPassage(input: SelectBiblePassageDto): BibleSelectionResponse {
+  async selectPassage(
+    input: SelectBiblePassageDto,
+  ): Promise<BibleSelectionResponse> {
     if (!input || typeof input !== 'object' || Array.isArray(input)) {
       throw new BadRequestException('Seleção bíblica inválida.');
     }
@@ -116,32 +120,37 @@ export class BibleService {
       verse,
     });
 
+    const version = this.contentProvider
+      .listVersions()
+      .find(({ id }) => id === versionId);
+    const reference = `${book.name} ${chapter}:${verse}`;
+    const projection = await this.projectionService.project({
+      reference,
+      version: version?.abbreviation ?? versionId.toUpperCase(),
+    });
     const response: BibleSelectionResponse = {
       accepted: true,
-      delivery: 'local-only',
-      deliveredToHolyrics: false,
-      message:
-        'Passagem selecionada localmente. O envio ao Holyrics ainda não possui endpoint oficial confirmado.',
+      delivery: projection.delivery,
+      deliveredToHolyrics: projection.deliveredToHolyrics,
+      message: projection.message,
+      deliveryError: projection.error,
       selection: {
         versionId,
         bookId: book.id,
         bookName: book.name,
         chapter,
         verse,
-        reference: `${book.name} ${chapter}:${verse}`,
+        reference,
       },
       selectedAt: new Date().toISOString(),
     };
 
     this.realtimeService.emit(RealtimeEventType.BIBLE_CHANGED, {
-      book: {
-        id: response.selection.bookId,
-        name: response.selection.bookName,
-      },
+      book: response.selection.bookId,
       chapter: response.selection.chapter,
       verse: response.selection.verse,
-      version: response.selection.versionId,
-      source: 'local-fallback',
+      version: version?.abbreviation ?? versionId.toUpperCase(),
+      source: 'manual',
       delivery: response.delivery,
       deliveredToHolyrics: response.deliveredToHolyrics,
     });

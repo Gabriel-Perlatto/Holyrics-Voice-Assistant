@@ -13,11 +13,11 @@ describe('RealtimeService', () => {
     const service = new RealtimeService(gateway);
 
     const event = service.emit(RealtimeEventType.BIBLE_CHANGED, {
-      book: { id: 'joao', name: 'João' },
+      book: 'joao',
       chapter: 3,
       verse: 16,
-      version: 'nvi',
-      source: 'local-fallback',
+      version: 'NVI',
+      source: 'voice',
       delivery: 'local-only',
       deliveredToHolyrics: false,
     });
@@ -25,7 +25,7 @@ describe('RealtimeService', () => {
     expect(event).toEqual({
       type: RealtimeEventType.BIBLE_CHANGED,
       payload: expect.objectContaining({
-        book: { id: 'joao', name: 'João' },
+        book: 'joao',
         chapter: 3,
         verse: 16,
       }),

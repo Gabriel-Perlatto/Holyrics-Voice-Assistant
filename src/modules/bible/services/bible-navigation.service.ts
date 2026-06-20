@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CommandType } from '../../command/enums/command-type.enum';
 import type { IdentifiedCommand } from '../../command/interfaces/command.interface';
+import { HolyricsBibleProjectionService } from '../../holyrics/services/holyrics-bible-projection.service';
 import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
 import { RealtimeService } from '../../realtime/services/realtime.service';
 import {
@@ -29,9 +30,12 @@ export class BibleNavigationService {
     private readonly contentProvider: BibleContentProvider,
     private readonly contextService: BibleContextService,
     private readonly realtimeService: RealtimeService,
+    private readonly projectionService: HolyricsBibleProjectionService,
   ) {}
 
-  apply(command: IdentifiedCommand): BibleNavigationStatus {
+  async apply(
+    command: IdentifiedCommand,
+  ): Promise<BibleNavigationStatus> {
     const passage = this.resolveCommand(command);
 
     if (!passage) {
@@ -55,18 +59,24 @@ export class BibleNavigationService {
 
     this.contextService.selectPassage(nextContext);
     this.lastAppliedCommand = { ...command };
+    const version = this.contentProvider
+      .listVersions()
+      .find(({ id }) => id === nextContext.versionId);
+    const versionName =
+      version?.abbreviation ?? nextContext.versionId.toUpperCase();
+    const projection = await this.projectionService.project({
+      reference: `${passage.book.name} ${passage.chapter}:${passage.verse}`,
+      version: versionName,
+    });
 
     this.realtimeService.emit(RealtimeEventType.BIBLE_CHANGED, {
-      book: {
-        id: passage.book.id,
-        name: passage.book.name,
-      },
+      book: passage.book.id,
       chapter: passage.chapter,
       verse: passage.verse,
-      version: nextContext.versionId,
-      source: 'local-fallback',
-      delivery: 'local-only',
-      deliveredToHolyrics: false,
+      version: versionName,
+      source: 'voice',
+      delivery: projection.delivery,
+      deliveredToHolyrics: projection.deliveredToHolyrics,
     });
 
     return this.getStatus();
