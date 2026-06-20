@@ -165,13 +165,23 @@
                   type="text"
                   name="voskModelPath"
                   maxlength="1024"
-                  placeholder="/caminho/para/modelo"
+                  placeholder="models/pt-BR/vosk-model-small-pt-0.3"
                   autocomplete="off"
                   data-settings-field
+                  data-model-path-input
                 />
                 <small>
-                  O modelo não será carregado nesta fase.
+                  Use um diretório relativo à raiz do projeto ou um caminho
+                  absoluto. O modelo não será carregado nesta fase.
                 </small>
+                <span
+                  class="model-path-status"
+                  role="status"
+                  aria-live="polite"
+                  data-model-path-status
+                >
+                  Verificando caminho configurado...
+                </span>
               </label>
             </div>
           </fieldset>

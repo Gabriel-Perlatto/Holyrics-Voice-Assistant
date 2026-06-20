@@ -94,6 +94,12 @@
     const permissionsState = document.querySelector(
       '[data-holyrics-permissions]',
     );
+    const modelPathInput = document.querySelector(
+      '[data-model-path-input]',
+    );
+    const modelPathStatus = document.querySelector(
+      '[data-model-path-status]',
+    );
     const fields = [...document.querySelectorAll('[data-settings-field]')];
 
     if (
@@ -107,7 +113,9 @@
       !connectedState ||
       !authenticatedState ||
       !versionState ||
-      !permissionsState
+      !permissionsState ||
+      !modelPathInput ||
+      !modelPathStatus
     ) {
       return;
     }
@@ -132,6 +140,28 @@
       }
     };
 
+    const setModelPathStatus = (status) => {
+      modelPathStatus.classList.remove(
+        'model-path-status--valid',
+        'model-path-status--invalid',
+      );
+
+      if (!status?.configured) {
+        modelPathStatus.textContent =
+          'Nenhum diretório de modelo configurado.';
+        return;
+      }
+
+      modelPathStatus.textContent = status.valid
+        ? `✓ ${status.message}`
+        : `✗ ${status.message}`;
+      modelPathStatus.classList.add(
+        status.valid
+          ? 'model-path-status--valid'
+          : 'model-path-status--invalid',
+      );
+    };
+
     const fillForm = (settings) => {
       form.elements.holyricsHost.value = settings.holyricsHost ?? '';
       form.elements.holyricsPort.value = settings.holyricsPort ?? '';
@@ -143,6 +173,7 @@
       tokenState.textContent = settings.holyricsApiTokenConfigured
         ? 'Um token está salvo. Deixe o campo vazio para mantê-lo.'
         : 'Nenhum token está salvo.';
+      setModelPathStatus(settings.voskModelPathStatus);
     };
 
     const resetHolyricsStatus = () => {
@@ -187,6 +218,15 @@
 
     fields.forEach((field) => {
       field.addEventListener('input', resetConnectionResult);
+    });
+
+    modelPathInput.addEventListener('input', () => {
+      modelPathStatus.textContent =
+        'Salve as configurações para verificar este caminho.';
+      modelPathStatus.classList.remove(
+        'model-path-status--valid',
+        'model-path-status--invalid',
+      );
     });
 
     form.addEventListener('submit', async (event) => {

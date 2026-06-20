@@ -16,3 +16,9 @@ pnpm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
+
+# Modelos de reconhecimento são instalados manualmente e não são versionados.
+models/**/*
+!models/README.md
+!models/**/
+!models/**/.gitkeep

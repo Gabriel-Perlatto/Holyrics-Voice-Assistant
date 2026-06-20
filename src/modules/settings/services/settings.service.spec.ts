@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
 import type { RealtimeService } from '../../realtime/services/realtime.service';
 import type { SettingsRepository } from '../repositories/settings.repository';
+import { ModelPathService } from './model-path.service';
 import { SettingsService } from './settings.service';
 
 describe('SettingsService', () => {
@@ -36,7 +37,11 @@ describe('SettingsService', () => {
   ) => ({
     repository,
     realtimeService,
-    service: new SettingsService(repository, realtimeService),
+    service: new SettingsService(
+      repository,
+      realtimeService,
+      new ModelPathService(),
+    ),
   });
 
   it('retorna as configurações atuais', () => {
@@ -51,6 +56,14 @@ describe('SettingsService', () => {
       microphone: null,
       voskModelPath: null,
       updatedAt: '2026-06-20T00:00:00.000Z',
+      voskModelPathStatus: {
+        configured: false,
+        exists: false,
+        isDirectory: false,
+        valid: false,
+        code: 'not-configured',
+        message: 'Nenhum diretório de modelo configurado.',
+      },
     });
   });
 
@@ -76,6 +89,11 @@ describe('SettingsService', () => {
     });
     expect(result.holyricsHost).toBe('192.168.1.20');
     expect(result.holyricsApiTokenConfigured).toBe(true);
+    expect(result.voskModelPathStatus).toMatchObject({
+      configured: true,
+      valid: false,
+      code: 'not-found',
+    });
     expect(realtimeService.emit).toHaveBeenCalledWith(
       RealtimeEventType.SETTINGS_UPDATED,
       {

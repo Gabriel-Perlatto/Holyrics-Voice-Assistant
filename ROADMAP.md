@@ -412,6 +412,50 @@ Fora de escopo nesta fase:
 
 ---
 
+# Phase 6.5 - Speech Infrastructure Preparation
+
+Objetivo:
+
+Preparar a organização local de modelos e a configuração necessária para a
+futura implementação de reconhecimento de voz.
+
+Status: **Concluída em 20 de junho de 2026.**
+
+Tarefas:
+
+- [x] criar a convenção `models/<idioma-BCP-47>/<modelo>`
+- [x] reservar diretórios `models/pt-BR` e `models/en-US`
+- [x] documentar instalação manual e reutilização de modelos externos
+- [x] impedir versionamento de artefatos de modelo
+- [x] manter o caminho do modelo persistido no Settings Module
+- [x] validar formato básico do caminho
+- [x] verificar se o caminho existe e representa um diretório
+- [x] expor status seguro do caminho em `GET/PUT /api/settings`
+- [x] exibir caminho e status em `/settings`
+- [x] testar diretório existente, inexistente e configuração ausente
+
+Critérios de aceite:
+
+- [x] estrutura e convenção de modelos documentadas
+- [x] nenhum modelo é baixado ou versionado
+- [x] nenhum modelo é carregado
+- [x] nenhum microfone ou áudio é acessado
+- [x] tela de Configurações informa caminho válido ou inválido
+- [x] testes passam
+- [x] build passa
+
+Fora de escopo nesta fase:
+
+- Speech Module
+- `SpeechProvider`
+- `VoskSpeechProvider`
+- captura de microfone
+- carregamento ou inspeção de conteúdo do modelo
+- transcrição
+- reconhecimento de voz
+
+---
+
 # Phase 7 - Speech Recognition MVP
 
 Objetivo:

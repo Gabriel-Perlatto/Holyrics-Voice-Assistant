@@ -237,6 +237,23 @@ h1 {
   line-height: 1.4;
 }
 
+.model-path-status {
+  display: block;
+  min-height: 1.4rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.model-path-status--valid {
+  color: var(--accent-strong);
+}
+
+.model-path-status--invalid {
+  color: #ffb0b0;
+}
+
 .field-group input,
 .field-group select {
   width: 100%;

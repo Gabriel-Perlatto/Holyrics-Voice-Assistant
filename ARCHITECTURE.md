@@ -233,6 +233,31 @@ projeto é interno, entre NestJS e navegadores. Consulte
 
 Responsável pelo reconhecimento de voz.
 
+Preparação de modelos definida na Phase 6.5:
+
+```txt
+models/
+├── pt-BR/
+├── en-US/
+└── README.md
+```
+
+`models/` é a localização oficial para artefatos mantidos junto à instalação.
+Os subdiretórios usam códigos de idioma BCP 47, como `pt-BR` e `en-US`.
+Caminhos absolutos externos também podem ser configurados para reaproveitar
+modelos já instalados sem cópia automática.
+
+O Settings Module persiste o caminho e verifica somente se ele existe e é um
+diretório. Ele não inspeciona arquivos internos, não carrega modelos e não
+inicia bibliotecas de reconhecimento. Essa separação mantém provider, modelo e
+preferência de instalação independentes.
+
+O futuro Speech Module deverá selecionar o modelo configurado e depender de
+uma interface `SpeechProvider`. Providers não devem determinar a organização
+dos idiomas, e modelos não devem introduzir dependência direta na regra de
+negócio. Novos idiomas serão adicionados por diretório e configuração, sem
+alterar o contrato do provider.
+
 Responsabilidades:
 
 - iniciar captura
@@ -416,9 +441,14 @@ Existe uma única configuração global nesta fase. O modelo contém:
 - `voskModelPath`;
 - `updatedAt`.
 
-Os campos de microfone e modelo Vosk são apenas valores opcionais persistidos.
-O Settings Module não acessa dispositivos, não carrega modelos e não testa
-conexão com o Holyrics.
+Os campos de microfone e modelo Vosk são valores opcionais persistidos. Para o
+caminho do modelo, a resposta pública inclui um status que informa se o valor
+foi configurado, existe e representa um diretório. Caminhos relativos são
+resolvidos a partir da raiz do projeto; caminhos absolutos são aceitos para
+reutilizar instalações externas.
+
+O Settings Module não acessa dispositivos, não carrega modelos, não valida o
+conteúdo de um modelo e não testa conexão com o Holyrics.
 
 Endpoints:
 

@@ -7,6 +7,7 @@ import type {
   Settings,
 } from '../interfaces/settings.interface';
 import { SettingsRepository } from '../repositories/settings.repository';
+import { ModelPathService } from './model-path.service';
 
 const HOST_PATTERN = /^[a-zA-Z0-9.-]+$/;
 const LANGUAGE_PATTERN = /^[a-z]{2}(?:-[A-Z]{2})?$/;
@@ -16,6 +17,7 @@ export class SettingsService {
   constructor(
     private readonly settingsRepository: SettingsRepository,
     private readonly realtimeService: RealtimeService,
+    private readonly modelPathService: ModelPathService,
   ) {}
 
   getSettings(): Settings {
@@ -44,10 +46,8 @@ export class SettingsService {
       'Microfone',
       255,
     );
-    const voskModelPath = this.validateOptionalText(
+    const voskModelPath = this.modelPathService.normalize(
       input.voskModelPath,
-      'Caminho do modelo Vosk',
-      1_024,
     );
 
     const settings = this.settingsRepository.save({
@@ -208,6 +208,9 @@ export class SettingsService {
     return {
       ...publicSettings,
       holyricsApiTokenConfigured: Boolean(holyricsApiToken),
+      voskModelPathStatus: this.modelPathService.inspect(
+        settings.voskModelPath,
+      ),
     };
   }
 }

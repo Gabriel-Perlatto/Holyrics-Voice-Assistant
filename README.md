@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0 a 6** estão concluídas. Esta versão contém:
+As **Phases 0 a 6.5** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -37,7 +37,10 @@ As **Phases 0 a 6** estão concluídas. Esta versão contém:
 - Realtime Module com Socket.IO local;
 - sincronização de configurações, passagem bíblica e estado testado do
   Holyrics;
-- status em tempo real nas telas de Configurações e Pregador.
+- status em tempo real nas telas de Configurações e Pregador;
+- convenção local de modelos por idioma em `models/`;
+- validação de existência do diretório de modelo configurado;
+- status válido/inválido do caminho na tela de Configurações.
 
 Esta fase não inclui apresentação real da passagem no Holyrics, texto bíblico,
 louvor, acesso ao microfone, carregamento do Vosk, reconhecimento de voz,
@@ -153,7 +156,25 @@ curl --request PUT http://localhost:3000/api/settings \
 O token é aceito apenas para gravação e nunca é devolvido por
 `GET /api/settings`. Se o campo for omitido, o valor salvo é preservado; envie
 `null` para removê-lo. Salvar não testa automaticamente o Holyrics, não acessa
-o microfone e não carrega o modelo Vosk.
+o microfone e não carrega o modelo Vosk. A resposta inclui
+`voskModelPathStatus`, que verifica apenas se o caminho existe e é um
+diretório.
+
+## Modelos locais
+
+Modelos não são baixados nem incluídos no Git. Coloque-os manualmente em um
+diretório de idioma:
+
+```text
+models/
+└── pt-BR/
+    └── vosk-model-small-pt-0.3/
+```
+
+Depois configure `models/pt-BR/vosk-model-small-pt-0.3` em `/settings`.
+Caminhos absolutos também são aceitos para reutilizar modelos instalados em
+outro local. Consulte
+[`docs/speech-providers.md`](docs/speech-providers.md).
 
 Teste de conexão:
 
@@ -340,3 +361,14 @@ através do `RealtimeService`; o gateway apenas transmite envelopes
 O cliente reutilizável está em `public/js/websocket.js`. O WebSocket comunica
 somente o NestJS com os navegadores, sem polling ou conexão direta com o
 Holyrics. Consulte [`docs/realtime.md`](docs/realtime.md).
+
+## Decisões técnicas da Phase 6.5
+
+Os modelos ficam fora do controle de versão e são organizados por código BCP
+47 em `models/`. O `SettingsModule` valida somente o texto e a existência do
+diretório; caminhos inexistentes podem ser persistidos para que a interface
+mostre o estado inválido até o artefato ser instalado.
+
+Nenhum arquivo interno é lido e nenhuma dependência de Vosk foi adicionada.
+Provider, modelo e preferência persistida permanecem desacoplados para a
+Phase 7.

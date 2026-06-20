@@ -8,7 +8,24 @@ export interface Settings {
   updatedAt: string;
 }
 
+export type VoskModelPathStatusCode =
+  | 'not-configured'
+  | 'directory-found'
+  | 'not-found'
+  | 'not-directory'
+  | 'unreadable';
+
+export interface VoskModelPathStatus {
+  configured: boolean;
+  exists: boolean;
+  isDirectory: boolean;
+  valid: boolean;
+  code: VoskModelPathStatusCode;
+  message: string;
+}
+
 export interface PublicSettings
   extends Omit<Settings, 'holyricsApiToken'> {
   holyricsApiTokenConfigured: boolean;
+  voskModelPathStatus: VoskModelPathStatus;
 }
