@@ -261,6 +261,27 @@ h1 {
   opacity: 0.65;
 }
 
+.checkbox-field {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  margin-top: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.checkbox-field input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.checkbox-field input:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
 .form-actions {
   display: grid;
   gap: 0.8rem;
@@ -327,6 +348,34 @@ h1 {
 
 .connection-result--error {
   color: #ffb0b0;
+}
+
+.holyrics-status-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin: 1.2rem 0 0;
+}
+
+.holyrics-status-list div {
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  background: rgb(12 18 32 / 55%);
+}
+
+.holyrics-status-list dt {
+  margin-bottom: 0.3rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.holyrics-status-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.92rem;
+  font-weight: 700;
 }
 
 .form-feedback {
@@ -665,6 +714,12 @@ h1 {
 
   .selection-grid--books {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 32rem) {
+  .holyrics-status-list {
+    grid-template-columns: 1fr;
   }
 }
 

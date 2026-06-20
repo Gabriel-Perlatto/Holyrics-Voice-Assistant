@@ -185,23 +185,47 @@ Responsabilidades por camada:
 - interfaces: manter o serviço desacoplado da implementação HTTP.
 
 O `HolyricsModule` importa o `SettingsModule` e usa somente o
-`SettingsService` para obter host e porta. O módulo de configurações não
+`SettingsService` para obter configurações. O módulo de configurações não
 realiza chamadas externas.
 
 Endpoint local atual:
 
 ```txt
 POST /api/holyrics/test-connection
+POST /api/holyrics/authentication/validate
+POST /api/holyrics/info
+POST /api/holyrics/permissions/check
 ```
 
-O provider executa `GET /` no host e porta configurados, com timeout de três
-segundos e sem seguir redirecionamentos. Qualquer resposta HTTP comprova que o
-endereço está acessível, independentemente do status retornado.
+Na Phase 5.5, o provider executa `POST /api/{action}` com JSON e token,
+conforme o contrato oficial. O teste principal usa `GetTokenInfo`,
+`CheckPermissions`, `GetVersion` e `GetAPIServerInfo`. O timeout é de três
+segundos.
 
-Limitação: esse teste confirma conectividade HTTP, mas não garante que o
-servidor encontrado seja realmente o Holyrics. Nenhum endpoint de comando,
-Bíblia, louvor ou apresentação é utilizado nesta fase. Consulte
-`docs/holyrics.md`.
+A pesquisa oficial de 20 de junho de 2026 confirmou que o Holyrics possui um
+API Server HTTP integrado. O contrato usa `POST /api/{action}`, JSON e token
+com permissões, oferecendo também autenticação local por nonce e hash
+SHA-256. Ações confirmadas incluem `GetTokenInfo`, `GetVersion`,
+`GetAPIServerInfo`, `ShowVerse`, `GetBibleVersionsV2`, `ShowLyrics`,
+`GetSongs`, `ActionNext`, `ActionPrevious` e operações de playlist.
+
+O provider encapsula:
+
+- construção das chamadas autenticadas;
+- timeout e falhas de rede;
+- envelope `{ status, data, error }`;
+- token inválido e permissões insuficientes;
+- sanitização do token em logs e respostas;
+- tradução do envelope de erro do Holyrics.
+
+Foi adotado o token direto na query string por ser o método oficial mais
+simples. O fluxo `Auth` com nonce, `sid`, `rid` e `dtoken` permanece
+documentado, mas não foi implementado.
+
+O API Server não documenta WebSocket de entrada nem ações para listar livros,
+capítulos, contagens ou texto de versículos. O WebSocket previsto neste
+projeto é interno, entre NestJS e navegadores. Consulte
+`docs/holyrics.md` e `docs/holyrics-api-research.md`.
 
 ---
 
@@ -313,14 +337,16 @@ POST /api/bible/selection
 ```
 
 `:book` aceita o ID estável ou aliases pt-BR. O Bible Module não acessa a rede
-nem chama diretamente o Holyrics Module. Uma futura fonte Holyrics deve
-implementar `BibleContentProvider`, mantendo a lógica de domínio inalterada.
+nem chama diretamente o Holyrics Module. A API oficial pode fornecer versões
+instaladas por `GetBibleVersionsV2`, mas não expõe listagem de livros,
+capítulos, contagens ou texto. Uma futura composição de providers deve manter
+a topologia local e obter versões por uma abstração que delegue ao
+`HolyricsModule`, sem chamadas externas diretas no `BibleModule`.
 
 `POST /api/bible/selection` valida versão, livro, capítulo e versículo,
 atualiza o contexto em memória e retorna `delivery: "local-only"` e
-`deliveredToHolyrics: false`. Esse contrato impede que a aplicação afirme uma
-apresentação inexistente enquanto não houver endpoint oficial confirmado no
-Holyrics.
+`deliveredToHolyrics: false`. Esse contrato continua correto enquanto a ação
+oficial `ShowVerse` não estiver implementada no `HolyricsModule`.
 
 Consulte `docs/bible-data.md`.
 
@@ -384,6 +410,7 @@ Existe uma única configuração global nesta fase. O modelo contém:
 
 - `holyricsHost`;
 - `holyricsPort`;
+- `holyricsApiToken`;
 - `language`;
 - `microphone`;
 - `voskModelPath`;
@@ -400,8 +427,10 @@ GET /api/settings
 PUT /api/settings
 ```
 
-O `PUT` substitui o conjunto completo de configurações e retorna o estado
-persistido. Validações inválidas utilizam `BadRequestException` do NestJS.
+O `PUT` atualiza as configurações públicas e permite substituir ou remover o
+token. O `GET` e a resposta do `PUT` nunca expõem o segredo, retornando apenas
+`holyricsApiTokenConfigured`. Validações inválidas utilizam
+`BadRequestException` do NestJS.
 
 ---
 

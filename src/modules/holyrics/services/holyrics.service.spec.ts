@@ -1,10 +1,16 @@
 import {
   BadRequestException,
+  ConflictException,
+  ForbiddenException,
   ServiceUnavailableException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import type { SettingsService } from '../../settings/services/settings.service';
-import { HolyricsConnectionError } from '../exceptions/holyrics-connection.exception';
-import type { HolyricsConnectionTarget } from '../interfaces/holyrics-connection.interface';
+import { HolyricsApiError } from '../exceptions/holyrics-api.exception';
+import type {
+  HolyricsApiRequestResult,
+  HolyricsApiTarget,
+} from '../interfaces/holyrics-api.interface';
 import type { HolyricsProvider } from '../interfaces/holyrics-provider.interface';
 import { HolyricsService } from './holyrics.service';
 
@@ -12,6 +18,7 @@ describe('HolyricsService', () => {
   const settings = {
     holyricsHost: '192.168.1.20',
     holyricsPort: 8091,
+    holyricsApiToken: 'secret-token',
     language: 'pt-BR',
     microphone: null,
     voskModelPath: null,
@@ -25,17 +32,63 @@ describe('HolyricsService', () => {
       getSettings: jest.fn(() => ({ ...settings, ...overrides })),
     }) as unknown as jest.Mocked<SettingsService>;
 
-  const createProvider = (): jest.Mocked<HolyricsProvider> => ({
-    testConnection: jest.fn(
-      async (_target: HolyricsConnectionTarget) => ({
-        url: 'http://192.168.1.20:8091/',
-        statusCode: 200,
-        latencyMs: 12,
-      }),
-    ),
+  const createResult = <T>(
+    action: string,
+    data: T,
+    latencyMs = 5,
+  ): HolyricsApiRequestResult<T> => ({
+    action,
+    endpoint: `/api/${action}`,
+    statusCode: 200,
+    latencyMs,
+    data,
   });
 
-  it('usa host e porta persistidos no SettingsModule', async () => {
+  const createProvider = (): jest.Mocked<HolyricsProvider> => {
+    const request = jest.fn(
+      async (
+        _target: HolyricsApiTarget,
+        action: string,
+      ): Promise<HolyricsApiRequestResult<unknown>> => {
+        if (action === 'GetTokenInfo') {
+          return createResult(action, {
+            version: '2.28.1',
+            permissions:
+              'GetTokenInfo,CheckPermissions,GetVersion,GetAPIServerInfo',
+          });
+        }
+
+        if (action === 'CheckPermissions') {
+          return createResult(action, true);
+        }
+
+        if (action === 'GetVersion') {
+          return createResult(action, {
+            version: '2.28.1',
+            platform: 'win',
+            platformDescription: 'Windows 11',
+          });
+        }
+
+        if (action === 'GetAPIServerInfo') {
+          return createResult(action, {
+            enabled_local: true,
+            enabled_web: false,
+            port: 8091,
+            ip_list: ['192.168.1.20'],
+          });
+        }
+
+        throw new Error(`Unexpected action: ${action}`);
+      },
+    );
+
+    return {
+      request,
+    } as unknown as jest.Mocked<HolyricsProvider>;
+  };
+
+  it('testa a conexão usando somente ações oficiais autenticadas', async () => {
     const settingsService = createSettingsService();
     const provider = createProvider();
     const service = new HolyricsService(settingsService, provider);
@@ -43,33 +96,169 @@ describe('HolyricsService', () => {
     await expect(service.testConnection()).resolves.toEqual(
       expect.objectContaining({
         connected: true,
-        statusCode: 200,
-        url: 'http://192.168.1.20:8091/',
+        authenticated: true,
+        version: '2.28.1',
+        platform: 'win',
+        permissions: expect.arrayContaining(['GetTokenInfo']),
+        apiServer: expect.objectContaining({
+          enabledLocal: true,
+          port: 8091,
+        }),
+        latencyMs: expect.any(Number),
       }),
     );
-    expect(provider.testConnection).toHaveBeenCalledWith({
-      host: '192.168.1.20',
-      port: 8091,
-    });
+
+    expect(provider.request).toHaveBeenCalledWith(
+      {
+        host: '192.168.1.20',
+        port: 8091,
+        token: 'secret-token',
+      },
+      'GetTokenInfo',
+    );
+    expect(provider.request).toHaveBeenCalledWith(
+      expect.any(Object),
+      'CheckPermissions',
+      {
+        actions:
+          'GetTokenInfo,CheckPermissions,GetVersion,GetAPIServerInfo',
+      },
+    );
+    expect(provider.request).toHaveBeenCalledWith(
+      expect.any(Object),
+      'GetVersion',
+    );
+    expect(provider.request).toHaveBeenCalledWith(
+      expect.any(Object),
+      'GetAPIServerInfo',
+    );
   });
 
-  it('exige host e porta salvos antes do teste', async () => {
+  it('valida autenticação com GetTokenInfo', async () => {
     const service = new HolyricsService(
-      createSettingsService({ holyricsHost: '', holyricsPort: null }),
+      createSettingsService(),
       createProvider(),
     );
 
-    await expect(service.testConnection()).rejects.toBeInstanceOf(
+    await expect(service.validateAuthentication()).resolves.toEqual(
+      expect.objectContaining({
+        authenticated: true,
+        version: '2.28.1',
+      }),
+    );
+  });
+
+  it('verifica permissões solicitadas', async () => {
+    const provider = createProvider();
+    const service = new HolyricsService(
+      createSettingsService(),
+      provider,
+    );
+
+    await expect(
+      service.checkPermissions({
+        actions: ['ShowVerse', 'GetBibleVersionsV2'],
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        authorized: true,
+        actions: ['ShowVerse', 'GetBibleVersionsV2'],
+      }),
+    );
+    expect(provider.request).toHaveBeenCalledWith(
+      expect.any(Object),
+      'CheckPermissions',
+      { actions: 'ShowVerse,GetBibleVersionsV2' },
+    );
+  });
+
+  it('exige host, porta e token antes do teste', async () => {
+    const missingAddress = new HolyricsService(
+      createSettingsService({ holyricsHost: '', holyricsPort: null }),
+      createProvider(),
+    );
+    const missingToken = new HolyricsService(
+      createSettingsService({ holyricsApiToken: null }),
+      createProvider(),
+    );
+
+    await expect(missingAddress.testConnection()).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(missingToken.testConnection()).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
 
-  it('converte falha do provider em erro HTTP claro', async () => {
+  it('mapeia token inválido para 401', async () => {
     const provider = createProvider();
-    provider.testConnection.mockRejectedValue(
-      new HolyricsConnectionError(
-        'CONNECTION_REFUSED',
-        'A conexão foi recusada.',
+    provider.request.mockRejectedValue(
+      new HolyricsApiError(
+        'AUTHENTICATION_FAILED',
+        'O token da API Holyrics é inválido.',
+      ),
+    );
+    const service = new HolyricsService(
+      createSettingsService(),
+      provider,
+    );
+
+    await expect(service.testConnection()).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  it('mapeia permissão insuficiente para 403', async () => {
+    const provider = createProvider();
+    provider.request.mockImplementation(async (_target, action) => {
+      if (action === 'GetTokenInfo') {
+        return createResult(action, {
+          version: '2.28.1',
+          permissions: 'GetTokenInfo,CheckPermissions',
+        });
+      }
+
+      throw new HolyricsApiError(
+        'PERMISSION_DENIED',
+        'O token não possui permissão para: GetVersion.',
+        { unauthorizedActions: ['GetVersion'] },
+      );
+    });
+    const service = new HolyricsService(
+      createSettingsService(),
+      provider,
+    );
+
+    await expect(service.testConnection()).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
+  it('rejeita versão incompatível antes de usar ações mais novas', async () => {
+    const provider = createProvider();
+    provider.request.mockResolvedValue(
+      createResult('GetTokenInfo', {
+        version: '2.25.0',
+        permissions: 'GetTokenInfo',
+      }),
+    );
+    const service = new HolyricsService(
+      createSettingsService(),
+      provider,
+    );
+
+    await expect(service.testConnection()).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(provider.request).toHaveBeenCalledTimes(1);
+  });
+
+  it('mapeia timeout para indisponibilidade', async () => {
+    const provider = createProvider();
+    provider.request.mockRejectedValue(
+      new HolyricsApiError(
+        'TIMEOUT',
+        'O Holyrics não respondeu dentro do tempo limite.',
       ),
     );
     const service = new HolyricsService(
@@ -79,9 +268,6 @@ describe('HolyricsService', () => {
 
     await expect(service.testConnection()).rejects.toBeInstanceOf(
       ServiceUnavailableException,
-    );
-    await expect(service.testConnection()).rejects.toThrow(
-      'A conexão foi recusada.',
     );
   });
 });

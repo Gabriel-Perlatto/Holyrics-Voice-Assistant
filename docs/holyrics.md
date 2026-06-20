@@ -1,93 +1,163 @@
 # Integração com Holyrics
 
-## Escopo atual
+## Estado implementado — Phase 5.5
 
-A Phase 3 implementa somente o teste de conectividade com o endereço
-configurado para o Holyrics.
+O `HolyricsModule` usa o API Server HTTP oficial do Holyrics para autenticar,
+consultar versão, verificar permissões e obter informações do servidor.
 
-Não estão implementados:
+Não são usados `GET /`, endpoints especulativos ou protocolos internos do
+aplicativo móvel.
 
-- comandos de controle;
-- apresentação remota de passagens bíblicas;
-- recursos de louvor;
-- consulta de apresentações;
-- sincronização de estado;
-- descoberta automática do Holyrics.
+Ainda não estão implementados:
 
-## Configuração
+- apresentação real de passagens com `ShowVerse`;
+- consulta de versões instaladas com `GetBibleVersionsV2`;
+- controles de músicas, playlists ou louvor;
+- polling contínuo;
+- WebSocket;
+- API remota pela internet.
 
-O `HolyricsModule` lê `holyricsHost` e `holyricsPort` por meio do
-`SettingsService`. Esses valores devem ser salvos previamente na página
-`/settings` ou em `PUT /api/settings`.
+Os fallbacks bíblicos e o comportamento local da tela do pregador permanecem
+inalterados.
 
-## Endpoint local
+## Configuração no Holyrics
+
+No computador que executa o Holyrics:
+
+1. acesse `Arquivo > Configurações > API Server`;
+2. ative o acesso pela rede local;
+3. confirme a porta, normalmente `8091`;
+4. abra `Gerenciar permissões`;
+5. crie um token;
+6. conceda:
+   - `GetTokenInfo`;
+   - `CheckPermissions`;
+   - `GetVersion`;
+   - `GetAPIServerInfo`.
+
+Depois, em `/settings`, informe host/IP, porta e token, salve e clique em
+“Validar API Holyrics”.
+
+A Phase 5.5 exige Holyrics `2.26.0` ou superior porque
+`GetAPIServerInfo` foi disponibilizado nessa versão.
+
+## Estratégia de autenticação
+
+Foi adotado o método oficial mais simples:
+
+```text
+POST http://<host>:<porta>/api/<ação>?token=<token>
+Content-Type: application/json
+```
+
+O corpo é sempre JSON. O provider possui timeout de três segundos e interpreta
+o envelope oficial `{ status, data, error }`.
+
+O método alternativo oficial baseado em `Auth`, nonce, `sid`, `rid` e
+`dtoken` SHA-256 não foi implementado nesta fase. Ele reduz a exposição do
+token na rede local sem TLS e é recomendado para uma evolução posterior.
+
+## Persistência e proteção do token
+
+O token é armazenado no SQLite local junto das demais configurações.
+
+Regras aplicadas:
+
+- o endpoint `GET /api/settings` nunca retorna o token;
+- a resposta informa apenas `holyricsApiTokenConfigured`;
+- deixar o campo vazio preserva o token existente;
+- marcar “Remover o token salvo” grava `null`;
+- o token não aparece em logs nem nas respostas do `HolyricsModule`;
+- toda chamada externa continua encapsulada no `HolyricsModule`.
+
+O banco não é criptografado. O arquivo `data/settings.sqlite` deve permanecer
+restrito ao usuário do sistema operacional que executa a aplicação.
+
+## Endpoints locais
+
+### Teste completo
 
 ```http
 POST /api/holyrics/test-connection
 ```
 
-O endpoint não recebe corpo. Respostas:
+Executa:
 
-- `200`: o endereço configurado respondeu via HTTP;
-- `400`: host ou porta ainda não foram configurados;
-- `503`: host indisponível, porta recusada, timeout ou outra falha de rede.
+1. `GetTokenInfo`;
+2. validação da versão mínima;
+3. `CheckPermissions`;
+4. `GetVersion`;
+5. `GetAPIServerInfo`.
 
-## Requisição enviada ao endereço configurado
+Retorna conexão, autenticação, versão, plataforma, permissões disponíveis,
+informações do API Server e latência.
 
-O provider executa:
+### Validar autenticação
 
 ```http
-GET http://<host>:<porta>/
-Accept: */*
+POST /api/holyrics/authentication/validate
 ```
 
-Características:
+Usa somente `GetTokenInfo`.
 
-- timeout de três segundos;
-- redirecionamentos não são seguidos;
-- nenhum comando é enviado;
-- qualquer status HTTP é considerado uma resposta de conectividade.
+### Obter informações
 
-## Limitação conhecida
+```http
+POST /api/holyrics/info
+```
 
-Não foi identificado um endpoint público oficial e não destrutivo de saúde
-que permita validar a identidade do Holyrics. Por isso, o teste atual confirma
-que existe um servidor HTTP respondendo no host e porta configurados, mas não
-prova que esse servidor é o Holyrics.
+Usa `GetTokenInfo`, `GetVersion` e `GetAPIServerInfo`.
 
-Na Phase 4, a documentação oficial pública consultada descreve a apresentação
-e o uso de versículos no programa, mas não documenta endpoints para listar
-versões, livros, capítulos ou versículos. A página oficial "API Item" descreve
-o Holyrics enviando requisições a outros programas, não uma API de consulta
-bíblica para clientes externos.
+### Verificar permissões
 
-Por esse motivo, nenhum endpoint bíblico foi inventado no Holyrics Module. O
-Bible Module usa um fallback local substituível, documentado em
-`docs/bible-data.md`.
-
-Na Phase 5, uma passagem selecionada na tela do pregador é validada e
-registrada localmente pelo backend. A resposta declara:
+```http
+POST /api/holyrics/permissions/check
+Content-Type: application/json
+```
 
 ```json
 {
-  "delivery": "local-only",
-  "deliveredToHolyrics": false
+  "actions": ["ShowVerse", "GetBibleVersionsV2"]
 }
 ```
 
-Esse comportamento não simula sucesso no Holyrics.
+Usa `CheckPermissions`. Essa consulta apenas verifica permissões; não executa
+as ações informadas.
 
-Endpoints reais de Bíblia, louvor ou controle só devem ser adicionados quando
-existir contrato oficial verificável.
+## Mapeamento de erros
+
+- `400`: host, porta ou token ausente; entrada inválida;
+- `401`: token inválido;
+- `403`: permissão insuficiente;
+- `409`: versão do Holyrics incompatível;
+- `502`: resposta inválida do API Server;
+- `503`: conexão recusada, host ausente, timeout ou indisponibilidade.
+
+## Tela de configurações
+
+A tela `/settings`:
+
+- salva ou remove o token;
+- não recarrega o valor secreto no navegador;
+- exibe conexão e autenticação separadamente;
+- mostra versão do Holyrics;
+- mostra as permissões disponíveis;
+- apresenta erros retornados pelo backend.
+
+Não existe polling. A validação ocorre somente quando o usuário aciona o
+botão.
 
 ## Testes
 
-Os testes unitários usam mocks do provider HTTP e não dependem de uma
-instalação real do Holyrics. Eles cobrem:
+Os testes usam mocks e não dependem de Holyrics real. Cobrem:
 
-- resposta HTTP bem-sucedida;
+- requisição `POST` oficial autenticada;
+- token inválido;
+- permissão insuficiente;
 - conexão recusada;
-- host não encontrado;
-- configuração ausente;
-- uso do host e porta persistidos;
-- tradução de falhas para respostas compreensíveis.
+- timeout;
+- versão incompatível;
+- persistência, preservação e remoção do token;
+- não exposição do token pela resposta pública de configurações.
+
+Consulte também [`holyrics-api-research.md`](holyrics-api-research.md).

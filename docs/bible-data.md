@@ -23,9 +23,9 @@ Todas as respostas usam:
 }
 ```
 
-Isso é intencional. A documentação oficial pública do Holyrics consultada em
-20 de junho de 2026 demonstra recursos bíblicos no programa, mas não publica
-um contrato HTTP para listar versões, livros, capítulos ou versículos.
+Isso é intencional. A documentação oficial consultada em 20 de junho de 2026
+publica `GetBibleVersionsV2` para versões instaladas, mas não publica ações
+para listar livros, capítulos, números de versículos ou texto bíblico.
 
 Fontes oficiais consultadas:
 
@@ -33,9 +33,11 @@ Fontes oficiais consultadas:
 - https://holyrics.com.br/tutorial.html
 - https://holyrics.com.br/tips/api_item.html
 - https://holyrics.com.br/tips/quick_verse_presentation.html
+- https://github.com/holyrics/API-Server
 
 A página "API Item" documenta automações em que o Holyrics envia ações para
-outros sistemas. Ela não documenta uma API de leitura dos dados bíblicos.
+outros sistemas. O contrato de entrada correto é o API Server. Consulte
+`docs/holyrics-api-research.md`.
 
 ## Conteúdo do fallback
 
@@ -57,8 +59,8 @@ pelo projeto open source `bible-tools` 0.2.4, de George Andersen, sob licença
 MIT. A atribuição está em `THIRD_PARTY_NOTICES.md`.
 
 Algumas traduções ou tradições podem numerar versículos de forma diferente.
-Quando uma API oficial do Holyrics estiver disponível, o provider local deverá
-ser substituído para que a topologia reflita a versão realmente instalada.
+Como o API Server não expõe essa topologia, o provider local continuará
+necessário mesmo quando as versões instaladas forem consultadas no Holyrics.
 
 ## Aliases
 
@@ -97,7 +99,9 @@ pregador é separada e fica no navegador.
 
 ## Substituição futura
 
-Uma integração futura deve implementar a interface:
+Uma integração futura deve manter a topologia local e obter as versões
+instaladas por `GetBibleVersionsV2`, através do `HolyricsModule`. A composição
+de fontes deve permanecer atrás da interface:
 
 ```txt
 BibleContentProvider

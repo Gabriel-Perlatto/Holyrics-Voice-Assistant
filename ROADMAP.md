@@ -212,8 +212,9 @@ Tarefas:
 - [x] criar estrutura para livros, capítulos e versículos
 - [x] criar suporte a aliases de livros em `pt-BR`
 - [x] criar estrutura para versão bíblica atual
-- [x] carregar versões bíblicas disponíveis pelo Holyrics, se a API permitir
-- [x] criar fallback documentado se a API não permitir listar versões
+- [x] avaliar carregamento de versões pelo Holyrics; na Phase 4, sem contrato
+  confirmado, foi mantido fallback local
+- [x] criar fallback documentado para a implementação da fase
 - [x] criar endpoint para listar versões bíblicas
 - [x] criar endpoint para listar livros
 - [x] criar endpoint para listar capítulos de um livro
@@ -254,8 +255,9 @@ Tarefas:
 - [x] permitir trocar versão bíblica
 - [x] persistir versão bíblica favorita no navegador
 - [x] enviar passagem selecionada ao backend
-- [x] preparar envio da passagem ao Holyrics com fallback local documentado,
-  pois não existe endpoint oficial confirmado para apresentação remota
+- [x] preparar envio da passagem ao Holyrics com fallback local documentado;
+  a pesquisa posterior confirmou a ação oficial `ShowVerse`, ainda não
+  implementada
 
 Critérios de aceite:
 
@@ -274,11 +276,86 @@ Fora de escopo nesta fase:
 
 ---
 
+# Research Checkpoint - Official Holyrics API
+
+Status: **Concluído em 20 de junho de 2026.**
+
+- [x] confirmar o API Server HTTP oficial
+- [x] documentar autenticação, permissões e transporte
+- [x] confirmar ações de Bíblia, músicas, playlists e apresentação
+- [x] confirmar `ShowVerse` e `GetBibleVersionsV2`
+- [x] confirmar ausência de ações públicas para livros, capítulos e texto
+  bíblico
+- [x] distinguir API Server, Plugin, app móvel, API Item, scripts e MIDI
+- [x] registrar limitações e riscos arquiteturais
+
+Documentação: `docs/holyrics-api-research.md`.
+
+Este checkpoint é exclusivamente documental. Nenhuma integração real ou
+funcionalidade de fase futura foi iniciada.
+
+---
+
+# Phase 5.5 - Holyrics Authentication & Real API Integration
+
+Objetivo:
+
+Preparar a infraestrutura autenticada do API Server oficial antes dos eventos
+em tempo real.
+
+Status: **Concluída em 20 de junho de 2026.**
+
+Tarefas:
+
+- [x] persistir token da API Holyrics no Settings Module
+- [x] não expor o token nas respostas da API local
+- [x] atualizar `/settings` para salvar, substituir e remover o token
+- [x] substituir o probe `GET /` por ações oficiais autenticadas
+- [x] criar provider genérico para `POST /api/{action}`
+- [x] implementar `GetTokenInfo`
+- [x] implementar `CheckPermissions`
+- [x] implementar `GetVersion`
+- [x] implementar `GetAPIServerInfo`
+- [x] mapear token ausente, token inválido e permissão insuficiente
+- [x] mapear indisponibilidade, timeout e versão incompatível
+- [x] exibir conexão, autenticação, versão e permissões em `/settings`
+- [x] manter fallbacks bíblicos e comportamento local existentes
+- [x] criar testes com mocks sem depender de Holyrics real
+
+Critérios de aceite:
+
+- [x] token persiste após reiniciar
+- [x] autenticação pode ser validada
+- [x] teste de conexão usa somente endpoints oficiais
+- [x] tela de Configurações mostra status real retornado pela API
+- [x] fallbacks continuam funcionando quando a integração falha
+- [x] testes passam
+- [x] build passa
+
+Fora de escopo nesta fase:
+
+- `ShowVerse`
+- `GetBibleVersionsV2`
+- WebSocket
+- polling contínuo
+- reconhecimento de voz
+- Vosk
+- Command Module
+- funcionalidades de louvor
+
+---
+
 # Phase 6 - Realtime Events MVP
 
 Objetivo:
 
 Sincronizar interfaces em tempo real.
+
+Nota arquitetural: o WebSocket desta fase pertence ao NestJS e sincroniza os
+navegadores. A API oficial do Holyrics pesquisada não documenta WebSocket de
+entrada. Eventos derivados do Holyrics deverão usar chamadas HTTP
+autenticadas, polling controlado ou uma ponte explícita por gatilhos/API Item,
+sempre encapsulados no `HolyricsModule`.
 
 Tarefas:
 

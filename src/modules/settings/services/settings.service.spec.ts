@@ -6,6 +6,7 @@ describe('SettingsService', () => {
   const currentSettings = {
     holyricsHost: '',
     holyricsPort: null,
+    holyricsApiToken: null,
     language: 'pt-BR',
     microphone: null,
     voskModelPath: null,
@@ -27,6 +28,15 @@ describe('SettingsService', () => {
     const service = new SettingsService(repository);
 
     expect(service.getSettings()).toEqual(currentSettings);
+    expect(service.getPublicSettings()).toEqual({
+      holyricsHost: '',
+      holyricsPort: null,
+      holyricsApiTokenConfigured: false,
+      language: 'pt-BR',
+      microphone: null,
+      voskModelPath: null,
+      updatedAt: '2026-06-20T00:00:00.000Z',
+    });
   });
 
   it('normaliza e salva configurações válidas', () => {
@@ -36,6 +46,7 @@ describe('SettingsService', () => {
     const result = service.updateSettings({
       holyricsHost: ' 192.168.1.20 ',
       holyricsPort: 8091,
+      holyricsApiToken: ' secret-token ',
       language: 'pt-BR',
       microphone: ' Microfone USB ',
       voskModelPath: ' /modelos/vosk-pt ',
@@ -44,11 +55,13 @@ describe('SettingsService', () => {
     expect(repository.save).toHaveBeenCalledWith({
       holyricsHost: '192.168.1.20',
       holyricsPort: 8091,
+      holyricsApiToken: 'secret-token',
       language: 'pt-BR',
       microphone: 'Microfone USB',
       voskModelPath: '/modelos/vosk-pt',
     });
     expect(result.holyricsHost).toBe('192.168.1.20');
+    expect(result.holyricsApiTokenConfigured).toBe(true);
   });
 
   it('aceita campos opcionais vazios', () => {
@@ -58,6 +71,7 @@ describe('SettingsService', () => {
     service.updateSettings({
       holyricsHost: '',
       holyricsPort: '',
+      holyricsApiToken: undefined,
       language: 'pt-BR',
       microphone: '',
       voskModelPath: null,
@@ -67,6 +81,7 @@ describe('SettingsService', () => {
       expect.objectContaining({
         holyricsHost: '',
         holyricsPort: null,
+        holyricsApiToken: null,
         microphone: null,
         voskModelPath: null,
       }),
@@ -79,6 +94,7 @@ describe('SettingsService', () => {
       {
         holyricsHost: 'http://192.168.1.20',
         holyricsPort: 8091,
+        holyricsApiToken: undefined,
         language: 'pt-BR',
         microphone: null,
         voskModelPath: null,
@@ -89,6 +105,7 @@ describe('SettingsService', () => {
       {
         holyricsHost: '192.168.1.20',
         holyricsPort: 70_000,
+        holyricsApiToken: undefined,
         language: 'pt-BR',
         microphone: null,
         voskModelPath: null,
@@ -99,6 +116,7 @@ describe('SettingsService', () => {
       {
         holyricsHost: '192.168.1.20',
         holyricsPort: 8091,
+        holyricsApiToken: undefined,
         language: 'português',
         microphone: null,
         voskModelPath: null,
@@ -112,5 +130,64 @@ describe('SettingsService', () => {
       BadRequestException,
     );
     expect(repository.save).not.toHaveBeenCalled();
+  });
+
+  it('preserva o token quando o campo não é enviado', () => {
+    const repository = createRepository();
+    repository.find.mockReturnValue({
+      ...currentSettings,
+      holyricsApiToken: 'saved-token',
+    });
+    const service = new SettingsService(repository);
+
+    service.updateSettings({
+      holyricsHost: '192.168.1.20',
+      holyricsPort: 8091,
+      language: 'pt-BR',
+      microphone: null,
+      voskModelPath: null,
+    });
+
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        holyricsApiToken: 'saved-token',
+      }),
+    );
+  });
+
+  it('remove o token quando recebe null', () => {
+    const repository = createRepository();
+    const service = new SettingsService(repository);
+
+    service.updateSettings({
+      holyricsHost: '192.168.1.20',
+      holyricsPort: 8091,
+      holyricsApiToken: null,
+      language: 'pt-BR',
+      microphone: null,
+      voskModelPath: null,
+    });
+
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        holyricsApiToken: null,
+      }),
+    );
+  });
+
+  it('rejeita token vazio quando enviado explicitamente', () => {
+    const repository = createRepository();
+    const service = new SettingsService(repository);
+
+    expect(() =>
+      service.updateSettings({
+        holyricsHost: '192.168.1.20',
+        holyricsPort: 8091,
+        holyricsApiToken: '   ',
+        language: 'pt-BR',
+        microphone: null,
+        voskModelPath: null,
+      }),
+    ).toThrow(BadRequestException);
   });
 });

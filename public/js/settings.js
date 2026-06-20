@@ -79,6 +79,21 @@
     const connectionResult = document.querySelector(
       '[data-holyrics-result]',
     );
+    const tokenState = document.querySelector(
+      '[data-holyrics-token-state]',
+    );
+    const connectedState = document.querySelector(
+      '[data-holyrics-connected]',
+    );
+    const authenticatedState = document.querySelector(
+      '[data-holyrics-authenticated]',
+    );
+    const versionState = document.querySelector(
+      '[data-holyrics-version]',
+    );
+    const permissionsState = document.querySelector(
+      '[data-holyrics-permissions]',
+    );
     const fields = [...document.querySelectorAll('[data-settings-field]')];
 
     if (
@@ -87,7 +102,12 @@
       !feedbackElement ||
       !submitButton ||
       !testButton ||
-      !connectionResult
+      !connectionResult ||
+      !tokenState ||
+      !connectedState ||
+      !authenticatedState ||
+      !versionState ||
+      !permissionsState
     ) {
       return;
     }
@@ -115,9 +135,21 @@
     const fillForm = (settings) => {
       form.elements.holyricsHost.value = settings.holyricsHost ?? '';
       form.elements.holyricsPort.value = settings.holyricsPort ?? '';
+      form.elements.holyricsApiToken.value = '';
+      form.elements.removeHolyricsApiToken.checked = false;
       form.elements.language.value = settings.language ?? 'pt-BR';
       form.elements.microphone.value = settings.microphone ?? '';
       form.elements.voskModelPath.value = settings.voskModelPath ?? '';
+      tokenState.textContent = settings.holyricsApiTokenConfigured
+        ? 'Um token está salvo. Deixe o campo vazio para mantê-lo.'
+        : 'Nenhum token está salvo.';
+    };
+
+    const resetHolyricsStatus = () => {
+      connectedState.textContent = 'Não testada';
+      authenticatedState.textContent = 'Não testada';
+      versionState.textContent = 'Não disponível';
+      permissionsState.textContent = 'Não disponíveis';
     };
 
     const resetConnectionResult = () => {
@@ -127,6 +159,7 @@
         'connection-result--success',
         'connection-result--error',
       );
+      resetHolyricsStatus();
     };
 
     try {
@@ -171,6 +204,13 @@
         microphone: form.elements.microphone.value,
         voskModelPath: form.elements.voskModelPath.value,
       };
+      const tokenValue = form.elements.holyricsApiToken.value.trim();
+
+      if (tokenValue) {
+        payload.holyricsApiToken = tokenValue;
+      } else if (form.elements.removeHolyricsApiToken.checked) {
+        payload.holyricsApiToken = null;
+      }
 
       try {
         const response = await fetch('/api/settings', {
@@ -196,11 +236,12 @@
         feedbackElement.textContent =
           'Configurações salvas neste computador.';
         connectionResult.textContent =
-          'Configurações salvas. A conexão ainda não foi testada.';
+          'Configurações salvas. A API ainda não foi validada.';
         connectionResult.classList.remove(
           'connection-result--success',
           'connection-result--error',
         );
+        resetHolyricsStatus();
       } catch (error) {
         setState('Erro', 'status-badge--error');
         feedbackElement.textContent =
@@ -215,7 +256,8 @@
 
     testButton.addEventListener('click', async () => {
       setBusy(true);
-      connectionResult.textContent = 'Testando o endereço configurado...';
+      connectionResult.textContent =
+        'Validando conexão, token, versão e permissões...';
       connectionResult.classList.remove(
         'connection-result--success',
         'connection-result--error',
@@ -237,9 +279,24 @@
         }
 
         const result = await response.json();
-        connectionResult.textContent = `${result.message} Resposta HTTP ${result.statusCode} em ${result.latencyMs} ms.`;
+        connectedState.textContent = result.connected
+          ? 'Conectado'
+          : 'Indisponível';
+        authenticatedState.textContent = result.authenticated
+          ? 'Autenticado'
+          : 'Não autenticado';
+        versionState.textContent = result.version ?? 'Não disponível';
+        permissionsState.textContent = result.permissions?.length
+          ? result.permissions.join(', ')
+          : 'Nenhuma permissão informada';
+        connectionResult.textContent =
+          `${result.message} Validação concluída em ${result.latencyMs} ms.`;
         connectionResult.classList.add('connection-result--success');
       } catch (error) {
+        connectedState.textContent = 'Falha';
+        authenticatedState.textContent = 'Falha';
+        versionState.textContent = 'Não disponível';
+        permissionsState.textContent = 'Não disponíveis';
         connectionResult.textContent =
           error instanceof Error
             ? error.message

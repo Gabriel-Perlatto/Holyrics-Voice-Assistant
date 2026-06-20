@@ -13,6 +13,7 @@ import { SETTINGS_DATABASE_PATH } from '../providers/settings-database-path.prov
 interface SettingsRow {
   holyrics_host: string;
   holyrics_port: number | null;
+  holyrics_api_token: string | null;
   language: string;
   microphone: string | null;
   vosk_model_path: string | null;
@@ -44,6 +45,7 @@ export class SettingsRepository implements OnModuleDestroy {
           SELECT
             holyrics_host,
             holyrics_port,
+            holyrics_api_token,
             language,
             microphone,
             vosk_model_path,
@@ -67,6 +69,7 @@ export class SettingsRepository implements OnModuleDestroy {
           SET
             holyrics_host = @holyricsHost,
             holyrics_port = @holyricsPort,
+            holyrics_api_token = @holyricsApiToken,
             language = @language,
             microphone = @microphone,
             vosk_model_path = @voskModelPath,
@@ -89,12 +92,15 @@ export class SettingsRepository implements OnModuleDestroy {
         id INTEGER PRIMARY KEY CHECK (id = 1),
         holyrics_host TEXT NOT NULL,
         holyrics_port INTEGER,
+        holyrics_api_token TEXT,
         language TEXT NOT NULL,
         microphone TEXT,
         vosk_model_path TEXT,
         updated_at TEXT NOT NULL
       );
     `);
+
+    this.migrateApiTokenColumn();
 
     this.database
       .prepare(
@@ -103,11 +109,12 @@ export class SettingsRepository implements OnModuleDestroy {
             id,
             holyrics_host,
             holyrics_port,
+            holyrics_api_token,
             language,
             microphone,
             vosk_model_path,
             updated_at
-          ) VALUES (1, '', NULL, 'pt-BR', NULL, NULL, @updatedAt)
+          ) VALUES (1, '', NULL, NULL, 'pt-BR', NULL, NULL, @updatedAt)
         `,
       )
       .run({ updatedAt: new Date().toISOString() });
@@ -117,10 +124,23 @@ export class SettingsRepository implements OnModuleDestroy {
     return {
       holyricsHost: row.holyrics_host,
       holyricsPort: row.holyrics_port,
+      holyricsApiToken: row.holyrics_api_token,
       language: row.language,
       microphone: row.microphone,
       voskModelPath: row.vosk_model_path,
       updatedAt: row.updated_at,
     };
+  }
+
+  private migrateApiTokenColumn(): void {
+    const columns = this.database
+      .prepare('PRAGMA table_info(settings)')
+      .all() as Array<{ name: string }>;
+
+    if (!columns.some(({ name }) => name === 'holyrics_api_token')) {
+      this.database.exec(
+        'ALTER TABLE settings ADD COLUMN holyrics_api_token TEXT',
+      );
+    }
   }
 }

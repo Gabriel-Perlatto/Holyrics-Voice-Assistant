@@ -62,10 +62,11 @@ Ao tocar em um versículo, o frontend envia:
 
 O backend valida todos os campos e atualiza o contexto bíblico em memória.
 
-## Limitação do Holyrics
+## Limitação da implementação atual
 
-Não existe endpoint oficial confirmado no projeto para apresentar remotamente
-uma passagem. Portanto, o backend retorna:
+A pesquisa oficial confirmou a ação `ShowVerse` no API Server do Holyrics,
+mas ela ainda não está implementada no `HolyricsModule`. Portanto, o backend
+continua retornando:
 
 ```json
 {
@@ -76,4 +77,4 @@ uma passagem. Portanto, o backend retorna:
 ```
 
 A interface mostra essa limitação de forma explícita. Nenhum sucesso de
-projeção é simulado.
+projeção é simulado. Consulte `docs/holyrics-api-research.md`.

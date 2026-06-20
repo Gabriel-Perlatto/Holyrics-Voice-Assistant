@@ -1,12 +1,14 @@
 import type {
-  HolyricsConnectionTarget,
-  HolyricsProviderConnectionResult,
-} from './holyrics-connection.interface';
+  HolyricsApiRequestResult,
+  HolyricsApiTarget,
+} from './holyrics-api.interface';
 
 export interface HolyricsProvider {
-  testConnection(
-    target: HolyricsConnectionTarget,
-  ): Promise<HolyricsProviderConnectionResult>;
+  request<T>(
+    target: HolyricsApiTarget,
+    action: string,
+    input?: Record<string, unknown>,
+  ): Promise<HolyricsApiRequestResult<T>>;
 }
 
 export const HOLYRICS_PROVIDER = Symbol('HOLYRICS_PROVIDER');

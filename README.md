@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0 a 5** estão concluídas. Esta versão contém:
+As **Phases 0 a 5.5** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -19,11 +19,11 @@ As **Phases 0 a 5** estão concluídas. Esta versão contém:
 - endpoint de status do sistema;
 - status básico exibido na página de Configurações;
 - formulário para configurações locais;
-- persistência SQLite de host/porta do Holyrics, idioma, microfone e caminho
-  do modelo Vosk;
+- persistência SQLite de host, porta e token do Holyrics, idioma, microfone e
+  caminho do modelo Vosk;
 - validações básicas e feedback de salvamento;
-- teste isolado de conectividade HTTP com o endereço configurado para o
-  Holyrics;
+- autenticação real no API Server oficial do Holyrics;
+- consulta da versão, informações do servidor e permissões do token;
 - feedback claro para configuração ausente, host indisponível, porta recusada
   e timeout;
 - Bible Module com provider de conteúdo substituível;
@@ -105,7 +105,10 @@ Endpoint disponível:
 - `GET /api/system/status` — estado básico e endereço local do servidor.
 - `GET /api/settings` — configurações locais atuais.
 - `PUT /api/settings` — valida e substitui as configurações locais.
-- `POST /api/holyrics/test-connection` — testa o endereço persistido.
+- `POST /api/holyrics/test-connection` — valida a integração completa.
+- `POST /api/holyrics/authentication/validate` — valida o token.
+- `POST /api/holyrics/info` — consulta versão e API Server.
+- `POST /api/holyrics/permissions/check` — verifica ações permitidas.
 - `GET /api/bible/versions` — identificadores locais de versão.
 - `GET /api/bible/books` — livros e aliases `pt-BR`.
 - `GET /api/bible/books/:book/chapters` — capítulos e contagem de versículos.
@@ -136,15 +139,17 @@ curl --request PUT http://localhost:3000/api/settings \
   --data '{
     "holyricsHost": "192.168.1.50",
     "holyricsPort": 8091,
+    "holyricsApiToken": "token-criado-no-holyrics",
     "language": "pt-BR",
     "microphone": "Microfone USB",
     "voskModelPath": "/opt/modelos/vosk-pt"
   }'
 ```
 
-Campos opcionais podem ser enviados como `null` ou texto vazio. Nesta fase,
-salvar os dados não testa automaticamente o Holyrics, não acessa o microfone e
-não carrega o modelo Vosk.
+O token é aceito apenas para gravação e nunca é devolvido por
+`GET /api/settings`. Se o campo for omitido, o valor salvo é preservado; envie
+`null` para removê-lo. Salvar não testa automaticamente o Holyrics, não acessa
+o microfone e não carrega o modelo Vosk.
 
 Teste de conexão:
 
@@ -152,9 +157,17 @@ Teste de conexão:
 curl --request POST http://localhost:3000/api/holyrics/test-connection
 ```
 
-O teste executa somente `GET /` no host e porta salvos. Qualquer resposta HTTP
-confirma conectividade, mas não garante que o servidor seja realmente o
-Holyrics. Veja [`docs/holyrics.md`](docs/holyrics.md).
+O teste executa `GetTokenInfo`, `CheckPermissions`, `GetVersion` e
+`GetAPIServerInfo` no API Server oficial. Veja
+[`docs/holyrics.md`](docs/holyrics.md).
+
+Verificação de permissões:
+
+```bash
+curl --request POST http://localhost:3000/api/holyrics/permissions/check \
+  --header "Content-Type: application/json" \
+  --data '{"actions":["ShowVerse","GetBibleVersionsV2"]}'
+```
 
 Exemplo de consulta bíblica:
 
@@ -212,10 +225,11 @@ Os testes atuais cobrem:
 - geração do status básico;
 - defaults e validações das configurações;
 - normalização dos campos;
-- persistência após fechar e reabrir o SQLite.
-- provider HTTP do Holyrics com respostas simuladas;
-- uso das configurações persistidas no teste de conexão;
-- tradução de erros de rede sem depender de Holyrics real;
+- persistência após fechar e reabrir o SQLite;
+- persistência e não exposição do token do Holyrics;
+- provider autenticado com respostas simuladas;
+- token inválido, permissões insuficientes e versão incompatível;
+- timeout e tradução de erros de rede sem depender de Holyrics real;
 - aliases bíblicos em `pt-BR`;
 - 66 livros, versões locais e topologia de capítulos/versículos;
 - contexto bíblico inicial;
@@ -272,22 +286,27 @@ O idioma padrão é `pt-BR`. Microfone e caminho do modelo Vosk são armazenados
 como textos opcionais; enumerar dispositivos e carregar o modelo pertencem às
 fases futuras.
 
-## Decisões técnicas da Phase 3
+## Decisões técnicas da Phase 3 e Phase 5.5
 
 Toda comunicação externa com o Holyrics fica dentro do `HolyricsModule`. O
 serviço depende de uma interface de provider, permitindo testes com mocks e
 substituição futura da implementação HTTP.
 
-Como não foi identificado um endpoint oficial público de saúde sem efeito
-colateral, o MVP consulta apenas `GET /` com timeout de três segundos. Esse
-teste mede acessibilidade HTTP e documenta explicitamente que não valida a
-identidade do Holyrics.
+O probe inicial `GET /` foi substituído na Phase 5.5 pelo contrato oficial
+`POST /api/{action}`. A implementação usa token direto, timeout de três
+segundos e as ações `GetTokenInfo`, `CheckPermissions`, `GetVersion` e
+`GetAPIServerInfo`.
+
+O token fica no SQLite local, não é retornado ao navegador e não aparece nos
+logs. O fluxo oficial alternativo com nonce e hash permanece documentado para
+evolução futura.
 
 ## Decisões técnicas da Phase 4
 
-O `BibleModule` depende da interface `BibleContentProvider`. Como a
-documentação oficial pública do Holyrics não apresenta endpoints de listagem
-bíblica, a implementação atual usa `LocalBibleContentProvider`.
+O `BibleModule` depende da interface `BibleContentProvider`. O API Server
+oficial fornece `GetBibleVersionsV2`, mas não publica ações para listar livros,
+capítulos, contagens ou texto bíblico. Por isso, a implementação atual ainda
+usa `LocalBibleContentProvider`.
 
 O fallback contém somente metadados de navegação, sem texto bíblico e sem
 novas tabelas. Todas as respostas identificam a origem local. A interface do
@@ -299,6 +318,7 @@ A interface do pregador usa grades paginadas em vez de tabelas, selects ou uma
 lista contínua. O JavaScript controla somente a apresentação das etapas e
 consome os endpoints HTTP; validações permanecem no backend.
 
-A versão favorita usa `localStorage`, por dispositivo. Como não há endpoint
-oficial confirmado para apresentar passagens no Holyrics, a seleção é
-registrada no contexto local e responde explicitamente que não foi entregue.
+A versão favorita usa `localStorage`, por dispositivo. A ação oficial
+`ShowVerse` foi confirmada, mas ainda não está implementada. A seleção
+permanece registrada no contexto local e responde explicitamente que não foi
+entregue. Consulte `docs/holyrics-api-research.md`.
