@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0, 1, 2 e 3** estão concluídas. Esta versão contém:
+As **Phases 0, 1, 2, 3 e 4** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -25,10 +25,15 @@ As **Phases 0, 1, 2 e 3** estão concluídas. Esta versão contém:
 - teste isolado de conectividade HTTP com o endereço configurado para o
   Holyrics;
 - feedback claro para configuração ausente, host indisponível, porta recusada
-  e timeout.
+  e timeout;
+- Bible Module com provider de conteúdo substituível;
+- metadados locais dos 66 livros, capítulos e números de versículos;
+- aliases de livros em `pt-BR`;
+- contexto bíblico inicial e identificadores locais de versão.
 
-Esta fase não inclui comandos para o Holyrics, navegação bíblica, louvor,
-acesso ao microfone, carregamento do Vosk, reconhecimento de voz, WebSocket ou
+Esta fase não inclui interface completa do pregador, alteração manual de
+contexto, envio de passagens ao Holyrics, texto bíblico, louvor, acesso ao
+microfone, carregamento do Vosk, reconhecimento de voz, WebSocket ou
 funcionalidades de fases futuras.
 
 ## Requisitos
@@ -98,6 +103,11 @@ Endpoint disponível:
 - `GET /api/settings` — configurações locais atuais.
 - `PUT /api/settings` — valida e substitui as configurações locais.
 - `POST /api/holyrics/test-connection` — testa o endereço persistido.
+- `GET /api/bible/versions` — identificadores locais de versão.
+- `GET /api/bible/books` — livros e aliases `pt-BR`.
+- `GET /api/bible/books/:book/chapters` — capítulos e contagem de versículos.
+- `GET /api/bible/books/:book/chapters/:chapter/verses` — números dos
+  versículos.
 
 Exemplo:
 
@@ -142,6 +152,19 @@ O teste executa somente `GET /` no host e porta salvos. Qualquer resposta HTTP
 confirma conectividade, mas não garante que o servidor seja realmente o
 Holyrics. Veja [`docs/holyrics.md`](docs/holyrics.md).
 
+Exemplo de consulta bíblica:
+
+```bash
+curl http://localhost:3000/api/bible/versions
+curl http://localhost:3000/api/bible/books
+curl http://localhost:3000/api/bible/books/Jo/chapters
+curl http://localhost:3000/api/bible/books/Jo/chapters/3/verses
+```
+
+Esses endpoints retornam metadados locais identificados por
+`source: "local-fallback"`. Não retornam texto bíblico. Consulte
+[`docs/bible-data.md`](docs/bible-data.md).
+
 ## Dados locais
 
 As configurações são armazenadas por padrão em:
@@ -172,7 +195,11 @@ Os testes atuais cobrem:
 - persistência após fechar e reabrir o SQLite.
 - provider HTTP do Holyrics com respostas simuladas;
 - uso das configurações persistidas no teste de conexão;
-- tradução de erros de rede sem depender de Holyrics real.
+- tradução de erros de rede sem depender de Holyrics real;
+- aliases bíblicos em `pt-BR`;
+- 66 livros, versões locais e topologia de capítulos/versículos;
+- contexto bíblico inicial;
+- validação de livros e capítulos.
 
 ## Estrutura
 
@@ -233,3 +260,13 @@ Como não foi identificado um endpoint oficial público de saúde sem efeito
 colateral, o MVP consulta apenas `GET /` com timeout de três segundos. Esse
 teste mede acessibilidade HTTP e documenta explicitamente que não valida a
 identidade do Holyrics.
+
+## Decisões técnicas da Phase 4
+
+O `BibleModule` depende da interface `BibleContentProvider`. Como a
+documentação oficial pública do Holyrics não apresenta endpoints de listagem
+bíblica, a implementação atual usa `LocalBibleContentProvider`.
+
+O fallback contém somente metadados de navegação, sem texto bíblico e sem
+novas tabelas. Todas as respostas identificam a origem local. A interface do
+pregador e a alteração do contexto continuam fora desta fase.

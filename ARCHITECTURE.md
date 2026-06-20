@@ -262,6 +262,60 @@ Não acessar Holyrics diretamente.
 
 Quando precisar de conteúdo externo, utilizar abstrações definidas pela arquitetura.
 
+Implementação atual:
+
+```txt
+src/modules/bible/
+├── controllers/
+├── data/
+│   └── pt-BR/
+├── dto/
+├── interfaces/
+├── providers/
+├── services/
+└── bible.module.ts
+```
+
+Responsabilidades:
+
+- `BibleService`: orquestrar consultas e validar livro/capítulo;
+- `BookAliasService`: resolver nomes e aliases definidos em arquivos de
+  idioma;
+- `BibleContextService`: manter o contexto inicial de versão, livro, capítulo
+  e versículo;
+- `BibleContentProvider`: abstrair a origem dos metadados;
+- `LocalBibleContentProvider`: fallback offline da Phase 4.
+
+O provider atual contém somente metadados:
+
+- 66 livros do cânon protestante;
+- quantidade de capítulos e versículos;
+- aliases em `pt-BR`;
+- identificadores locais ACF, ARC, NAA e NVI.
+
+Não contém texto bíblico. Os identificadores de versão não afirmam que a
+tradução esteja instalada ou disponível no Holyrics. Todas as respostas
+declaram `source: "local-fallback"` e `fallback: true`.
+
+O contexto inicial usa `nvi` como identificador de versão e não seleciona
+livro, capítulo ou versículo. Alteração de contexto e interface de navegação
+pertencem às fases futuras.
+
+Endpoints:
+
+```txt
+GET /api/bible/versions
+GET /api/bible/books
+GET /api/bible/books/:book/chapters
+GET /api/bible/books/:book/chapters/:chapter/verses
+```
+
+`:book` aceita o ID estável ou aliases pt-BR. O Bible Module não acessa a rede
+nem chama diretamente o Holyrics Module. Uma futura fonte Holyrics deve
+implementar `BibleContentProvider`, mantendo a lógica de domínio inalterada.
+
+Consulte `docs/bible-data.md`.
+
 ---
 
 # Worship Module

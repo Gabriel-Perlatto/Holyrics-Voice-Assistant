@@ -204,25 +204,27 @@ Objetivo:
 
 Preparar suporte bíblico e versões bíblicas.
 
+Status: **Concluída em 20 de junho de 2026.**
+
 Tarefas:
 
-- criar Bible Module
-- criar estrutura para livros, capítulos e versículos
-- criar suporte a aliases de livros em `pt-BR`
-- criar estrutura para versão bíblica atual
-- carregar versões bíblicas disponíveis pelo Holyrics, se a API permitir
-- criar fallback documentado se a API não permitir listar versões
-- criar endpoint para listar versões bíblicas
-- criar endpoint para listar livros
-- criar endpoint para listar capítulos de um livro
-- criar endpoint para listar versículos de um capítulo
+- [x] criar Bible Module
+- [x] criar estrutura para livros, capítulos e versículos
+- [x] criar suporte a aliases de livros em `pt-BR`
+- [x] criar estrutura para versão bíblica atual
+- [x] carregar versões bíblicas disponíveis pelo Holyrics, se a API permitir
+- [x] criar fallback documentado se a API não permitir listar versões
+- [x] criar endpoint para listar versões bíblicas
+- [x] criar endpoint para listar livros
+- [x] criar endpoint para listar capítulos de um livro
+- [x] criar endpoint para listar versículos de um capítulo
 
 Critérios de aceite:
 
-- tela do pregador consegue obter versões bíblicas
-- tela do pregador consegue navegar por livro, capítulo e versículo
-- aliases ficam fora da lógica principal
-- versão bíblica atual é respeitada
+- [x] tela do pregador consegue obter versões bíblicas
+- [x] tela do pregador consegue navegar por livro, capítulo e versículo
+- [x] aliases ficam fora da lógica principal
+- [x] versão bíblica atual é respeitada
 
 Fora de escopo nesta fase:
 

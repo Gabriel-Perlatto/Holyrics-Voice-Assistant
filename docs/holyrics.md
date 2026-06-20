@@ -55,8 +55,18 @@ que permita validar a identidade do Holyrics. Por isso, o teste atual confirma
 que existe um servidor HTTP respondendo no host e porta configurados, mas não
 prova que esse servidor é o Holyrics.
 
-Endpoints reais de Bíblia, louvor ou controle devem ser pesquisados,
-documentados e implementados apenas nas fases correspondentes.
+Na Phase 4, a documentação oficial pública consultada descreve a apresentação
+e o uso de versículos no programa, mas não documenta endpoints para listar
+versões, livros, capítulos ou versículos. A página oficial "API Item" descreve
+o Holyrics enviando requisições a outros programas, não uma API de consulta
+bíblica para clientes externos.
+
+Por esse motivo, nenhum endpoint bíblico foi inventado no Holyrics Module. O
+Bible Module usa um fallback local substituível, documentado em
+`docs/bible-data.md`.
+
+Endpoints reais de Bíblia, louvor ou controle só devem ser adicionados quando
+existir contrato oficial verificável.
 
 ## Testes
 
