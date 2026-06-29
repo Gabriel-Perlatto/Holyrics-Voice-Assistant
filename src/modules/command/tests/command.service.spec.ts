@@ -6,6 +6,7 @@ import type { VoiceCommandMode } from '../../settings/interfaces/settings.interf
 import { CommandType } from '../enums/command-type.enum';
 import { PtBrCommandParser } from '../parsers/pt-br-command.parser';
 import { CommandContextService } from '../services/command-context.service';
+import { CommandIntentClassifierService } from '../services/command-intent-classifier.service';
 import { CommandIntentGuardService } from '../services/command-intent-guard.service';
 import { CommandService } from '../services/command.service';
 import { NumberNormalizerService } from '../services/number-normalizer.service';
@@ -21,7 +22,10 @@ describe('CommandService', () => {
       apply: jest.fn(async () => undefined),
     } as unknown as jest.Mocked<BibleNavigationService>;
     const settings = {
-      getSettings: jest.fn(() => ({ voiceCommandMode })),
+      getSettings: jest.fn(() => ({
+        language: 'pt-BR',
+        voiceCommandMode,
+      })),
     } as unknown as jest.Mocked<SettingsService>;
     const parser = new PtBrCommandParser();
     const service = new CommandService(
@@ -30,7 +34,10 @@ describe('CommandService', () => {
       new CommandContextService(),
       realtime,
       navigation,
-      new CommandIntentGuardService(parser),
+      new CommandIntentGuardService(
+        parser,
+        new CommandIntentClassifierService(),
+      ),
       settings,
     );
 
@@ -39,6 +46,8 @@ describe('CommandService', () => {
 
   it.each([
     'agora vamos para apocalipse 12 13',
+    'igreja vamos para apocalipse 12 13',
+    'acompanhe comigo em apocalipse 12 13',
     'abra em apocalipse 12 13',
     'mostre apocalipse 12 13',
     'coloque apocalipse 12 13',
@@ -99,6 +108,7 @@ describe('CommandService', () => {
     'segundo apocalipse 12 13',
     'lá em apocalipse 12 13 vemos',
     'em apocalipse 12 13 temos a mesma informação',
+    'a lógica é a mesma em apocalipse 12 13',
   ])('ignora referência casual: "%s"', async (input) => {
     const { navigation, service } = createService();
 
@@ -135,7 +145,11 @@ describe('CommandService', () => {
     expect(navigation.apply).not.toHaveBeenCalled();
   });
 
-  it.each(['o próximo irmão pode vir', 'a próxima pessoa'])(
+  it.each([
+    'o próximo irmão pode vir',
+    'a próxima pessoa',
+    'não podemos fazer isso com o próximo',
+  ])(
     'mantém frase comum como UNKNOWN: "%s"',
     async (input) => {
       const { navigation, service } = createService();

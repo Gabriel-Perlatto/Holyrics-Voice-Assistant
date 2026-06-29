@@ -1,9 +1,9 @@
 # Interpretador de comandos
 
-## Escopo das Phases 8, 8.5 e 9.6
+## Escopo das Phases 8, 8.5, 9.6 e 9.7
 
 O `CommandModule` transforma texto em comandos estruturados de forma local,
-determinística e sem dependência de internet.
+sem dependência de internet.
 
 O parser e o normalizador não:
 
@@ -12,7 +12,11 @@ O parser e o normalizador não:
 - alteram a passagem exibida;
 - alteram o `BibleModule`;
 - acessam a interface do pregador;
-- usam IA generativa, LLM ou NLP externo.
+- usam IA generativa ou LLM.
+
+Na Phase 9.7, a decisão de intenção usa NLP.js local em memória. O modelo é
+treinado no startup a partir de exemplos versionados no projeto, separados por
+idioma. Ele não chama serviços externos.
 
 ## Fluxo
 
@@ -29,6 +33,8 @@ StructuredCommand
         ↓
 CommandIntentGuardService
         ↓
+CommandIntentClassifierService (NLP.js local)
+        ↓
 COMMAND_IDENTIFIED
         ↓ execute
 BibleNavigationService
@@ -42,8 +48,9 @@ serviço devolve somente texto e não conhece intents, comandos estruturados,
 BibleModule ou Holyrics.
 
 Na Phase 9.6, o parser também consegue extrair uma referência válida de uma
-frase completa. A extração apenas identifica o comando; o
-`CommandIntentGuardService` decide se a intenção permite navegar.
+frase completa. A extração apenas identifica o comando. Na Phase 9.7, o
+`CommandIntentGuardService` consulta o `CommandIntentClassifierService` para
+decidir se a intenção permite navegar.
 
 ## Comandos suportados
 
@@ -205,11 +212,25 @@ Motivos:
 - `relative_reference_context`;
 - `unknown_or_unsafe`.
 
-No modo `conservative`, referências bíblicas exigem uma expressão de ação
-determinística, como `vamos para`, `vamos pra`, `vamos ao`, `abra em`,
-`mostre`, `coloque`, `projete`, `vamos ler` ou `agora em`. A variante
-`vamos parar` também é aceita quando o parser já identificou uma referência
-bíblica válida, pois é uma transcrição comum de `vamos para` em fala contínua.
+O guard usa NLP.js para classificar a intenção em exemplos de navegação e de
+fala casual. Em português do Brasil, os exemplos ficam em
+`src/modules/command/nlp/pt-br-intent-training.ts`. Novos idiomas devem criar
+perfis próprios, sem misturar exemplos com PT-BR.
+
+O classificador decide entre:
+
+- comando explícito de navegação;
+- referência bíblica casual;
+- menção contextual a próximo/anterior;
+- referência direta sem ação explícita.
+
+No modo `conservative`, referências bíblicas diretas, como
+`Apocalipse 12 13`, continuam bloqueadas. Frases como `vamos para`,
+`vamos pra`, `vamos ao`, `abra em`, `mostre`, `coloque`, `projete`,
+`vamos ler`, `acompanhe comigo em` e variações treinadas podem executar quando
+o parser já identificou uma referência bíblica válida. A variante
+`vamos parar` também é treinada porque é uma transcrição comum de `vamos para`
+em fala contínua.
 
 No modo `fast`, uma referência direta como `Apocalipse 12 13` também executa.
 Frases claramente casuais continuam bloqueadas nos dois modos.
@@ -219,6 +240,7 @@ Exemplos executados:
 ```text
 agora vamos para Apocalipse 12 13
 vamos parar Êxodo 1
+acompanhe comigo em Filipenses 4
 abra em João 3 16
 mostre Salmos 23 1
 próximo versículo
@@ -231,6 +253,7 @@ Apocalipse 12 13                 # modo conservador
 como vimos em Apocalipse 12 13
 segundo Apocalipse 12 13
 no próximo versículo veremos
+não podemos fazer isso com o próximo
 o próximo irmão pode vir
 ```
 
@@ -268,5 +291,7 @@ Somente decisões `execute` seguem para o `BibleNavigationService`. Uma decisão
 - não há intervalos de versículos;
 - não há composição de múltiplos comandos;
 - o contexto fica somente em memória;
-- o guard é determinístico e não compreende contexto livre como uma IA;
-- novas formas de pedir uma passagem precisam ser adicionadas explicitamente.
+- o NLP.js melhora a flexibilidade, mas continua dependente dos exemplos de
+  treinamento versionados;
+- novas formas recorrentes de pedir ou mencionar uma passagem devem ser
+  adicionadas ao perfil de treinamento do idioma correspondente.

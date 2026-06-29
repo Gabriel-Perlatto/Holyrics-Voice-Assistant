@@ -17,6 +17,8 @@ CommandService
         ↓
 CommandIntentGuardService
         ↓
+CommandIntentClassifierService
+        ↓
 COMMAND_IDENTIFIED
         ↓ execute
 BibleNavigationService

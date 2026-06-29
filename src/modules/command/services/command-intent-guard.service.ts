@@ -6,6 +6,7 @@ import type {
   StructuredCommand,
 } from '../interfaces/command.interface';
 import { PtBrCommandParser } from '../parsers/pt-br-command.parser';
+import { CommandIntentClassifierService } from './command-intent-classifier.service';
 
 const DIRECT_RELATIVE_COMMANDS = new Set([
   'proximo',
@@ -21,14 +22,18 @@ const DIRECT_RELATIVE_COMMANDS = new Set([
 
 @Injectable()
 export class CommandIntentGuardService {
-  constructor(private readonly parser: PtBrCommandParser) {}
+  constructor(
+    private readonly parser: PtBrCommandParser,
+    private readonly classifier: CommandIntentClassifierService,
+  ) {}
 
-  decide(
+  async decide(
     originalTranscription: unknown,
     normalizedTranscription: string,
     command: StructuredCommand,
     mode: VoiceCommandMode,
-  ): CommandIntentGuardDecision {
+    language = 'pt-BR',
+  ): Promise<CommandIntentGuardDecision> {
     if (command.type === CommandType.UNKNOWN) {
       return {
         decision: 'ignore',
@@ -36,12 +41,32 @@ export class CommandIntentGuardService {
       };
     }
 
-    const original = this.normalize(
-      typeof originalTranscription === 'string'
-        ? originalTranscription
-        : '',
-    );
     const normalized = this.normalize(normalizedTranscription);
+    const directCommand = this.parser.parse(normalizedTranscription);
+    const isDirectReference =
+      directCommand.type === CommandType.BIBLE_REFERENCE;
+    const classification = await this.classifier.classify(
+      language,
+      normalized,
+    );
+
+    if (classification) {
+      if (
+        mode === 'fast' &&
+        isDirectReference &&
+        classification.reason === 'unknown_or_unsafe'
+      ) {
+        return {
+          decision: 'execute',
+          reason: 'explicit_action',
+        };
+      }
+
+      return {
+        decision: classification.decision,
+        reason: classification.reason,
+      };
+    }
 
     if (command.type !== CommandType.BIBLE_REFERENCE) {
       return DIRECT_RELATIVE_COMMANDS.has(normalized)
@@ -51,27 +76,6 @@ export class CommandIntentGuardService {
             reason: 'relative_reference_context',
           };
     }
-
-    if (this.hasCasualReferenceContext(original, normalized)) {
-      return {
-        decision: 'ignore',
-        reason: 'casual_reference',
-      };
-    }
-
-    if (
-      this.hasExplicitAction(original) ||
-      this.hasExplicitAction(normalized)
-    ) {
-      return {
-        decision: 'execute',
-        reason: 'explicit_action',
-      };
-    }
-
-    const directCommand = this.parser.parse(normalizedTranscription);
-    const isDirectReference =
-      directCommand.type === CommandType.BIBLE_REFERENCE;
 
     if (mode === 'fast' && isDirectReference) {
       return {
@@ -84,29 +88,6 @@ export class CommandIntentGuardService {
       decision: 'ignore',
       reason: 'unknown_or_unsafe',
     };
-  }
-
-  private hasExplicitAction(value: string): boolean {
-    return /^(?:agora\s+vamos\s+para|vamos\s+para|vamos\s+parar|vamos\s+pra|vamos\s+(?:ao|a)|abra(?:\s+em)?|mostre|coloque|projete|vamos\s+ler|agora\s+em)\b/.test(
-      value,
-    );
-  }
-
-  private hasCasualReferenceContext(
-    original: string,
-    normalized: string,
-  ): boolean {
-    return (
-      /^(?:como\s+(?:vimos|esta)|isso\s+tambem\s+aparece|segundo\b|la\s+em\b)/.test(
-        original,
-      ) ||
-      /^(?:como\s+(?:vimos|esta)|isso\s+tambem\s+aparece|la\s+em\b)/.test(
-        normalized,
-      ) ||
-      /^(?:em|no|na)\b.*\b(?:vemos|temos|aparece)\b/.test(
-        normalized,
-      )
-    );
   }
 
   private normalize(value: string): string {

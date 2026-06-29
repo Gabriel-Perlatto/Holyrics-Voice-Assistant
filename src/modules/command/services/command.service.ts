@@ -35,12 +35,13 @@ export class CommandService {
     const command = this.parser.parseTranscription(normalizedInput);
     const confidence =
       command.type === CommandType.UNKNOWN ? 0 : 1;
-    const intent = this.intentGuard.decide(
+    const settings = this.settingsService.getSettings();
+    const intent = await this.intentGuard.decide(
       input,
       normalizedInput,
       command,
-      this.settingsService.getSettings().voiceCommandMode ??
-        'conservative',
+      settings.voiceCommandMode ?? 'conservative',
+      settings.language ?? 'pt-BR',
     );
     const identification: CommandIdentification = {
       command,

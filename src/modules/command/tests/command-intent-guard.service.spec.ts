@@ -2,11 +2,13 @@ import type { VoiceCommandMode } from '../../settings/interfaces/settings.interf
 import { CommandType } from '../enums/command-type.enum';
 import type { StructuredCommand } from '../interfaces/command.interface';
 import { PtBrCommandParser } from '../parsers/pt-br-command.parser';
+import { CommandIntentClassifierService } from '../services/command-intent-classifier.service';
 import { CommandIntentGuardService } from '../services/command-intent-guard.service';
 
 describe('CommandIntentGuardService', () => {
   const service = new CommandIntentGuardService(
     new PtBrCommandParser(),
+    new CommandIntentClassifierService(),
   );
   const reference: StructuredCommand = {
     type: CommandType.BIBLE_REFERENCE,
@@ -32,22 +34,17 @@ describe('CommandIntentGuardService', () => {
     'projete apocalipse 12 13',
     'vamos ler apocalipse 12 13',
     'agora em apocalipse 12 13',
-  ])('autoriza ação explícita: "%s"', (text) => {
-    expect(decide(text)).toEqual({
+  ])('autoriza ação explícita: "%s"', async (text) => {
+    await expect(decide(text)).resolves.toEqual({
       decision: 'execute',
       reason: 'explicit_action',
     });
   });
 
-  it('autoriza quando a transcrição original tem ação explícita', () => {
-    expect(
-      service.decide(
-        'vamos para apocalipse 12 13',
-        'vamos apocalipse 12 13',
-        reference,
-        'conservative',
-      ),
-    ).toEqual({
+  it('autoriza fala direcionada à igreja', async () => {
+    await expect(
+      decide('igreja vamos para apocalipse 12 13'),
+    ).resolves.toEqual({
       decision: 'execute',
       reason: 'explicit_action',
     });
@@ -60,42 +57,57 @@ describe('CommandIntentGuardService', () => {
     'segundo apocalipse 12 13',
     'lá em apocalipse 12 13 vemos',
     'em apocalipse 12 13 temos a mesma informação',
-  ])('bloqueia contexto casual: "%s"', (text) => {
-    expect(decide(text, 'fast')).toEqual({
+  ])('bloqueia contexto casual: "%s"', async (text) => {
+    await expect(decide(text, 'fast')).resolves.toEqual({
       decision: 'ignore',
       reason: 'casual_reference',
     });
   });
 
-  it('diferencia os modos para referência direta', () => {
-    expect(decide('apocalipse 12 13', 'conservative')).toEqual({
+  it('diferencia os modos para referência direta', async () => {
+    await expect(
+      decide('apocalipse 12 13', 'conservative'),
+    ).resolves.toEqual({
       decision: 'ignore',
       reason: 'unknown_or_unsafe',
     });
-    expect(decide('apocalipse 12 13', 'fast')).toEqual({
+    await expect(decide('apocalipse 12 13', 'fast')).resolves.toEqual({
       decision: 'execute',
       reason: 'explicit_action',
     });
   });
 
-  it('só autoriza comando relativo como frase direta', () => {
+  it('só autoriza comando relativo como frase direta', async () => {
     const relative: StructuredCommand = {
       type: CommandType.PREVIOUS_VERSE,
     };
 
-    expect(decide('versículo anterior', 'conservative', relative)).toEqual({
+    await expect(
+      decide('versículo anterior', 'conservative', relative),
+    ).resolves.toEqual({
       decision: 'execute',
       reason: 'explicit_action',
     });
-    expect(
+    await expect(
       decide(
         'como vimos no versículo anterior',
         'conservative',
         relative,
       ),
-    ).toEqual({
+    ).resolves.toEqual({
       decision: 'ignore',
       reason: 'relative_reference_context',
+    });
+  });
+
+  it('mantém frase comum com próximo como insegura quando não há comando', async () => {
+    await expect(
+      decide('não podemos fazer isso com o próximo', 'conservative', {
+        type: CommandType.UNKNOWN,
+      }),
+    ).resolves.toEqual({
+      decision: 'ignore',
+      reason: 'unknown_or_unsafe',
     });
   });
 });
