@@ -184,6 +184,7 @@ Exemplo de atualização das configurações:
 curl --request PUT http://localhost:3000/api/settings \
   --header "Content-Type: application/json" \
   --data '{
+    "holyricsConnectionMode": "local",
     "holyricsHost": "192.168.1.50",
     "holyricsPort": 8091,
     "holyricsApiToken": "token-criado-no-holyrics",
@@ -195,10 +196,15 @@ curl --request PUT http://localhost:3000/api/settings \
   }'
 ```
 
-O token é aceito apenas para gravação e nunca é devolvido por
+O modo local usa host, porta e token. O modo web usa
+`holyricsConnectionMode: "web"`, `holyricsApiKey` e `holyricsApiToken`, sem
+host/porta local.
+
+Token e API key são aceitos apenas para gravação e nunca são devolvidos por
 `GET /api/settings`. Se o campo for omitido, o valor salvo é preservado; envie
 `null` para removê-lo. Salvar não testa automaticamente o Holyrics nem inicia
-a captura. A resposta inclui
+a captura. A resposta inclui `holyricsApiTokenConfigured`,
+`holyricsApiKeyConfigured` e
 `voskModelPathStatus`, que verifica apenas se o caminho existe e é um
 diretório.
 

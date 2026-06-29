@@ -22,6 +22,17 @@ inalterados.
 
 ## Configuração no Holyrics
 
+Na tela `/settings`, escolha primeiro o tipo de conexão:
+
+- **Local**: usa o API Server no computador/rede da igreja. Requer host/IP,
+  porta e token, mas não usa `api_key`;
+- **Web**: usa a ponte oficial `https://api.holyrics.com.br/request/<AÇÃO>`.
+  Requer `api_key` e token e depende de internet.
+
+O modo local é o padrão por manter o projeto offline-first.
+
+### Modo local
+
 No computador que executa o Holyrics:
 
 1. acesse `Arquivo > Configurações > API Server`;
@@ -30,14 +41,32 @@ No computador que executa o Holyrics:
 4. abra `Gerenciar permissões`;
 5. crie um token;
 6. conceda:
-   - `GetTokenInfo`;
-   - `CheckPermissions`;
    - `GetVersion`;
    - `GetAPIServerInfo`.
    - `ShowVerse`.
 
-Depois, em `/settings`, informe host/IP, porta e token, salve e clique em
-“Validar API Holyrics”.
+Depois, em `/settings`, informe host/IP, porta e token e clique em “Validar
+API Holyrics”. O botão salva os valores atuais do formulário antes de testar a
+conexão.
+
+Em 29 de junho de 2026, um teste local em Fedora KDE com o API Server local
+ativado na porta `8091` respondeu `invalid token` para ações oficiais sem
+token. Isso confirma que o servidor estava acessível, mas que as ações
+continuavam exigindo token local; o que não é necessário no modo local é a
+`api_key` da ponte web.
+
+### Modo web
+
+Para a ponte web oficial, configure no Holyrics os dados exigidos pela
+integração pela internet e informe em `/settings`:
+
+1. tipo de conexão `Web`;
+2. API key;
+3. token.
+
+Esse modo não usa host nem porta local. Ele é mantido como opção, mas não é o
+padrão porque depende de internet e pode não estar disponível no plano
+gratuito.
 
 A Phase 5.5 exige Holyrics `2.26.0` ou superior porque
 `GetAPIServerInfo` foi disponibilizado nessa versão.
@@ -46,8 +75,19 @@ A Phase 5.5 exige Holyrics `2.26.0` ou superior porque
 
 Foi adotado o método oficial mais simples:
 
+Modo local:
+
 ```text
 POST http://<host>:<porta>/api/<ação>?token=<token>
+Content-Type: application/json
+```
+
+Modo web:
+
+```text
+POST https://api.holyrics.com.br/request/<ação>
+api_key: <api_key>
+token: <token>
 Content-Type: application/json
 ```
 
@@ -58,17 +98,19 @@ O método alternativo oficial baseado em `Auth`, nonce, `sid`, `rid` e
 `dtoken` SHA-256 não foi implementado nesta fase. Ele reduz a exposição do
 token na rede local sem TLS e é recomendado para uma evolução posterior.
 
-## Persistência e proteção do token
+## Persistência e proteção de credenciais
 
-O token é armazenado no SQLite local junto das demais configurações.
+O token e a API key web são armazenados no SQLite local junto das demais
+configurações.
 
 Regras aplicadas:
 
-- o endpoint `GET /api/settings` nunca retorna o token;
-- a resposta informa apenas `holyricsApiTokenConfigured`;
-- deixar o campo vazio preserva o token existente;
-- marcar “Remover o token salvo” grava `null`;
-- o token não aparece em logs nem nas respostas do `HolyricsModule`;
+- o endpoint `GET /api/settings` nunca retorna token nem API key;
+- a resposta informa apenas `holyricsApiTokenConfigured` e
+  `holyricsApiKeyConfigured`;
+- deixar o campo vazio preserva o segredo existente;
+- marcar as opções de remoção grava `null`;
+- token e API key não aparecem em logs nem nas respostas do `HolyricsModule`;
 - toda chamada externa continua encapsulada no `HolyricsModule`.
 
 O banco não é criptografado. O arquivo `data/settings.sqlite` deve permanecer
@@ -131,7 +173,7 @@ Executa:
 
 1. `GetTokenInfo`;
 2. validação da versão mínima;
-3. `CheckPermissions`;
+3. `CheckPermissions` para `GetVersion`, `GetAPIServerInfo` e `ShowVerse`;
 4. `GetVersion`;
 5. `GetAPIServerInfo`.
 
@@ -167,12 +209,16 @@ Content-Type: application/json
 }
 ```
 
-Usa `CheckPermissions`. Essa consulta apenas verifica permissões; não executa
-as ações informadas.
+Usa `CheckPermissions`. No API Server local do Holyrics 2.28.1, a ação
+oficial exige o campo `actions`, mas aceita uma ação por requisição
+(`{"actions":"ShowVerse"}`). Por isso, o projeto recebe uma lista no endpoint
+local e executa uma chamada oficial para cada item. Essa consulta apenas
+verifica permissões; não executa as ações informadas.
 
 ## Mapeamento de erros
 
-- `400`: host, porta ou token ausente; entrada inválida;
+- `400`: host, porta, API key ou token ausente conforme o modo; entrada
+  inválida;
 - `401`: token inválido;
 - `403`: permissão insuficiente;
 - `409`: versão do Holyrics incompatível;

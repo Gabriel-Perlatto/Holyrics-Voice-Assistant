@@ -24,6 +24,8 @@ describe('SettingsRepository', () => {
       expect.objectContaining({
         holyricsHost: '',
         holyricsPort: null,
+        holyricsConnectionMode: 'local',
+        holyricsApiKey: null,
         holyricsApiToken: null,
         language: 'pt-BR',
         microphone: null,
@@ -40,8 +42,10 @@ describe('SettingsRepository', () => {
     const firstRepository = new SettingsRepository(databasePath);
 
     firstRepository.save({
+      holyricsConnectionMode: 'web',
       holyricsHost: '192.168.1.30',
       holyricsPort: 8091,
+      holyricsApiKey: 'web-api-key',
       holyricsApiToken: 'secret-token',
       language: 'pt-BR',
       microphone: 'Microfone principal',
@@ -55,8 +59,10 @@ describe('SettingsRepository', () => {
 
     expect(secondRepository.find()).toEqual(
       expect.objectContaining({
+        holyricsConnectionMode: 'web',
         holyricsHost: '192.168.1.30',
         holyricsPort: 8091,
+        holyricsApiKey: 'web-api-key',
         holyricsApiToken: 'secret-token',
         language: 'pt-BR',
         microphone: 'Microfone principal',
@@ -109,6 +115,8 @@ describe('SettingsRepository', () => {
       expect.objectContaining({
         holyricsHost: '192.168.1.40',
         holyricsPort: 8091,
+        holyricsConnectionMode: 'local',
+        holyricsApiKey: null,
         holyricsApiToken: null,
         speechAutoStart: false,
         voiceCommandMode: 'conservative',

@@ -11,8 +11,10 @@ import type { Settings } from '../interfaces/settings.interface';
 import { SETTINGS_DATABASE_PATH } from '../providers/settings-database-path.provider';
 
 interface SettingsRow {
+  holyrics_connection_mode: string;
   holyrics_host: string;
   holyrics_port: number | null;
+  holyrics_api_key: string | null;
   holyrics_api_token: string | null;
   language: string;
   microphone: string | null;
@@ -45,8 +47,10 @@ export class SettingsRepository implements OnModuleDestroy {
       .prepare(
         `
           SELECT
+            holyrics_connection_mode,
             holyrics_host,
             holyrics_port,
+            holyrics_api_key,
             holyrics_api_token,
             language,
             microphone,
@@ -71,8 +75,10 @@ export class SettingsRepository implements OnModuleDestroy {
         `
           UPDATE settings
           SET
+            holyrics_connection_mode = @holyricsConnectionMode,
             holyrics_host = @holyricsHost,
             holyrics_port = @holyricsPort,
+            holyrics_api_key = @holyricsApiKey,
             holyrics_api_token = @holyricsApiToken,
             language = @language,
             microphone = @microphone,
@@ -100,8 +106,10 @@ export class SettingsRepository implements OnModuleDestroy {
     this.database.exec(`
       CREATE TABLE IF NOT EXISTS settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
+        holyrics_connection_mode TEXT NOT NULL DEFAULT 'local',
         holyrics_host TEXT NOT NULL,
         holyrics_port INTEGER,
+        holyrics_api_key TEXT,
         holyrics_api_token TEXT,
         language TEXT NOT NULL,
         microphone TEXT,
@@ -112,6 +120,8 @@ export class SettingsRepository implements OnModuleDestroy {
       );
     `);
 
+    this.migrateConnectionModeColumn();
+    this.migrateApiKeyColumn();
     this.migrateApiTokenColumn();
     this.migrateSpeechAutoStartColumn();
     this.migrateVoiceCommandModeColumn();
@@ -121,8 +131,10 @@ export class SettingsRepository implements OnModuleDestroy {
         `
           INSERT OR IGNORE INTO settings (
             id,
+            holyrics_connection_mode,
             holyrics_host,
             holyrics_port,
+            holyrics_api_key,
             holyrics_api_token,
             language,
             microphone,
@@ -130,7 +142,7 @@ export class SettingsRepository implements OnModuleDestroy {
             speech_auto_start,
             voice_command_mode,
             updated_at
-          ) VALUES (1, '', NULL, NULL, 'pt-BR', NULL, NULL, 0, 'conservative', @updatedAt)
+          ) VALUES (1, 'local', '', NULL, NULL, NULL, 'pt-BR', NULL, NULL, 0, 'conservative', @updatedAt)
         `,
       )
       .run({ updatedAt: new Date().toISOString() });
@@ -138,8 +150,11 @@ export class SettingsRepository implements OnModuleDestroy {
 
   private mapRow(row: SettingsRow): Settings {
     return {
+      holyricsConnectionMode:
+        row.holyrics_connection_mode === 'web' ? 'web' : 'local',
       holyricsHost: row.holyrics_host,
       holyricsPort: row.holyrics_port,
+      holyricsApiKey: row.holyrics_api_key,
       holyricsApiToken: row.holyrics_api_token,
       language: row.language,
       microphone: row.microphone,
@@ -149,6 +164,30 @@ export class SettingsRepository implements OnModuleDestroy {
         row.voice_command_mode === 'fast' ? 'fast' : 'conservative',
       updatedAt: row.updated_at,
     };
+  }
+
+  private migrateConnectionModeColumn(): void {
+    const columns = this.database
+      .prepare('PRAGMA table_info(settings)')
+      .all() as Array<{ name: string }>;
+
+    if (!columns.some(({ name }) => name === 'holyrics_connection_mode')) {
+      this.database.exec(
+        "ALTER TABLE settings ADD COLUMN holyrics_connection_mode TEXT NOT NULL DEFAULT 'local'",
+      );
+    }
+  }
+
+  private migrateApiKeyColumn(): void {
+    const columns = this.database
+      .prepare('PRAGMA table_info(settings)')
+      .all() as Array<{ name: string }>;
+
+    if (!columns.some(({ name }) => name === 'holyrics_api_key')) {
+      this.database.exec(
+        'ALTER TABLE settings ADD COLUMN holyrics_api_key TEXT',
+      );
+    }
   }
 
   private migrateApiTokenColumn(): void {

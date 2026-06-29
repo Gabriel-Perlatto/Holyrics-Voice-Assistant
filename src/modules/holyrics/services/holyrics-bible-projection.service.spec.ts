@@ -6,13 +6,16 @@ import { HolyricsBibleProjectionService } from './holyrics-bible-projection.serv
 
 describe('HolyricsBibleProjectionService', () => {
   const settings = {
+    holyricsConnectionMode: 'local' as const,
     holyricsHost: '192.168.1.20',
     holyricsPort: 8091,
+    holyricsApiKey: null,
     holyricsApiToken: 'secret-token',
     language: 'pt-BR',
     microphone: null,
     voskModelPath: null,
     speechAutoStart: false,
+    voiceCommandMode: 'conservative' as const,
     updatedAt: '2026-06-20T00:00:00.000Z',
   };
   const input = { reference: 'João 3:16', version: 'NVI' };
@@ -63,6 +66,7 @@ describe('HolyricsBibleProjectionService', () => {
     );
     expect(provider.request).toHaveBeenCalledWith(
       {
+        mode: 'local',
         host: '192.168.1.20',
         port: 8091,
         token: 'secret-token',
@@ -76,10 +80,39 @@ describe('HolyricsBibleProjectionService', () => {
     expect(realtime.emitSystemError).not.toHaveBeenCalled();
   });
 
+  it('projeta pela API web quando o modo web está configurado', async () => {
+    const { provider, service } = createService({
+      holyricsConnectionMode: 'web',
+      holyricsHost: '',
+      holyricsPort: null,
+      holyricsApiKey: 'web-api-key',
+    });
+
+    await expect(service.project(input)).resolves.toEqual(
+      expect.objectContaining({
+        delivery: 'holyrics',
+        deliveredToHolyrics: true,
+      }),
+    );
+    expect(provider.request).toHaveBeenCalledWith(
+      {
+        mode: 'web',
+        apiKey: 'web-api-key',
+        token: 'secret-token',
+      },
+      'ShowVerse',
+      {
+        references: 'João 3:16',
+        version: 'NVI',
+      },
+    );
+  });
+
   it('mantém fallback local quando Holyrics não está configurado', async () => {
     const { provider, realtime, service } = createService({
       holyricsHost: '',
       holyricsPort: null,
+      holyricsApiKey: null,
       holyricsApiToken: null,
     });
 
@@ -105,13 +138,37 @@ describe('HolyricsBibleProjectionService', () => {
       expect.objectContaining({
         delivery: 'failed',
         deliveredToHolyrics: false,
-        error: 'O token da API Holyrics não está configurado.',
+        error: 'O token da API local do Holyrics não está configurado.',
       }),
     );
     expect(provider.request).not.toHaveBeenCalled();
     expect(realtime.emitSystemError).toHaveBeenCalledWith({
       source: 'holyrics-bible-projection',
-      message: 'O token da API Holyrics não está configurado.',
+      message: 'O token da API local do Holyrics não está configurado.',
+    });
+  });
+
+  it('trata credenciais web ausentes como falha segura', async () => {
+    const { provider, realtime, service } = createService({
+      holyricsConnectionMode: 'web',
+      holyricsApiKey: null,
+    });
+
+    const result = await service.project(input);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        delivery: 'failed',
+        deliveredToHolyrics: false,
+        error:
+          'A API key e o token do Holyrics web não estão configurados.',
+      }),
+    );
+    expect(provider.request).not.toHaveBeenCalled();
+    expect(realtime.emitSystemError).toHaveBeenCalledWith({
+      source: 'holyrics-bible-projection',
+      message:
+        'A API key e o token do Holyrics web não estão configurados.',
     });
   });
 

@@ -277,6 +277,15 @@
     const tokenState = document.querySelector(
       '[data-holyrics-token-state]',
     );
+    const apiKeyState = document.querySelector(
+      '[data-holyrics-api-key-state]',
+    );
+    const localFields = [
+      ...document.querySelectorAll('[data-holyrics-local-field]'),
+    ];
+    const webFields = [
+      ...document.querySelectorAll('[data-holyrics-web-field]'),
+    ];
     const connectedState = document.querySelector(
       '[data-holyrics-connected]',
     );
@@ -361,10 +370,34 @@
       );
     };
 
+    const getConnectionMode = () =>
+      form.elements.holyricsConnectionMode.value === 'web'
+        ? 'web'
+        : 'local';
+
+    const updateConnectionModeFields = () => {
+      const isWeb = getConnectionMode() === 'web';
+
+      localFields.forEach((field) => {
+        field.hidden = isWeb;
+      });
+      webFields.forEach((field) => {
+        field.hidden = !isWeb;
+      });
+
+      connectionResult.textContent = isWeb
+        ? 'Salve API key e token antes de validar a conexão web.'
+        : 'Salve host, porta e token antes de validar a conexão local.';
+    };
+
     const fillForm = (settings) => {
+      form.elements.holyricsConnectionMode.value =
+        settings.holyricsConnectionMode ?? 'local';
       form.elements.holyricsHost.value = settings.holyricsHost ?? '';
       form.elements.holyricsPort.value = settings.holyricsPort ?? '';
+      form.elements.holyricsApiKey.value = '';
       form.elements.holyricsApiToken.value = '';
+      form.elements.removeHolyricsApiKey.checked = false;
       form.elements.removeHolyricsApiToken.checked = false;
       form.elements.language.value = settings.language ?? 'pt-BR';
       form.elements.voiceCommandMode.value =
@@ -389,6 +422,10 @@
       tokenState.textContent = settings.holyricsApiTokenConfigured
         ? 'Um token está salvo. Deixe o campo vazio para mantê-lo.'
         : 'Nenhum token está salvo.';
+      apiKeyState.textContent = settings.holyricsApiKeyConfigured
+        ? 'Uma API key está salva. Deixe o campo vazio para mantê-la.'
+        : 'Nenhuma API key está salva.';
+      updateConnectionModeFields();
       setModelPathStatus(settings.voskModelPathStatus);
     };
 
@@ -467,6 +504,11 @@
       field.addEventListener('input', resetConnectionResult);
     });
 
+    form.elements.holyricsConnectionMode.addEventListener('change', () => {
+      resetConnectionResult();
+      updateConnectionModeFields();
+    });
+
     modelPathInput.addEventListener('input', () => {
       modelPathStatus.textContent =
         'Salve as configurações para verificar este caminho.';
@@ -476,15 +518,10 @@
       );
     });
 
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      feedbackElement.classList.remove('form-feedback--error');
-      feedbackElement.textContent = 'Salvando configurações...';
-      setState('Salvando');
-      setBusy(true);
-
+    const buildSettingsPayload = () => {
       const portValue = form.elements.holyricsPort.value.trim();
       const payload = {
+        holyricsConnectionMode: getConnectionMode(),
         holyricsHost: form.elements.holyricsHost.value,
         holyricsPort: portValue ? Number(portValue) : null,
         language: form.elements.language.value,
@@ -493,7 +530,14 @@
         voskModelPath: form.elements.voskModelPath.value,
         speechAutoStart: form.elements.speechAutoStart.checked,
       };
+      const apiKeyValue = form.elements.holyricsApiKey.value.trim();
       const tokenValue = form.elements.holyricsApiToken.value.trim();
+
+      if (apiKeyValue) {
+        payload.holyricsApiKey = apiKeyValue;
+      } else if (form.elements.removeHolyricsApiKey.checked) {
+        payload.holyricsApiKey = null;
+      }
 
       if (tokenValue) {
         payload.holyricsApiToken = tokenValue;
@@ -501,26 +545,43 @@
         payload.holyricsApiToken = null;
       }
 
+      return payload;
+    };
+
+    const saveSettings = async () => {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(buildSettingsPayload()),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          await getErrorMessage(
+            response,
+            'Não foi possível salvar as configurações.',
+          ),
+        );
+      }
+
+      const settings = await response.json();
+      fillForm(settings);
+
+      return settings;
+    };
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      feedbackElement.classList.remove('form-feedback--error');
+      feedbackElement.textContent = 'Salvando configurações...';
+      setState('Salvando');
+      setBusy(true);
+
       try {
-        const response = await fetch('/api/settings', {
-          method: 'PUT',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          throw new Error(
-            await getErrorMessage(
-              response,
-              'Não foi possível salvar as configurações.',
-            ),
-          );
-        }
-
-        fillForm(await response.json());
+        await saveSettings();
         setState('Salvo', 'status-badge--online');
         feedbackElement.textContent =
           'Configurações salvas neste computador.';
@@ -546,13 +607,21 @@
     testButton.addEventListener('click', async () => {
       setBusy(true);
       connectionResult.textContent =
-        'Validando conexão, token, versão e permissões...';
+        getConnectionMode() === 'web'
+          ? 'Salvando e validando conexão web, token, versão e permissões...'
+          : 'Salvando e validando conexão local, token, versão e permissões...';
       connectionResult.classList.remove(
         'connection-result--success',
         'connection-result--error',
       );
+      feedbackElement.classList.remove('form-feedback--error');
 
       try {
+        await saveSettings();
+        setState('Salvo', 'status-badge--online');
+        feedbackElement.textContent =
+          'Configurações salvas antes da validação.';
+
         const response = await fetch('/api/holyrics/test-connection', {
           method: 'POST',
           headers: { Accept: 'application/json' },
@@ -986,6 +1055,9 @@
           const tokenState = document.querySelector(
             '[data-holyrics-token-state]',
           );
+          const apiKeyState = document.querySelector(
+            '[data-holyrics-api-key-state]',
+          );
           const feedback = document.querySelector(
             '[data-settings-feedback]',
           );
@@ -995,6 +1067,13 @@
               event.payload.holyricsApiTokenConfigured
                 ? 'Um token está salvo. Deixe o campo vazio para mantê-lo.'
                 : 'Nenhum token está salvo.';
+          }
+
+          if (apiKeyState) {
+            apiKeyState.textContent =
+              event.payload.holyricsApiKeyConfigured
+                ? 'Uma API key está salva. Deixe o campo vazio para mantê-la.'
+                : 'Nenhuma API key está salva.';
           }
 
           if (feedback) {

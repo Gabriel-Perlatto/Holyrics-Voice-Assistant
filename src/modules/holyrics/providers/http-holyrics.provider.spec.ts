@@ -4,6 +4,7 @@ import { HttpHolyricsProvider } from './http-holyrics.provider';
 
 describe('HttpHolyricsProvider', () => {
   const target = {
+    mode: 'local' as const,
     host: '192.168.1.20',
     port: 8091,
     token: 'secret-token',
@@ -46,6 +47,54 @@ describe('HttpHolyricsProvider', () => {
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
+        },
+      }),
+    );
+  });
+
+  it('executa uma ação pela API web oficial com headers', async () => {
+    const httpFetch: jest.MockedFunction<HttpFetch> = jest.fn(
+      async (_input, _init) =>
+        Response.json({
+          status: 'ok',
+          data: {
+            version: '2.28.1',
+          },
+        }),
+    );
+    const provider = new HttpHolyricsProvider(httpFetch);
+
+    await expect(
+      provider.request(
+        {
+          mode: 'web',
+          apiKey: 'web-api-key',
+          token: 'secret-token',
+        },
+        'GetVersion',
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        action: 'GetVersion',
+        endpoint: '/request/GetVersion',
+        statusCode: 200,
+      }),
+    );
+
+    const [requestUrl, requestInit] = httpFetch.mock.calls[0];
+
+    expect(String(requestUrl)).toBe(
+      'https://api.holyrics.com.br/request/GetVersion',
+    );
+    expect(requestInit).toEqual(
+      expect.objectContaining({
+        method: 'POST',
+        body: '{}',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          api_key: 'web-api-key',
+          token: 'secret-token',
         },
       }),
     );

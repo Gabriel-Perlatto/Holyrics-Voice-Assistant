@@ -47,13 +47,16 @@ describe('SpeechService', () => {
   const createSettingsService = (): jest.Mocked<SettingsService> =>
     ({
       getSettings: jest.fn(() => ({
+        holyricsConnectionMode: 'local',
         holyricsHost: '',
         holyricsPort: null,
+        holyricsApiKey: null,
         holyricsApiToken: null,
         language: 'pt-BR',
         microphone: 'default',
         voskModelPath: '/models/pt-BR/model',
         speechAutoStart: false,
+        voiceCommandMode: 'conservative',
         updatedAt: '2026-06-20T00:00:00.000Z',
       })),
     }) as unknown as jest.Mocked<SettingsService>;

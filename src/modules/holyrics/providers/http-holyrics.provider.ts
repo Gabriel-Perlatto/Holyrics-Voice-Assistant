@@ -9,6 +9,7 @@ import type { HolyricsProvider } from '../interfaces/holyrics-provider.interface
 import { HTTP_FETCH, type HttpFetch } from './http-client.provider';
 
 const REQUEST_TIMEOUT_MS = 3_000;
+const HOLYRICS_WEB_API_BASE_URL = 'https://api.holyrics.com.br';
 
 interface HolyricsApiEnvelope<T> {
   status?: unknown;
@@ -28,12 +29,10 @@ export class HttpHolyricsProvider implements HolyricsProvider {
     action: string,
     input: Record<string, unknown> = {},
   ): Promise<HolyricsApiRequestResult<T>> {
-    const endpoint = `/api/${action}`;
-    const url = new URL(
-      endpoint,
-      `http://${target.host}:${target.port}`,
+    const { endpoint, url, headers } = this.buildRequestTarget(
+      target,
+      action,
     );
-    url.searchParams.set('token', target.token);
     const requestBody = JSON.stringify(input);
     const controller = new AbortController();
     const timeout = setTimeout(
@@ -48,6 +47,7 @@ export class HttpHolyricsProvider implements HolyricsProvider {
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
+          ...headers,
         },
         body: requestBody,
         signal: controller.signal,
@@ -78,6 +78,39 @@ export class HttpHolyricsProvider implements HolyricsProvider {
     } finally {
       clearTimeout(timeout);
     }
+  }
+
+  private buildRequestTarget(
+    target: HolyricsApiTarget,
+    action: string,
+  ): {
+    endpoint: string;
+    url: URL;
+    headers: Record<string, string>;
+  } {
+    if (target.mode === 'web') {
+      const endpoint = `/request/${action}`;
+      const url = new URL(endpoint, HOLYRICS_WEB_API_BASE_URL);
+
+      return {
+        endpoint,
+        url,
+        headers: {
+          api_key: target.apiKey,
+          token: target.token,
+        },
+      };
+    }
+
+    const endpoint = `/api/${action}`;
+    const url = new URL(endpoint, `http://${target.host}:${target.port}`);
+    url.searchParams.set('token', target.token);
+
+    return {
+      endpoint,
+      url,
+      headers: {},
+    };
   }
 
   private async parseResponse<T>(

@@ -206,8 +206,10 @@ Motivos:
 - `unknown_or_unsafe`.
 
 No modo `conservative`, referências bíblicas exigem uma expressão de ação
-determinística, como `vamos para`, `abra em`, `mostre`, `coloque`, `projete`,
-`vamos ler` ou `agora em`.
+determinística, como `vamos para`, `vamos pra`, `vamos ao`, `abra em`,
+`mostre`, `coloque`, `projete`, `vamos ler` ou `agora em`. A variante
+`vamos parar` também é aceita quando o parser já identificou uma referência
+bíblica válida, pois é uma transcrição comum de `vamos para` em fala contínua.
 
 No modo `fast`, uma referência direta como `Apocalipse 12 13` também executa.
 Frases claramente casuais continuam bloqueadas nos dois modos.
@@ -216,6 +218,7 @@ Exemplos executados:
 
 ```text
 agora vamos para Apocalipse 12 13
+vamos parar Êxodo 1
 abra em João 3 16
 mostre Salmos 23 1
 próximo versículo

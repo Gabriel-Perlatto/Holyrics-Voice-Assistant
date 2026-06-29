@@ -34,8 +34,17 @@ export class SettingsService {
     }
 
     const currentSettings = this.settingsRepository.find();
+    const holyricsConnectionMode = this.validateHolyricsConnectionMode(
+      input.holyricsConnectionMode,
+      currentSettings.holyricsConnectionMode ?? 'local',
+    );
     const holyricsHost = this.validateHost(input.holyricsHost);
     const holyricsPort = this.validatePort(input.holyricsPort);
+    const holyricsApiKey = this.validateSecret(
+      input.holyricsApiKey,
+      currentSettings.holyricsApiKey,
+      'A API key do Holyrics',
+    );
     const holyricsApiToken = this.validateApiToken(
       input.holyricsApiToken,
       currentSettings.holyricsApiToken,
@@ -60,8 +69,10 @@ export class SettingsService {
     );
 
     const settings = this.settingsRepository.save({
+      holyricsConnectionMode,
       holyricsHost,
       holyricsPort,
+      holyricsApiKey,
       holyricsApiToken,
       language,
       microphone,
@@ -76,9 +87,17 @@ export class SettingsService {
       RealtimeEventType.SETTINGS_UPDATED,
       {
         holyricsConfigured: Boolean(
-          publicSettings.holyricsHost &&
-            publicSettings.holyricsPort,
+          publicSettings.holyricsConnectionMode === 'web'
+            ? publicSettings.holyricsApiKeyConfigured &&
+                publicSettings.holyricsApiTokenConfigured
+            : publicSettings.holyricsHost &&
+                publicSettings.holyricsPort &&
+                publicSettings.holyricsApiTokenConfigured,
         ),
+        holyricsConnectionMode:
+          publicSettings.holyricsConnectionMode,
+        holyricsApiKeyConfigured:
+          publicSettings.holyricsApiKeyConfigured,
         holyricsApiTokenConfigured:
           publicSettings.holyricsApiTokenConfigured,
         language: publicSettings.language,
@@ -91,6 +110,23 @@ export class SettingsService {
     );
 
     return publicSettings;
+  }
+
+  private validateHolyricsConnectionMode(
+    value: unknown,
+    currentValue: Settings['holyricsConnectionMode'],
+  ): Settings['holyricsConnectionMode'] {
+    if (value === undefined) {
+      return currentValue;
+    }
+
+    if (value !== 'local' && value !== 'web') {
+      throw new BadRequestException(
+        'O modo de conexão do Holyrics deve ser local ou web.',
+      );
+    }
+
+    return value;
   }
 
   private validateHost(value: unknown): string {
@@ -140,8 +176,20 @@ export class SettingsService {
     value: unknown,
     currentToken: string | null,
   ): string | null {
+    return this.validateSecret(
+      value,
+      currentToken,
+      'O token da API Holyrics',
+    );
+  }
+
+  private validateSecret(
+    value: unknown,
+    currentValue: string | null,
+    fieldName: string,
+  ): string | null {
     if (value === undefined) {
-      return currentToken;
+      return currentValue;
     }
 
     if (value === null) {
@@ -150,25 +198,25 @@ export class SettingsService {
 
     if (typeof value !== 'string') {
       throw new BadRequestException(
-        'O token da API Holyrics deve ser um texto.',
+        `${fieldName} deve ser um texto.`,
       );
     }
 
-    const token = value.trim();
+    const secret = value.trim();
 
-    if (!token) {
+    if (!secret) {
       throw new BadRequestException(
-        'Informe um token válido ou use a opção para remover o token salvo.',
+        `Informe um valor válido para ${fieldName.toLowerCase()} ou use a opção para remover o valor salvo.`,
       );
     }
 
-    if (token.length > 1_024) {
+    if (secret.length > 1_024) {
       throw new BadRequestException(
-        'O token da API Holyrics deve ter no máximo 1024 caracteres.',
+        `${fieldName} deve ter no máximo 1024 caracteres.`,
       );
     }
 
-    return token;
+    return secret;
   }
 
   private validateLanguage(value: unknown): string {
@@ -249,10 +297,15 @@ export class SettingsService {
   }
 
   private toPublicSettings(settings: Settings): PublicSettings {
-    const { holyricsApiToken, ...publicSettings } = settings;
+    const {
+      holyricsApiKey,
+      holyricsApiToken,
+      ...publicSettings
+    } = settings;
 
     return {
       ...publicSettings,
+      holyricsApiKeyConfigured: Boolean(holyricsApiKey),
       holyricsApiTokenConfigured: Boolean(holyricsApiToken),
       voskModelPathStatus: this.modelPathService.inspect(
         settings.voskModelPath,

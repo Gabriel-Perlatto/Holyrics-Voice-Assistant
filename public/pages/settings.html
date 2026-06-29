@@ -40,12 +40,20 @@
           <fieldset>
             <legend>Holyrics</legend>
             <p class="field-group__description">
-              Ative o API Server no Holyrics, crie um token em “Gerenciar
-              permissões” e salve os dados antes de testar.
+              Escolha a conexão local ou web. A conexão local usa host, porta
+              e token; a conexão web usa API key e token.
             </p>
 
+            <label class="field-group">
+              <span>Tipo de conexão</span>
+              <select name="holyricsConnectionMode" data-settings-field>
+                <option value="local">Local</option>
+                <option value="web">Web</option>
+              </select>
+            </label>
+
             <div class="form-grid form-grid--connection">
-              <label class="field-group">
+              <label class="field-group" data-holyrics-local-field>
                 <span>Host ou IP</span>
                 <input
                   type="text"
@@ -57,7 +65,7 @@
                 />
               </label>
 
-              <label class="field-group">
+              <label class="field-group" data-holyrics-local-field>
                 <span>Porta da API</span>
                 <input
                   type="number"
@@ -71,6 +79,30 @@
                 />
               </label>
             </div>
+
+            <label class="field-group" data-holyrics-web-field hidden>
+              <span>API key web</span>
+              <input
+                type="password"
+                name="holyricsApiKey"
+                maxlength="1024"
+                placeholder="Informe para salvar ou substituir"
+                autocomplete="new-password"
+                data-settings-field
+              />
+              <small data-holyrics-api-key-state>
+                Nenhuma API key salva.
+              </small>
+            </label>
+
+            <label class="checkbox-field" data-holyrics-web-field hidden>
+              <input
+                type="checkbox"
+                name="removeHolyricsApiKey"
+                data-settings-field
+              />
+              <span>Remover a API key salva ao salvar</span>
+            </label>
 
             <label class="field-group">
               <span>Token da API</span>
@@ -110,7 +142,7 @@
                 aria-live="polite"
                 data-holyrics-result
               >
-                Salve host, porta e token antes de validar.
+                Salve as credenciais antes de validar.
               </p>
             </div>
 

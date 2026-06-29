@@ -31,8 +31,6 @@ import {
 
 const MINIMUM_SUPPORTED_VERSION = '2.26.0';
 const PHASE_REQUIRED_PERMISSIONS = [
-  'GetTokenInfo',
-  'CheckPermissions',
   'GetVersion',
   'GetAPIServerInfo',
   'ShowVerse',
@@ -56,7 +54,7 @@ export class HolyricsService {
       target = this.getTarget();
       const tokenResult = await this.requestTokenInfo(target);
       this.ensureCompatibleVersion(tokenResult.data.version);
-      const permissionResult = await this.requestPermissionCheck(
+      const permissionResults = await this.requestPermissionChecks(
         target,
         PHASE_REQUIRED_PERMISSIONS,
       );
@@ -81,7 +79,10 @@ export class HolyricsService {
       );
       const latencyMs =
         tokenResult.latencyMs +
-        permissionResult.latencyMs +
+        permissionResults.reduce(
+          (total, result) => total + result.latencyMs,
+          0,
+        ) +
         Math.max(versionResult.latencyMs, apiServerResult.latencyMs);
 
       this.logger.log(`API Server do Holyrics autenticado (${result.version}).`);
@@ -162,7 +163,7 @@ export class HolyricsService {
     const actions = this.validateActions(input);
 
     try {
-      await this.requestPermissionCheck(target, actions);
+      await this.requestPermissionChecks(target, actions);
 
       return {
         authenticated: true,
@@ -178,20 +179,36 @@ export class HolyricsService {
 
   private getTarget(): HolyricsApiTarget {
     const settings = this.settingsService.getSettings();
+    const mode = settings.holyricsConnectionMode ?? 'local';
+
+    if (mode === 'web') {
+      if (!settings.holyricsApiKey || !settings.holyricsApiToken) {
+        throw new BadRequestException(
+          'Configure e salve a API key e o token do Holyrics antes de acessar a API web.',
+        );
+      }
+
+      return {
+        mode: 'web',
+        apiKey: settings.holyricsApiKey,
+        token: settings.holyricsApiToken,
+      };
+    }
 
     if (!settings.holyricsHost || settings.holyricsPort === null) {
       throw new BadRequestException(
-        'Configure e salve o host e a porta do Holyrics antes de acessar a API.',
+        'Configure e salve o host e a porta do Holyrics antes de acessar a API local.',
       );
     }
 
     if (!settings.holyricsApiToken) {
       throw new BadRequestException(
-        'Configure e salve o token da API Holyrics antes de testar a autenticação.',
+        'Configure e salve o token da API local do Holyrics antes de testar a autenticação.',
       );
     }
 
     return {
+      mode: 'local',
       host: settings.holyricsHost,
       port: settings.holyricsPort,
       token: settings.holyricsApiToken,
@@ -205,14 +222,18 @@ export class HolyricsService {
     );
   }
 
-  private requestPermissionCheck(
+  private requestPermissionChecks(
     target: HolyricsApiTarget,
     actions: string[],
   ) {
-    return this.holyricsProvider.request<unknown>(
-      target,
-      'CheckPermissions',
-      { actions: actions.join(',') },
+    return Promise.all(
+      actions.map((action) =>
+        this.holyricsProvider.request<unknown>(
+          target,
+          'CheckPermissions',
+          { actions: action },
+        ),
+      ),
     );
   }
 
@@ -352,7 +373,7 @@ export class HolyricsService {
     if (error instanceof HolyricsApiError) {
       this.logger.warn(
         target
-          ? `Falha na API do Holyrics em ${target.host}:${target.port}: ${error.code}.`
+          ? `Falha na API do Holyrics (${this.describeTarget(target)}): ${error.code}.`
           : `Falha na API do Holyrics: ${error.code}.`,
       );
 
@@ -377,7 +398,7 @@ export class HolyricsService {
 
     this.logger.error(
       target
-        ? `Erro inesperado na API do Holyrics em ${target.host}:${target.port}.`
+        ? `Erro inesperado na API do Holyrics (${this.describeTarget(target)}).`
         : 'Erro inesperado na API do Holyrics.',
     );
 
@@ -396,6 +417,12 @@ export class HolyricsService {
         checkedAt,
       },
     );
+  }
+
+  private describeTarget(target: HolyricsApiTarget): string {
+    return target.mode === 'web'
+      ? 'web'
+      : `local em ${target.host}:${target.port}`;
   }
 
   private emitDisconnected(error: unknown): void {

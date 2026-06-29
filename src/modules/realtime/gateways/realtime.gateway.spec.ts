@@ -12,6 +12,8 @@ describe('RealtimeGateway', () => {
       type: RealtimeEventType.SETTINGS_UPDATED,
       payload: {
         holyricsConfigured: true,
+        holyricsConnectionMode: 'local',
+        holyricsApiKeyConfigured: false,
         holyricsApiTokenConfigured: true,
         language: 'pt-BR',
         microphoneConfigured: false,

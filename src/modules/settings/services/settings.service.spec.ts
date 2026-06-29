@@ -7,8 +7,10 @@ import { SettingsService } from './settings.service';
 
 describe('SettingsService', () => {
   const currentSettings = {
+    holyricsConnectionMode: 'local' as const,
     holyricsHost: '',
     holyricsPort: null,
+    holyricsApiKey: null,
     holyricsApiToken: null,
     language: 'pt-BR',
     microphone: null,
@@ -53,6 +55,8 @@ describe('SettingsService', () => {
     expect(service.getPublicSettings()).toEqual({
       holyricsHost: '',
       holyricsPort: null,
+      holyricsConnectionMode: 'local',
+      holyricsApiKeyConfigured: false,
       holyricsApiTokenConfigured: false,
       language: 'pt-BR',
       microphone: null,
@@ -77,6 +81,7 @@ describe('SettingsService', () => {
     const result = service.updateSettings({
       holyricsHost: ' 192.168.1.20 ',
       holyricsPort: 8091,
+      holyricsApiKey: ' web-api-key ',
       holyricsApiToken: ' secret-token ',
       language: 'pt-BR',
       microphone: ' Microfone USB ',
@@ -86,8 +91,10 @@ describe('SettingsService', () => {
     });
 
     expect(repository.save).toHaveBeenCalledWith({
+      holyricsConnectionMode: 'local',
       holyricsHost: '192.168.1.20',
       holyricsPort: 8091,
+      holyricsApiKey: 'web-api-key',
       holyricsApiToken: 'secret-token',
       language: 'pt-BR',
       microphone: 'Microfone USB',
@@ -106,6 +113,8 @@ describe('SettingsService', () => {
       RealtimeEventType.SETTINGS_UPDATED,
       {
         holyricsConfigured: true,
+        holyricsConnectionMode: 'local',
+        holyricsApiKeyConfigured: true,
         holyricsApiTokenConfigured: true,
         language: 'pt-BR',
         microphoneConfigured: true,
@@ -117,6 +126,9 @@ describe('SettingsService', () => {
     );
     expect(realtimeService.emit.mock.calls[0][1]).not.toHaveProperty(
       'holyricsApiToken',
+    );
+    expect(realtimeService.emit.mock.calls[0][1]).not.toHaveProperty(
+      'holyricsApiKey',
     );
   });
 
@@ -138,6 +150,7 @@ describe('SettingsService', () => {
       expect.objectContaining({
         holyricsHost: '',
         holyricsPort: null,
+        holyricsApiKey: null,
         holyricsApiToken: null,
         microphone: null,
         voskModelPath: null,
@@ -194,6 +207,7 @@ describe('SettingsService', () => {
     repository.find.mockReturnValue({
       ...currentSettings,
       holyricsApiToken: 'saved-token',
+      holyricsApiKey: 'saved-key',
     });
     const { service } = createService(repository);
 
@@ -208,6 +222,30 @@ describe('SettingsService', () => {
     expect(repository.save).toHaveBeenCalledWith(
       expect.objectContaining({
         holyricsApiToken: 'saved-token',
+        holyricsApiKey: 'saved-key',
+      }),
+    );
+  });
+
+  it('preserva o modo de conexão atual quando o campo não é enviado', () => {
+    const repository = createRepository();
+    repository.find.mockReturnValue({
+      ...currentSettings,
+      holyricsConnectionMode: 'web',
+    });
+    const { service } = createService(repository);
+
+    service.updateSettings({
+      holyricsHost: '',
+      holyricsPort: null,
+      language: 'pt-BR',
+      microphone: null,
+      voskModelPath: null,
+    });
+
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        holyricsConnectionMode: 'web',
       }),
     );
   });
@@ -267,6 +305,40 @@ describe('SettingsService', () => {
         holyricsApiToken: null,
       }),
     );
+  });
+
+  it('remove a API key quando recebe null', () => {
+    const { repository, service } = createService();
+
+    service.updateSettings({
+      holyricsHost: '192.168.1.20',
+      holyricsPort: 8091,
+      holyricsApiKey: null,
+      language: 'pt-BR',
+      microphone: null,
+      voskModelPath: null,
+    });
+
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        holyricsApiKey: null,
+      }),
+    );
+  });
+
+  it('rejeita modo de conexão desconhecido', () => {
+    const { service } = createService();
+
+    expect(() =>
+      service.updateSettings({
+        holyricsConnectionMode: 'remote',
+        holyricsHost: '',
+        holyricsPort: null,
+        language: 'pt-BR',
+        microphone: null,
+        voskModelPath: null,
+      }),
+    ).toThrow(BadRequestException);
   });
 
   it('rejeita token vazio quando enviado explicitamente', () => {

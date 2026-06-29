@@ -18,13 +18,16 @@ import { HolyricsService } from './holyrics.service';
 
 describe('HolyricsService', () => {
   const settings = {
+    holyricsConnectionMode: 'local' as const,
     holyricsHost: '192.168.1.20',
     holyricsPort: 8091,
+    holyricsApiKey: null,
     holyricsApiToken: 'secret-token',
     language: 'pt-BR',
     microphone: null,
     voskModelPath: null,
     speechAutoStart: false,
+    voiceCommandMode: 'conservative' as const,
     updatedAt: '2026-06-20T00:00:00.000Z',
   };
 
@@ -137,6 +140,7 @@ describe('HolyricsService', () => {
 
     expect(provider.request).toHaveBeenCalledWith(
       {
+        mode: 'local',
         host: '192.168.1.20',
         port: 8091,
         token: 'secret-token',
@@ -146,10 +150,12 @@ describe('HolyricsService', () => {
     expect(provider.request).toHaveBeenCalledWith(
       expect.any(Object),
       'CheckPermissions',
-      {
-        actions:
-          'GetTokenInfo,CheckPermissions,GetVersion,GetAPIServerInfo,ShowVerse',
-      },
+      { actions: 'GetVersion' },
+    );
+    expect(provider.request).toHaveBeenCalledWith(
+      expect.any(Object),
+      'CheckPermissions',
+      { actions: 'ShowVerse' },
     );
     expect(provider.request).toHaveBeenCalledWith(
       expect.any(Object),
@@ -169,6 +175,34 @@ describe('HolyricsService', () => {
     );
     expect(realtimeService.emit.mock.calls[0][1]).not.toHaveProperty(
       'token',
+    );
+  });
+
+  it('testa a conexão web usando API key e token', async () => {
+    const provider = createProvider();
+    const service = createService(
+      createSettingsService({
+        holyricsConnectionMode: 'web',
+        holyricsHost: '',
+        holyricsPort: null,
+        holyricsApiKey: 'web-api-key',
+      }),
+      provider,
+    ).service;
+
+    await expect(service.testConnection()).resolves.toEqual(
+      expect.objectContaining({
+        connected: true,
+        authenticated: true,
+      }),
+    );
+    expect(provider.request).toHaveBeenCalledWith(
+      {
+        mode: 'web',
+        apiKey: 'web-api-key',
+        token: 'secret-token',
+      },
+      'GetTokenInfo',
     );
   });
 
@@ -209,11 +243,16 @@ describe('HolyricsService', () => {
     expect(provider.request).toHaveBeenCalledWith(
       expect.any(Object),
       'CheckPermissions',
-      { actions: 'ShowVerse,GetBibleVersionsV2' },
+      { actions: 'ShowVerse' },
+    );
+    expect(provider.request).toHaveBeenCalledWith(
+      expect.any(Object),
+      'CheckPermissions',
+      { actions: 'GetBibleVersionsV2' },
     );
   });
 
-  it('exige host, porta e token antes do teste', async () => {
+  it('exige host, porta e token no modo local antes do teste', async () => {
     const missingAddress = createService(
       createSettingsService({ holyricsHost: '', holyricsPort: null }),
     ).service;
@@ -222,6 +261,29 @@ describe('HolyricsService', () => {
     ).service;
 
     await expect(missingAddress.testConnection()).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(missingToken.testConnection()).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('exige API key e token no modo web antes do teste', async () => {
+    const missingApiKey = createService(
+      createSettingsService({
+        holyricsConnectionMode: 'web',
+        holyricsApiKey: null,
+      }),
+    ).service;
+    const missingToken = createService(
+      createSettingsService({
+        holyricsConnectionMode: 'web',
+        holyricsApiKey: 'web-api-key',
+        holyricsApiToken: null,
+      }),
+    ).service;
+
+    await expect(missingApiKey.testConnection()).rejects.toBeInstanceOf(
       BadRequestException,
     );
     await expect(missingToken.testConnection()).rejects.toBeInstanceOf(

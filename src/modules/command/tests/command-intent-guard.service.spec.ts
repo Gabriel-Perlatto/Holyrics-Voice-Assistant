@@ -23,6 +23,9 @@ describe('CommandIntentGuardService', () => {
 
   it.each([
     'vamos para apocalipse 12 13',
+    'vamos parar apocalipse 12 13',
+    'vamos pra apocalipse 12 13',
+    'vamos ao apocalipse 12 13',
     'abra em apocalipse 12 13',
     'mostre apocalipse 12 13',
     'coloque apocalipse 12 13',
@@ -31,6 +34,20 @@ describe('CommandIntentGuardService', () => {
     'agora em apocalipse 12 13',
   ])('autoriza ação explícita: "%s"', (text) => {
     expect(decide(text)).toEqual({
+      decision: 'execute',
+      reason: 'explicit_action',
+    });
+  });
+
+  it('autoriza quando a transcrição original tem ação explícita', () => {
+    expect(
+      service.decide(
+        'vamos para apocalipse 12 13',
+        'vamos apocalipse 12 13',
+        reference,
+        'conservative',
+      ),
+    ).toEqual({
       decision: 'execute',
       reason: 'explicit_action',
     });

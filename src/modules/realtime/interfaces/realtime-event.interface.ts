@@ -1,6 +1,9 @@
 import { RealtimeEventType } from '../enums/realtime-event-type.enum';
 import type { CommandIdentification } from '../../command/interfaces/command.interface';
-import type { VoiceCommandMode } from '../../settings/interfaces/settings.interface';
+import type {
+  HolyricsConnectionMode,
+  VoiceCommandMode,
+} from '../../settings/interfaces/settings.interface';
 
 export interface HolyricsConnectedPayload {
   connected: true;
@@ -28,6 +31,8 @@ export interface BibleChangedPayload {
 
 export interface SettingsUpdatedPayload {
   holyricsConfigured: boolean;
+  holyricsConnectionMode: HolyricsConnectionMode;
+  holyricsApiKeyConfigured: boolean;
   holyricsApiTokenConfigured: boolean;
   language: string;
   microphoneConfigured: boolean;

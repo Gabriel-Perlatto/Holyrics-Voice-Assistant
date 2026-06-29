@@ -45,6 +45,8 @@ Emitido pelo `SettingsService` após persistência bem-sucedida.
 ```json
 {
   "holyricsConfigured": true,
+  "holyricsConnectionMode": "local",
+  "holyricsApiKeyConfigured": false,
   "holyricsApiTokenConfigured": true,
   "language": "pt-BR",
   "microphoneConfigured": false,
@@ -54,8 +56,8 @@ Emitido pelo `SettingsService` após persistência bem-sucedida.
 }
 ```
 
-O token e os valores de host, porta, microfone e caminho do modelo não são
-transmitidos.
+Token, API key e os valores de host, porta, microfone e caminho do modelo não
+são transmitidos.
 
 ### BIBLE_CHANGED
 

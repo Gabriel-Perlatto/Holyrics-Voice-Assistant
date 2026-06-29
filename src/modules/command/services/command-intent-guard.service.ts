@@ -59,7 +59,10 @@ export class CommandIntentGuardService {
       };
     }
 
-    if (this.hasExplicitAction(normalized)) {
+    if (
+      this.hasExplicitAction(original) ||
+      this.hasExplicitAction(normalized)
+    ) {
       return {
         decision: 'execute',
         reason: 'explicit_action',
@@ -84,7 +87,7 @@ export class CommandIntentGuardService {
   }
 
   private hasExplicitAction(value: string): boolean {
-    return /^(?:agora\s+vamos\s+para|vamos\s+para|abra(?:\s+em)?|mostre|coloque|projete|vamos\s+ler|agora\s+em)\b/.test(
+    return /^(?:agora\s+vamos\s+para|vamos\s+para|vamos\s+parar|vamos\s+pra|vamos\s+(?:ao|a)|abra(?:\s+em)?|mostre|coloque|projete|vamos\s+ler|agora\s+em)\b/.test(
       value,
     );
   }

@@ -1,8 +1,19 @@
-export interface HolyricsApiTarget {
+export interface HolyricsLocalApiTarget {
+  mode: 'local';
   host: string;
   port: number;
   token: string;
 }
+
+export interface HolyricsWebApiTarget {
+  mode: 'web';
+  apiKey: string;
+  token: string;
+}
+
+export type HolyricsApiTarget =
+  | HolyricsLocalApiTarget
+  | HolyricsWebApiTarget;
 
 export interface HolyricsApiRequestResult<T> {
   action: string;

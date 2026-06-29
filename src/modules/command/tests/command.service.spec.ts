@@ -67,6 +67,31 @@ describe('CommandService', () => {
     });
   });
 
+  it('executa referência quando Vosk normaliza "vamos para" como "vamos parar"', async () => {
+    const { navigation, service } = createService();
+
+    const result = await service.identify('vamos parar êxodo um');
+
+    expect(result).toEqual({
+      command: {
+        type: CommandType.BIBLE_REFERENCE,
+        book: 'exodo',
+        chapter: 1,
+        verse: 1,
+      },
+      confidence: 1,
+      intentDecision: 'execute',
+      intentReason: 'explicit_action',
+    });
+    expect(service.getStatus().lastNormalizedTranscription).toBe(
+      'vamos parar êxodo 1',
+    );
+    expect(navigation.apply).toHaveBeenCalledWith({
+      ...result.command,
+      confidence: 1,
+    });
+  });
+
   it.each([
     'como vimos em apocalipse 12 13',
     'como está em apocalipse 12 13',
