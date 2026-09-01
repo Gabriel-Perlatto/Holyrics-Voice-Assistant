@@ -1,6 +1,6 @@
 # Interpretador de comandos
 
-## Escopo das Phases 8, 8.5, 9.6, 9.8, 9.9 e 9.10
+## Escopo das Phases 8, 8.5, 9.6, 9.8, 9.9, 9.10 e 9.11
 
 O `CommandModule` transforma texto em comandos estruturados de forma local,
 sem dependência de internet.
@@ -31,6 +31,8 @@ NumberNormalizerService
         ↓
 TranscriptionCorrectionService
         ↓
+BookNameCorrectionService
+        ↓
 CommandService
         ↓
 PtBrCommandParser
@@ -54,7 +56,8 @@ serviço devolve somente texto e não conhece intents, comandos estruturados,
 BibleModule ou Holyrics.
 
 Na Phase 9.8, o texto normalizado passa em seguida pelo
-`TranscriptionCorrectionService`, antes do parser.
+`TranscriptionCorrectionService`, antes do parser. Na Phase 9.11, o
+`BookNameCorrectionService` roda logo depois, também antes do parser.
 
 Na Phase 9.6, o parser também consegue extrair uma referência válida de uma
 frase completa. A extração apenas identifica o comando. Na Phase 9.8, o
@@ -84,6 +87,46 @@ Duas camadas, nesta ordem:
 
 O serviço não conhece intents, comandos estruturados ou o BibleModule; devolve
 apenas texto corrigido, como o `NumberNormalizerService`.
+
+## Correção de nomes de livros (Phase 9.11)
+
+O `BookNameCorrectionService` estende a mesma ideia da correção de
+transcrição para nomes de livros bíblicos (ex.: "apocaliste" → "apocalipse").
+O vocabulário vem exclusivamente de `book.id` — o identificador estável que o
+`PtBrCommandParser` já aceita como alias válido para todo livro — dividido
+em palavras e sem o prefixo numérico dos livros numerados. Nenhuma lista
+bíblica é duplicada.
+
+Esse serviço é deliberadamente mais conservador que o de palavras-chave, por
+dois motivos:
+
+1. **Livros parecidos**: uma correção errada entre livros (ex.: "Atos" e
+   "Amós") troca o texto que vai para a tela — um erro mais visível e mais
+   caro do que simplesmente não reconhecer o comando. Por isso a distância
+   aceita é menor (1 para palavras de até 5 letras, 2 para maiores) e uma
+   palavra igualmente próxima de dois livros nunca é corrigida.
+2. **Colisão com palavras comuns**: nomes curtos de livros ficam a poucas
+   edições de palavras comuns do português — em testes, "vamos" ficou a uma
+   edição de "Amós", e "perdão" de "Pedro". Corrigir "vamos" romperia a
+   própria frase de gatilho. Por isso a correção só é tentada quando a
+   palavra é **seguida por um número** — como uma referência bíblica real
+   quase sempre aparece ("apocaliste 12 13", "2 petro 1"). Uma palavra comum
+   no meio de uma frase qualquer nunca é seguida de um número, então nunca é
+   candidata.
+
+```text
+vamos para apocaliste 12 13   →  vamos para apocalipse 12 13
+vamos para 2 petro 1          →  vamos para 2 pedro 1
+o amor de Deus é grande       →  inalterado (não há número depois de "amor")
+```
+
+Limitação residual documentada: se uma palavra comum vier, por coincidência,
+imediatamente antes de um número falado por outro motivo, a correção ainda
+pode ocorrer. Essa é uma troca deliberada — o risco remanescente é bem menor
+do que tentar corrigir qualquer palavra em qualquer posição da frase.
+
+Uma referência de livro isolado, sem capítulo nem versículo, não é coberta
+por este serviço, já que não há número para confirmar a posição.
 
 ## Comandos suportados
 

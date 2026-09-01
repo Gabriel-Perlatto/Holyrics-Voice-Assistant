@@ -5,6 +5,7 @@ import type { SettingsService } from '../../settings/services/settings.service';
 import type { VoiceCommandMode } from '../../settings/interfaces/settings.interface';
 import { CommandType } from '../enums/command-type.enum';
 import { PtBrCommandParser } from '../parsers/pt-br-command.parser';
+import { BookNameCorrectionService } from '../services/book-name-correction.service';
 import { CommandContextService } from '../services/command-context.service';
 import { CommandIntentGuardService } from '../services/command-intent-guard.service';
 import { CommandIntentSignalsService } from '../services/command-intent-signals.service';
@@ -36,6 +37,7 @@ describe('CommandService', () => {
       parser,
       new NumberNormalizerService(),
       new TranscriptionCorrectionService(),
+      new BookNameCorrectionService(),
       new CommandContextService(),
       realtime,
       navigation,
@@ -64,6 +66,30 @@ describe('CommandService', () => {
     const { navigation, service } = createService();
 
     const result = await service.identify(input);
+
+    expect(result).toEqual({
+      command: {
+        type: CommandType.BIBLE_REFERENCE,
+        book: 'apocalipse',
+        chapter: 12,
+        verse: 13,
+      },
+      confidence: 1,
+      intentDecision: 'execute',
+      intentReason: 'explicit_action',
+    });
+    expect(navigation.apply).toHaveBeenCalledWith({
+      ...result.command,
+      confidence: 1,
+    });
+  });
+
+  it('executa referência quando Vosk transcreve "apocalipse" como "apocaliste"', async () => {
+    const { navigation, service } = createService();
+
+    const result = await service.identify(
+      'vamos para apocaliste 12 13',
+    );
 
     expect(result).toEqual({
       command: {

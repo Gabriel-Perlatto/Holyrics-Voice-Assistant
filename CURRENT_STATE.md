@@ -6,7 +6,7 @@ Holyrics Voice Assistant
 
 ## Status Geral
 
-Fase atual: 9.10 (Palavra de Ativação)
+Fase atual: 9.11 (Fuzzy Matching de Nomes de Livros)
 
 ## Fases concluídas
 
@@ -29,6 +29,7 @@ Fase atual: 9.10 (Palavra de Ativação)
 - Phase 9.8 — Sinais de Intenção Determinísticos e Correção de Transcrição
 - Phase 9.9 — Repetição como Confirmação
 - Phase 9.10 — Palavra de Ativação
+- Phase 9.11 — Fuzzy Matching de Nomes de Livros
 
 ## Módulos existentes
 
@@ -95,6 +96,8 @@ Fase atual: 9.10 (Palavra de Ativação)
 - Palavra de ativação configurável (`voiceActivationWord`, padrão `sistema`):
   quando dita, executa a referência com prioridade sobre citação casual e
   negação, mesmo sem verbo de ação
+- Correção de nomes de livros transcritos com pequenos desvios (ex.:
+  "apocaliste" → "apocalipse"), só quando a palavra é seguida por um número
 - Conexão com o Holyrics em dois modos: `local` (host/porta/token) e `web`
   (API key + token, via `https://api.holyrics.com.br/request/<ação>`)
 - Persistência e proteção da API key web, sem exposição em `GET /api/settings`
@@ -115,7 +118,10 @@ Fase atual: 9.10 (Palavra de Ativação)
   simultâneas nem detecção por áudio antes da transcrição (nível Vosk)
 - A confirmação por repetição não se aplica a comandos relativos
   (próximo/anterior), só a `BIBLE_REFERENCE`
-- Não há fuzzy matching de nomes de livros bíblicos
+- A correção de nomes de livros exige um número logo depois da palavra; não
+  cobre referência de livro isolado, sem capítulo nem versículo
+- Risco residual: uma palavra comum seguida de um número por coincidência
+  ainda pode ser corrigida para um nome de livro parecido
 - O modo web do Holyrics depende de internet e não é o padrão do projeto
 
 ## Modelo disponível

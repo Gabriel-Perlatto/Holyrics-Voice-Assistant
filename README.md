@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0 a 9.10** estão concluídas. Esta versão contém:
+As **Phases 0 a 9.11** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -71,7 +71,9 @@ As **Phases 0 a 9.10** estão concluídas. Esta versão contém:
 - repetição da mesma referência bíblica sem gatilho, em até 8 segundos após
   ser ignorada, conta como confirmação e executa;
 - palavra de ativação configurável (padrão `sistema`): quando dita, executa
-  a referência com prioridade sobre citação casual, mesmo sem verbo de ação.
+  a referência com prioridade sobre citação casual, mesmo sem verbo de ação;
+- correção de nomes de livros bíblicos transcritos com pequenos desvios
+  (ex.: "apocaliste" → "apocalipse"), quando seguidos de um número.
 
 Esta fase não inclui apresentação real da passagem no Holyrics, texto bíblico,
 louvor, envio de comandos ao Holyrics, controle de apresentações, IA
@@ -597,3 +599,22 @@ de ação da Phase 9.8, que também aparecem naturalmente em fala comum. A
 comparação ignora acentuação e maiúsculas/minúsculas e exige a palavra
 inteira (`sistema` não confunde com `sistemas`). Consulte
 [`docs/command-interpreter.md`](docs/command-interpreter.md).
+
+## Decisões técnicas da Phase 9.11
+
+O `BookNameCorrectionService` estende a correção de transcrição para nomes
+de livros bíblicos, usando exclusivamente `book.id` como vocabulário — sem
+duplicar a lista de livros. Ele é mais conservador que a correção de
+palavras-chave por dois motivos: livros parecidos (ex.: "Atos" e "Amós")
+tornam uma correção errada mais cara do que não reconhecer o comando, e
+nomes curtos de livros ficam a poucas edições de palavras comuns do
+português — em testes, "vamos" ficou a uma edição de "Amós" e "perdão" de
+"Pedro".
+
+Por isso a correção só é tentada quando a palavra é seguida por um número,
+como uma referência bíblica real quase sempre aparece. Isso evita corrigir
+palavras comuns no meio de uma frase qualquer, ao custo de não cobrir uma
+referência de livro isolado sem capítulo. O risco de uma palavra comum
+seguida de número por coincidência continua existindo, mas é bem mais
+restrito do que tentar corrigir qualquer palavra em qualquer posição.
+Consulte [`docs/command-interpreter.md`](docs/command-interpreter.md).

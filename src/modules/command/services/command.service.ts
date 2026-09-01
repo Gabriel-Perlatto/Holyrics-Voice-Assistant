@@ -10,6 +10,7 @@ import type {
   IdentifiedCommand,
 } from '../interfaces/command.interface';
 import { PtBrCommandParser } from '../parsers/pt-br-command.parser';
+import { BookNameCorrectionService } from './book-name-correction.service';
 import { CommandContextService } from './command-context.service';
 import { CommandIntentGuardService } from './command-intent-guard.service';
 import { NumberNormalizerService } from './number-normalizer.service';
@@ -25,6 +26,7 @@ export class CommandService {
     private readonly parser: PtBrCommandParser,
     private readonly numberNormalizer: NumberNormalizerService,
     private readonly transcriptionCorrection: TranscriptionCorrectionService,
+    private readonly bookNameCorrection: BookNameCorrectionService,
     private readonly contextService: CommandContextService,
     private readonly realtimeService: RealtimeService,
     private readonly navigationService: BibleNavigationService,
@@ -34,8 +36,11 @@ export class CommandService {
 
   async identify(input: unknown): Promise<CommandIdentification> {
     const numberNormalizedInput = this.numberNormalizer.normalize(input);
-    const normalizedInput = this.transcriptionCorrection.correct(
+    const keywordCorrectedInput = this.transcriptionCorrection.correct(
       numberNormalizedInput,
+    );
+    const normalizedInput = this.bookNameCorrection.correct(
+      keywordCorrectedInput,
     );
     const command = this.parser.parseTranscription(normalizedInput);
     const confidence =

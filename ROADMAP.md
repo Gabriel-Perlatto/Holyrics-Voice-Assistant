@@ -1016,6 +1016,50 @@ Fora de escopo:
 
 ---
 
+# Phase 9.11 - Fuzzy Matching de Nomes de Livros
+
+Objetivo:
+
+Corrigir pequenos desvios de transcrição em nomes de livros bíblicos (ex.:
+"apocaliste" em vez de "apocalipse"), estendendo a correção de transcrição da
+Phase 9.8 com as salvaguardas extras que o risco de confundir livros exige.
+
+Status: **Concluída em 1 de setembro de 2026.**
+
+Tarefas:
+
+- [x] criar `BookNameCorrectionService`, com vocabulário derivado
+  exclusivamente de `book.id` (sem duplicar lista bíblica)
+- [x] usar distância de edição menor que a de `TranscriptionCorrectionService`
+  (1 para até 5 letras, 2 para maiores)
+- [x] nunca corrigir quando duas palavras do vocabulário empatam em distância
+- [x] só tentar a correção quando a palavra é seguida por um número
+  (capítulo/versículo), para não corrigir palavras comuns do português no
+  meio de uma frase qualquer
+- [x] validar empiricamente contra uma lista de palavras comuns em pregação,
+  incluindo os verbos de ação já usados como gatilho
+- [x] inserir o serviço entre `TranscriptionCorrectionService` e o parser
+- [x] atualizar `docs/command-interpreter.md`
+
+Critérios de aceite:
+
+- [x] "apocaliste 12 13" resolve para Apocalipse 12:13
+- [x] "2 petro 1" resolve para 2 Pedro 1, sem alterar o número
+- [x] uma palavra ambígua entre dois livros não é corrigida
+- [x] "vamos" e "amor" não são corrigidos para "Amós" em frases comuns
+- [x] um nome de livro já correto, com ou sem acento, nunca é alterado
+- [x] palavras curtas (< 4 letras) não são candidatas
+- [x] testes passam
+- [x] build passa
+
+Fora de escopo:
+
+- correção de referências de livro isolado, sem capítulo nem versículo
+- IA generativa, LLM ou modelo treinado
+- Phase 10
+
+---
+
 # Phase 10 - System Hardening
 
 Objetivo:

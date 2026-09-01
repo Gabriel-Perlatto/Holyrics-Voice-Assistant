@@ -3,6 +3,7 @@ import { BibleModule } from '../bible/bible.module';
 import { SettingsModule } from '../settings/settings.module';
 import { CommandController } from './controllers/command.controller';
 import { PtBrCommandParser } from './parsers/pt-br-command.parser';
+import { BookNameCorrectionService } from './services/book-name-correction.service';
 import { CommandContextService } from './services/command-context.service';
 import { CommandIntentGuardService } from './services/command-intent-guard.service';
 import { CommandIntentSignalsService } from './services/command-intent-signals.service';
@@ -18,6 +19,7 @@ import { TranscriptionCorrectionService } from './services/transcription-correct
     PtBrCommandParser,
     NumberNormalizerService,
     TranscriptionCorrectionService,
+    BookNameCorrectionService,
     CommandContextService,
     CommandIntentSignalsService,
     CommandRepetitionService,
