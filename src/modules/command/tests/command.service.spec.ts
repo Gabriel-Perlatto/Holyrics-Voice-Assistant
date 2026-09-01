@@ -8,6 +8,7 @@ import { PtBrCommandParser } from '../parsers/pt-br-command.parser';
 import { CommandContextService } from '../services/command-context.service';
 import { CommandIntentGuardService } from '../services/command-intent-guard.service';
 import { CommandIntentSignalsService } from '../services/command-intent-signals.service';
+import { CommandRepetitionService } from '../services/command-repetition.service';
 import { CommandService } from '../services/command.service';
 import { NumberNormalizerService } from '../services/number-normalizer.service';
 import { TranscriptionCorrectionService } from '../services/transcription-correction.service';
@@ -39,6 +40,7 @@ describe('CommandService', () => {
       new CommandIntentGuardService(
         parser,
         new CommandIntentSignalsService(),
+        new CommandRepetitionService(),
       ),
       settings,
     );
@@ -198,6 +200,26 @@ describe('CommandService', () => {
       intentReason: 'unknown_or_unsafe',
     });
     expect(navigation.apply).not.toHaveBeenCalled();
+  });
+
+  it('executa referência repetida sem gatilho após ser ignorada', async () => {
+    const { navigation, service } = createService('conservative');
+
+    const first = await service.identify('Apocalipse 12 13');
+
+    expect(first).toMatchObject({
+      intentDecision: 'ignore',
+      intentReason: 'unknown_or_unsafe',
+    });
+    expect(navigation.apply).not.toHaveBeenCalled();
+
+    const second = await service.identify('Apocalipse 12 13');
+
+    expect(second).toMatchObject({
+      intentDecision: 'execute',
+      intentReason: 'repeated_reference',
+    });
+    expect(navigation.apply).toHaveBeenCalledTimes(1);
   });
 
   it('modo rápido executa referência direta', async () => {

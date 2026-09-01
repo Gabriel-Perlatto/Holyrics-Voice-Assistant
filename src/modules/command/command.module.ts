@@ -6,6 +6,7 @@ import { PtBrCommandParser } from './parsers/pt-br-command.parser';
 import { CommandContextService } from './services/command-context.service';
 import { CommandIntentGuardService } from './services/command-intent-guard.service';
 import { CommandIntentSignalsService } from './services/command-intent-signals.service';
+import { CommandRepetitionService } from './services/command-repetition.service';
 import { CommandService } from './services/command.service';
 import { NumberNormalizerService } from './services/number-normalizer.service';
 import { TranscriptionCorrectionService } from './services/transcription-correction.service';
@@ -19,6 +20,7 @@ import { TranscriptionCorrectionService } from './services/transcription-correct
     TranscriptionCorrectionService,
     CommandContextService,
     CommandIntentSignalsService,
+    CommandRepetitionService,
     CommandIntentGuardService,
     CommandService,
   ],

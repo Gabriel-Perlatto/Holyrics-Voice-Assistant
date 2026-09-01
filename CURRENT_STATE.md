@@ -6,7 +6,7 @@ Holyrics Voice Assistant
 
 ## Status Geral
 
-Fase atual: 9.8 (Sinais de Intenção Determinísticos e Correção de Transcrição)
+Fase atual: 9.9 (Repetição como Confirmação)
 
 ## Fases concluídas
 
@@ -27,6 +27,7 @@ Fase atual: 9.8 (Sinais de Intenção Determinísticos e Correção de Transcri�
 - Phase 9.6 — Command Intent Guard
 - Phase 9.7 — Command Intent NLP e conexão Holyrics Web
 - Phase 9.8 — Sinais de Intenção Determinísticos e Correção de Transcrição
+- Phase 9.9 — Repetição como Confirmação
 
 ## Módulos existentes
 
@@ -87,6 +88,9 @@ Fase atual: 9.8 (Sinais de Intenção Determinísticos e Correção de Transcri�
   como "capeta"
 - Reconhecimento de frases de ação como `vamos parar`, `acompanhe comigo em`,
   entre outras, via regras explícitas
+- Repetição da mesma referência bíblica (ou refinamento de capítulo para
+  versículo) em até 8 segundos após ser ignorada por falta de gatilho conta
+  como confirmação e executa
 - Conexão com o Holyrics em dois modos: `local` (host/porta/token) e `web`
   (API key + token, via `https://api.holyrics.com.br/request/<ação>`)
 - Persistência e proteção da API key web, sem exposição em `GET /api/settings`
@@ -103,8 +107,10 @@ Fase atual: 9.8 (Sinais de Intenção Determinísticos e Correção de Transcri�
   marcadores e verbos já previstos não são compreendidas como uma IA faria
 - A correção de transcrição cobre um vocabulário fechado pequeno; nomes de
   livros não são corrigidos automaticamente
-- Não há gatilho de ativação (wake word) nem repetição como confirmação
-  implícita quando um comando falha silenciosamente
+- Não há gatilho de ativação (wake word) dedicado
+- A confirmação por repetição não se aplica a comandos relativos
+  (próximo/anterior), só a `BIBLE_REFERENCE`
+- Não há fuzzy matching de nomes de livros bíblicos
 - O modo web do Holyrics depende de internet e não é o padrão do projeto
 
 ## Modelo disponível

@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0 a 9.8** estão concluídas. Esta versão contém:
+As **Phases 0 a 9.9** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -67,7 +67,9 @@ As **Phases 0 a 9.8** estão concluídas. Esta versão contém:
 - sinais de intenção determinísticos, sem modelo treinado, para decidir se
   uma referência bíblica falada deve navegar;
 - correção de transcrição para erros comuns do Vosk em palavras-chave do
-  domínio, como "capítulo" transcrito como "capeta".
+  domínio, como "capítulo" transcrito como "capeta";
+- repetição da mesma referência bíblica sem gatilho, em até 8 segundos após
+  ser ignorada, conta como confirmação e executa.
 
 Esta fase não inclui apresentação real da passagem no Holyrics, texto bíblico,
 louvor, envio de comandos ao Holyrics, controle de apresentações, IA
@@ -558,4 +560,21 @@ nomes de livros) em duas camadas: um mapa explícito de confusões já
 observadas (`capeta` → `capitulo`) e distância de edição como reforço para
 desvios menores. Os modos `conservative` e `fast` mantêm o comportamento já
 validado nas Phases 9.6 e 9.7. Consulte
+[`docs/command-interpreter.md`](docs/command-interpreter.md).
+
+## Decisões técnicas da Phase 9.9
+
+Testes reais também mostraram um segundo padrão comum: quando o sistema não
+reconhece a ação na primeira tentativa, o pregador tende a simplesmente
+repetir a referência ("Apocalipse 12 13... Apocalipse 12 13"), assumindo que
+já pediu a ação antes. O `CommandRepetitionService` guarda a última
+referência ignorada por falta de gatilho (`unknown_or_unsafe`) e, se a mesma
+referência — ou um refinamento dela, como capítulo seguido do versículo
+específico — for identificada de novo em até 8 segundos, a segunda vez
+executa com o motivo `repeated_reference`.
+
+A confirmação por repetição nunca se aplica a uma referência bloqueada por
+citação casual (`casual_reference`), é esquecida assim que qualquer comando
+executa, e não interfere quando uma citação casual é dita entre as duas
+tentativas — a referência-alvo continua lembrada. Consulte
 [`docs/command-interpreter.md`](docs/command-interpreter.md).

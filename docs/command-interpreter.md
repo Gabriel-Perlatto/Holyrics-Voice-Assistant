@@ -1,6 +1,6 @@
 # Interpretador de comandos
 
-## Escopo das Phases 8, 8.5, 9.6 e 9.8
+## Escopo das Phases 8, 8.5, 9.6, 9.8 e 9.9
 
 O `CommandModule` transforma texto em comandos estruturados de forma local,
 sem dependência de internet.
@@ -243,7 +243,8 @@ Motivos:
 - `explicit_action`;
 - `casual_reference`;
 - `relative_reference_context`;
-- `unknown_or_unsafe`.
+- `unknown_or_unsafe`;
+- `repeated_reference` (Phase 9.9, ver [Repetição como confirmação](#repetição-como-confirmação-phase-99)).
 
 O guard usa o `CommandIntentSignalsService`, que aplica regras determinísticas
 e explícitas em vez de um modelo treinado:
@@ -301,6 +302,31 @@ o próximo irmão pode vir
 
 `voiceCommandMode` é persistido nas configurações locais. O valor padrão é
 `conservative`; o outro valor aceito é `fast`.
+
+## Repetição como confirmação (Phase 9.9)
+
+Quando o pregador tenta navegar e o sistema não reconhece a ação (nenhum
+verbo de ação identificado, ex.: apenas `Apocalipse 12 13` no modo
+conservador), o comportamento natural é repetir a mesma referência. O
+`CommandRepetitionService` guarda a última referência ignorada por essa razão
+específica (`unknown_or_unsafe`) e, se a mesma referência — ou um refinamento
+dela, como `Apocalipse 12` seguido de `Apocalipse 12 13` — for identificada de
+novo em até 8 segundos, a segunda vez executa com o motivo
+`repeated_reference`.
+
+A confirmação por repetição:
+
+- só se aplica a `BIBLE_REFERENCE`, não a comandos relativos;
+- só considera a razão `unknown_or_unsafe`; uma referência bloqueada por
+  `casual_reference` nunca é confirmada por repetição, mesmo que se repita;
+- é esquecida assim que qualquer comando executa, ou quando uma referência
+  diferente é ignorada em seguida;
+- não interfere com uma citação casual dita entre as duas tentativas — a
+  referência-alvo continua lembrada.
+
+Isso não substitui um gatilho de voz nem exige um botão manual: é apenas o
+reconhecimento de que, se o pregador já tentou uma vez e tenta de novo com a
+mesma referência, a segunda tentativa já é a confirmação.
 
 ## Números suportados
 

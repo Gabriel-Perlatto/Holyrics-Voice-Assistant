@@ -34,7 +34,8 @@ export type CommandIntentReason =
   | 'explicit_action'
   | 'casual_reference'
   | 'relative_reference_context'
-  | 'unknown_or_unsafe';
+  | 'unknown_or_unsafe'
+  | 'repeated_reference';
 
 export interface CommandIntentGuardDecision {
   decision: CommandIntentDecision;

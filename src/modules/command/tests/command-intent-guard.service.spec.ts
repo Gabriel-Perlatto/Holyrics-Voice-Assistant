@@ -4,12 +4,9 @@ import type { StructuredCommand } from '../interfaces/command.interface';
 import { PtBrCommandParser } from '../parsers/pt-br-command.parser';
 import { CommandIntentGuardService } from '../services/command-intent-guard.service';
 import { CommandIntentSignalsService } from '../services/command-intent-signals.service';
+import { CommandRepetitionService } from '../services/command-repetition.service';
 
 describe('CommandIntentGuardService', () => {
-  const service = new CommandIntentGuardService(
-    new PtBrCommandParser(),
-    new CommandIntentSignalsService(),
-  );
   const reference: StructuredCommand = {
     type: CommandType.BIBLE_REFERENCE,
     book: 'apocalipse',
@@ -17,11 +14,22 @@ describe('CommandIntentGuardService', () => {
     verse: 13,
   };
 
+  // Cada teste recebe uma instância nova: o guard mantém estado de
+  // repetição, então instâncias compartilhadas entre testes poderiam
+  // contaminar um caso com o histórico de outro.
+  const createGuard = () =>
+    new CommandIntentGuardService(
+      new PtBrCommandParser(),
+      new CommandIntentSignalsService(),
+      new CommandRepetitionService(),
+    );
+
   const decide = (
+    guard: CommandIntentGuardService,
     text: string,
     mode: VoiceCommandMode = 'conservative',
     command: StructuredCommand = reference,
-  ) => service.decide(text, text, command, mode);
+  ) => guard.decide(text, text, command, mode);
 
   it.each([
     'vamos para apocalipse 12 13',
@@ -35,14 +43,16 @@ describe('CommandIntentGuardService', () => {
     'vamos ler apocalipse 12 13',
     'agora em apocalipse 12 13',
   ])('autoriza ação explícita: "%s"', (text) => {
-    expect(decide(text)).toEqual({
+    expect(decide(createGuard(), text)).toEqual({
       decision: 'execute',
       reason: 'explicit_action',
     });
   });
 
   it('autoriza fala direcionada à igreja', () => {
-    expect(decide('igreja vamos para apocalipse 12 13')).toEqual({
+    expect(
+      decide(createGuard(), 'igreja vamos para apocalipse 12 13'),
+    ).toEqual({
       decision: 'execute',
       reason: 'explicit_action',
     });
@@ -56,7 +66,7 @@ describe('CommandIntentGuardService', () => {
     'lá em apocalipse 12 13 vemos',
     'em apocalipse 12 13 temos a mesma informação',
   ])('bloqueia contexto casual: "%s"', (text) => {
-    expect(decide(text, 'fast')).toEqual({
+    expect(decide(createGuard(), text, 'fast')).toEqual({
       decision: 'ignore',
       reason: 'casual_reference',
     });
@@ -66,18 +76,20 @@ describe('CommandIntentGuardService', () => {
     'não vamos abrir apocalipse 12 13 agora',
     'sem trocar a tela apocalipse 12 13',
   ])('bloqueia ação negada: "%s"', (text) => {
-    expect(decide(text, 'fast')).toEqual({
+    expect(decide(createGuard(), text, 'fast')).toEqual({
       decision: 'ignore',
       reason: 'casual_reference',
     });
   });
 
   it('diferencia os modos para referência direta', () => {
-    expect(decide('apocalipse 12 13', 'conservative')).toEqual({
-      decision: 'ignore',
-      reason: 'unknown_or_unsafe',
-    });
-    expect(decide('apocalipse 12 13', 'fast')).toEqual({
+    expect(decide(createGuard(), 'apocalipse 12 13', 'conservative')).toEqual(
+      {
+        decision: 'ignore',
+        reason: 'unknown_or_unsafe',
+      },
+    );
+    expect(decide(createGuard(), 'apocalipse 12 13', 'fast')).toEqual({
       decision: 'execute',
       reason: 'explicit_action',
     });
@@ -91,23 +103,28 @@ describe('CommandIntentGuardService', () => {
       verse: 1,
     };
 
-    expect(decide('2 pedro 1', 'fast', secondPeter)).toEqual({
+    expect(
+      decide(createGuard(), '2 pedro 1', 'fast', secondPeter),
+    ).toEqual({
       decision: 'execute',
       reason: 'explicit_action',
     });
   });
 
   it('só autoriza comando relativo como frase direta', () => {
+    const guard = createGuard();
     const relative: StructuredCommand = {
       type: CommandType.PREVIOUS_VERSE,
     };
 
-    expect(decide('versículo anterior', 'conservative', relative)).toEqual({
+    expect(
+      decide(guard, 'versículo anterior', 'conservative', relative),
+    ).toEqual({
       decision: 'execute',
       reason: 'explicit_action',
     });
     expect(
-      decide('como vimos no versículo anterior', 'conservative', relative),
+      decide(guard, 'como vimos no versículo anterior', 'conservative', relative),
     ).toEqual({
       decision: 'ignore',
       reason: 'relative_reference_context',
@@ -116,12 +133,82 @@ describe('CommandIntentGuardService', () => {
 
   it('mantém frase comum com próximo como insegura quando não há comando', () => {
     expect(
-      decide('não podemos fazer isso com o próximo', 'conservative', {
+      decide(createGuard(), 'não podemos fazer isso com o próximo', 'conservative', {
         type: CommandType.UNKNOWN,
       }),
     ).toEqual({
       decision: 'ignore',
       reason: 'unknown_or_unsafe',
+    });
+  });
+
+  it('executa na repetição da mesma referência sem gatilho', () => {
+    const guard = createGuard();
+
+    expect(decide(guard, 'apocalipse 12 13', 'conservative')).toEqual({
+      decision: 'ignore',
+      reason: 'unknown_or_unsafe',
+    });
+    expect(decide(guard, 'apocalipse 12 13', 'conservative')).toEqual({
+      decision: 'execute',
+      reason: 'repeated_reference',
+    });
+  });
+
+  it('não confirma por repetição uma referência diferente', () => {
+    const guard = createGuard();
+    const otherReference: StructuredCommand = {
+      type: CommandType.BIBLE_REFERENCE,
+      book: 'joao',
+      chapter: 3,
+      verse: 16,
+    };
+
+    expect(decide(guard, 'apocalipse 12 13', 'conservative')).toEqual({
+      decision: 'ignore',
+      reason: 'unknown_or_unsafe',
+    });
+    expect(
+      decide(guard, 'joão 3 16', 'conservative', otherReference),
+    ).toEqual({
+      decision: 'ignore',
+      reason: 'unknown_or_unsafe',
+    });
+  });
+
+  it('confirma por repetição um refinamento de capítulo para versículo', () => {
+    const guard = createGuard();
+    const chapterOnly: StructuredCommand = {
+      type: CommandType.BIBLE_REFERENCE,
+      book: 'apocalipse',
+      chapter: 12,
+      verse: 1,
+    };
+
+    expect(decide(guard, 'apocalipse 12', 'conservative', chapterOnly)).toEqual(
+      {
+        decision: 'ignore',
+        reason: 'unknown_or_unsafe',
+      },
+    );
+    expect(decide(guard, 'apocalipse 12 13', 'conservative')).toEqual({
+      decision: 'execute',
+      reason: 'repeated_reference',
+    });
+  });
+
+  it('não confirma por repetição uma citação casual da mesma referência', () => {
+    const guard = createGuard();
+
+    expect(decide(guard, 'apocalipse 12 13', 'conservative')).toEqual({
+      decision: 'ignore',
+      reason: 'unknown_or_unsafe',
+    });
+    expect(
+      decide(guard, 'como vimos em apocalipse 12 13', 'conservative'),
+    ).toEqual({
+      decision: 'ignore',
+      reason: 'casual_reference',
     });
   });
 });

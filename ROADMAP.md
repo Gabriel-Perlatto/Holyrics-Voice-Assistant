@@ -929,6 +929,49 @@ Fora de escopo:
 
 ---
 
+# Phase 9.9 - Repetição como Confirmação
+
+Objetivo:
+
+Tratar a repetição da mesma referência bíblica, pouco depois de o sistema
+não ter reconhecido a ação da primeira vez, como uma confirmação implícita —
+sem exigir um gatilho de voz na segunda tentativa.
+
+Status: **Concluída em 1 de setembro de 2026.**
+
+Tarefas:
+
+- [x] criar `CommandRepetitionService` com janela de 8 segundos
+- [x] lembrar apenas referências ignoradas por `unknown_or_unsafe`
+- [x] confirmar repetição exata da mesma referência
+- [x] confirmar refinamento de capítulo (versículo 1 assumido) para versículo
+  específico no mesmo capítulo
+- [x] esquecer a referência lembrada após qualquer execução
+- [x] não confirmar por repetição decisões de `casual_reference`
+- [x] adicionar o motivo `repeated_reference` a `CommandIntentReason`
+- [x] atualizar `docs/command-interpreter.md`
+
+Critérios de aceite:
+
+- [x] referência direta ignorada, repetida em seguida sem gatilho, executa na
+  segunda tentativa
+- [x] uma referência diferente não é confirmada pela pendente anterior
+- [x] uma citação casual da mesma referência não confirma a repetição nem é
+  confirmada por ela
+- [x] o estado de repetição não vaza entre instâncias de teste
+- [x] testes passam
+- [x] build passa
+
+Fora de escopo:
+
+- gatilho de ativação (wake word) dedicado
+- fuzzy matching de nomes de livros
+- confirmação por repetição de comandos relativos (próximo/anterior)
+- IA generativa, LLM ou modelo treinado
+- Phase 10
+
+---
+
 # Phase 10 - System Hardening
 
 Objetivo:
