@@ -6,7 +6,7 @@ Holyrics Voice Assistant
 
 ## Status Geral
 
-Fase atual: 9.6 (Command Intent Guard)
+Fase atual: 9.7 (Command Intent NLP e conexão Holyrics Web)
 
 ## Fases concluídas
 
@@ -25,6 +25,7 @@ Fase atual: 9.6 (Command Intent Guard)
 - Phase 9 — Bible Navigation Engine MVP
 - Phase 9.5 — Holyrics Bible Projection Integration
 - Phase 9.6 — Command Intent Guard
+- Phase 9.7 — Command Intent NLP e conexão Holyrics Web
 
 ## Módulos existentes
 
@@ -73,24 +74,38 @@ Fase atual: 9.6 (Command Intent Guard)
 - Fallback local quando Holyrics não está configurado
 - Falhas externas preservam a navegação e emitem erro seguro
 - Diagnóstico do último envio ao Holyrics
-- Guard determinístico de intenção antes da navegação por voz
+- Guard de intenção antes da navegação por voz
 - Modo conservador padrão e modo rápido configurável
 - Referências casuais bloqueadas sem `BIBLE_CHANGED` ou envio ao Holyrics
 - Diagnóstico da decisão e do motivo do último comando
+- Classificação de intenção com NLP.js local, treinado no startup a partir de
+  exemplos versionados por idioma (`src/modules/command/nlp/`)
+- Reconhecimento de frases de ação além das expressões fixas anteriores
+  (`vamos parar`, `acompanhe comigo em`, entre outras variações treinadas)
+- Conexão com o Holyrics em dois modos: `local` (host/porta/token) e `web`
+  (API key + token, via `https://api.holyrics.com.br/request/<ação>`)
+- Persistência e proteção da API key web, sem exposição em `GET /api/settings`
+  ou logs
 
 ## Limitações atuais
 
 - Sem emissão de `COMMAND_EXECUTED`
 - Sem polling contínuo do Holyrics
 - Sem módulo de louvor
-- Sem polling do Holyrics
 - Números acima de cento e cinquenta não são normalizados
 - Ordinais compostos não são normalizados
-- O guard depende de expressões determinísticas e não compreende contexto livre
+- O guard depende do NLP.js treinado com exemplos versionados; frases fora
+  desses exemplos ainda não são compreendidas como uma IA generativa faria
+- O modo web do Holyrics depende de internet e não é o padrão do projeto
 
 ## Modelo disponível
 
 Modelo Vosk português já configurado localmente.
+
+## Pendência de publicação
+
+As Phases 9.6 e 9.7 estão commitadas localmente mas ainda não foram enviadas
+ao remoto `origin` (GitHub). Duas commits aguardam `git push`.
 
 ## Próxima fase
 

@@ -822,6 +822,57 @@ Fora de escopo:
 
 ---
 
+# Phase 9.7 - Command Intent NLP e Conexão Holyrics Web
+
+Objetivo:
+
+Substituir as expressões fixas do guard por um classificador de intenção
+NLP.js local e adicionar o modo de conexão web oficial do Holyrics como
+alternativa ao modo local.
+
+Status: **Concluída em 29 de junho de 2026.**
+
+Tarefas:
+
+- [x] criar `CommandIntentClassifierService`
+- [x] treinar NLP.js local em memória a partir de exemplos versionados
+- [x] criar perfil de treinamento `pt-BR` em `src/modules/command/nlp/`
+- [x] classificar intenção em navegação explícita, referência casual,
+  contexto relativo casual e referência direta sem ação
+- [x] manter `CommandIntentGuardService` como responsável pela decisão final
+- [x] preservar o comportamento dos modos `conservative` e `fast`
+- [x] reconhecer variações faladas de frases de ação (`vamos parar`,
+  `acompanhe comigo em`, entre outras)
+- [x] adicionar `holyricsConnectionMode` (`local` ou `web`) ao Settings Module
+- [x] adicionar `holyricsApiKey` persistido e protegido como o token
+- [x] implementar o modo `web` no provider HTTP do Holyrics
+  (`https://api.holyrics.com.br/request/<ação>`)
+- [x] manter o modo `local` como padrão do projeto
+- [x] atualizar `/settings` com o seletor de tipo de conexão
+- [x] atualizar diagnóstico e payloads realtime sem expor API key ou token
+- [x] atualizar `docs/command-interpreter.md`, `docs/holyrics.md`,
+  `docs/bible-navigation.md`, `docs/realtime.md` e `README.md`
+
+Critérios de aceite:
+
+- [x] frases de treinamento executam a navegação esperada
+- [x] frases casuais continuam bloqueadas nos dois modos
+- [x] modo `web` autentica sem host/porta local
+- [x] modo `local` continua funcionando sem API key
+- [x] API key nunca é retornada por `GET /api/settings`
+- [x] testes passam
+- [x] build passa
+
+Fora de escopo:
+
+- IA generativa ou LLM externo
+- fluxo `Auth` com nonce/hash do Holyrics
+- polling contínuo
+- funcionalidades de louvor
+- Phase 10
+
+---
+
 # Phase 10 - System Hardening
 
 Objetivo:

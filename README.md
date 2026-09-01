@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0 a 8.5** estão concluídas. Esta versão contém:
+As **Phases 0 a 9.7** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -61,7 +61,11 @@ As **Phases 0 a 8.5** estão concluídas. Esta versão contém:
 - projeção bíblica oficial com `ShowVerse`;
 - fallback local e erro seguro quando o Holyrics falha;
 - diagnóstico de transcrição, comando, referência atual e último comando
-  aplicado em `/settings`.
+  aplicado em `/settings`;
+- classificação de intenção com NLP.js local, treinado no startup a partir de
+  exemplos versionados por idioma;
+- conexão com o Holyrics em dois modos, `local` (host/porta/token) e `web`
+  (API key + token oficial da ponte web).
 
 Esta fase não inclui apresentação real da passagem no Holyrics, texto bíblico,
 louvor, envio de comandos ao Holyrics, controle de apresentações, IA
@@ -509,6 +513,22 @@ bloqueando contextos claramente casuais. Comandos relativos só executam como
 frases diretas.
 
 Comandos ignorados emitem `COMMAND_IDENTIFIED` com decisão e motivo, sem
-`BIBLE_CHANGED` e sem chamada ao Holyrics. As regras são locais e
-determinísticas; não há IA, LLM ou NLP externo. Consulte
+`BIBLE_CHANGED` e sem chamada ao Holyrics. Consulte
 [`docs/command-interpreter.md`](docs/command-interpreter.md).
+
+## Decisões técnicas da Phase 9.7
+
+O `CommandIntentGuardService` passou a consultar o `CommandIntentClassifierService`,
+que treina um `NlpManager` (NLP.js) local em memória no primeiro uso, a
+partir de exemplos versionados por idioma em `src/modules/command/nlp/`. Não
+há chamada externa nem IA generativa; o modelo é treinado com os documentos do
+próprio repositório a cada inicialização do processo.
+
+O `HolyricsModule` passou a suportar `holyricsConnectionMode: "local" | "web"`.
+O modo `local` continua sendo o padrão do projeto, por manter a operação
+offline-first. O modo `web` usa a ponte oficial
+`https://api.holyrics.com.br/request/<ação>` com API key e token, dependendo
+de internet. A API key segue as mesmas regras de proteção do token: nunca é
+devolvida por `GET /api/settings` e não aparece em logs. Consulte
+[`docs/command-interpreter.md`](docs/command-interpreter.md) e
+[`docs/holyrics.md`](docs/holyrics.md).
