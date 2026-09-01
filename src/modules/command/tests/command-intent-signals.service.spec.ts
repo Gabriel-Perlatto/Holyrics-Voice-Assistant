@@ -59,6 +59,34 @@ describe('CommandIntentSignalsService', () => {
     expect(service.detect('2 pedro 1', secondPeter)).toBeNull();
   });
 
+  it('executa quando a palavra de ativação configurada aparece na frase', () => {
+    expect(
+      service.detect('sistema apocalipse 12 13', reference, 'sistema'),
+    ).toEqual({ decision: 'execute', reason: 'explicit_action' });
+  });
+
+  it('a palavra de ativação tem prioridade sobre marcadores casuais', () => {
+    expect(
+      service.detect(
+        'sistema como vimos em apocalipse 12 13',
+        reference,
+        'sistema',
+      ),
+    ).toEqual({ decision: 'execute', reason: 'explicit_action' });
+  });
+
+  it('não reconhece a palavra de ativação quando não é configurada', () => {
+    expect(
+      service.detect('sistema apocalipse 12 13', reference, null),
+    ).toBeNull();
+  });
+
+  it('ignora palavra parecida, mas diferente da configurada', () => {
+    expect(
+      service.detect('sistemas apocalipse 12 13', reference, 'sistema'),
+    ).toBeNull();
+  });
+
   it('bloqueia ação explícita negada', () => {
     expect(
       service.detect('nao vamos abrir apocalipse 12 13 agora', reference),

@@ -75,7 +75,12 @@ export class CommandIntentSignalsService {
   detect(
     normalized: string,
     command: StructuredCommand,
+    activationWord: string | null = null,
   ): CommandIntentSignal | null {
+    if (this.matchesActivationWord(normalized, activationWord)) {
+      return { decision: 'execute', reason: 'explicit_action' };
+    }
+
     if (this.matchesCasualMarker(normalized, command)) {
       return { decision: 'ignore', reason: 'casual_reference' };
     }
@@ -94,6 +99,35 @@ export class CommandIntentSignalsService {
     }
 
     return { decision: 'execute', reason: 'explicit_action' };
+  }
+
+  private matchesActivationWord(
+    normalized: string,
+    activationWord: string | null,
+  ): boolean {
+    const word = this.normalizeActivationWord(activationWord);
+
+    if (!word) {
+      return false;
+    }
+
+    return new RegExp(`\\b${this.escapeRegExp(word)}\\b`).test(normalized);
+  }
+
+  private normalizeActivationWord(value: string | null): string {
+    if (!value) {
+      return '';
+    }
+
+    return value
+      .trim()
+      .toLocaleLowerCase('pt-BR')
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '');
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   private matchesCasualMarker(

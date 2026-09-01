@@ -52,12 +52,15 @@ Emitido pelo `SettingsService` após persistência bem-sucedida.
   "microphoneConfigured": false,
   "voskModelConfigured": false,
   "speechAutoStart": false,
+  "voiceCommandMode": "conservative",
+  "voiceActivationWord": "sistema",
   "updatedAt": "2026-06-20T00:00:00.000Z"
 }
 ```
 
 Token, API key e os valores de host, porta, microfone e caminho do modelo não
-são transmitidos.
+são transmitidos. A palavra de ativação (Phase 9.10) não é secreta e é
+transmitida como texto simples, ou `null` quando desativada.
 
 ### BIBLE_CHANGED
 

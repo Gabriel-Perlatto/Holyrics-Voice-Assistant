@@ -972,6 +972,50 @@ Fora de escopo:
 
 ---
 
+# Phase 9.10 - Palavra de Ativação
+
+Objetivo:
+
+Adicionar uma palavra de ativação configurável, dedicada e de alta
+prioridade, como alternativa mais simples aos verbos de ação da Phase 9.8
+para pregadores/igrejas que preferem um hábito único e mais previsível.
+
+Status: **Concluída em 1 de setembro de 2026.**
+
+Tarefas:
+
+- [x] adicionar `voiceActivationWord` ao Settings Module (persistido,
+  padrão `sistema`, texto vazio desativa)
+- [x] expor o campo em `GET/PUT /api/settings` e no evento
+  `SETTINGS_UPDATED` (não é secreto)
+- [x] adicionar campo em `/settings` para configurar a palavra
+- [x] reconhecer a palavra de ativação em `CommandIntentSignalsService`,
+  com prioridade sobre marcadores de citação casual e sobre negação
+- [x] ignorar acentuação e maiúsculas/minúsculas, exigindo a palavra inteira
+- [x] manter o comportamento existente quando a palavra está desativada
+- [x] atualizar `docs/command-interpreter.md` e `docs/realtime.md`
+
+Critérios de aceite:
+
+- [x] a palavra de ativação executa uma referência mesmo sem verbo de ação
+- [x] a palavra de ativação tem prioridade sobre citação casual
+- [x] uma palavra parecida, mas diferente, não é reconhecida
+- [x] com o campo vazio, o comportamento volta a ser o da Phase 9.8/9.9
+- [x] a palavra de ativação nunca é tratada como segredo
+- [x] testado manualmente via `/settings` e `POST /api/commands/interpret`
+- [x] testes passam
+- [x] build passa
+
+Fora de escopo:
+
+- múltiplas palavras de ativação simultâneas
+- detecção de wake word por áudio antes da transcrição (nível Vosk)
+- fuzzy matching de nomes de livros
+- IA generativa, LLM ou modelo treinado
+- Phase 10
+
+---
+
 # Phase 10 - System Hardening
 
 Objetivo:

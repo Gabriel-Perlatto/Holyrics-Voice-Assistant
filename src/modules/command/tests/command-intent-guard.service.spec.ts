@@ -29,7 +29,8 @@ describe('CommandIntentGuardService', () => {
     text: string,
     mode: VoiceCommandMode = 'conservative',
     command: StructuredCommand = reference,
-  ) => guard.decide(text, text, command, mode);
+    activationWord: string | null = null,
+  ) => guard.decide(text, text, command, mode, activationWord);
 
   it.each([
     'vamos para apocalipse 12 13',
@@ -140,6 +141,18 @@ describe('CommandIntentGuardService', () => {
       decision: 'ignore',
       reason: 'unknown_or_unsafe',
     });
+  });
+
+  it('executa referência direta quando a palavra de ativação é dita', () => {
+    expect(
+      decide(
+        createGuard(),
+        'sistema apocalipse 12 13',
+        'conservative',
+        reference,
+        'sistema',
+      ),
+    ).toEqual({ decision: 'execute', reason: 'explicit_action' });
   });
 
   it('executa na repetição da mesma referência sem gatilho', () => {

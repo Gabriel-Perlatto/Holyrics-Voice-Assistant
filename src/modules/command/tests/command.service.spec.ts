@@ -16,6 +16,7 @@ import { TranscriptionCorrectionService } from '../services/transcription-correc
 describe('CommandService', () => {
   const createService = (
     voiceCommandMode: VoiceCommandMode = 'conservative',
+    voiceActivationWord: string | null = null,
   ) => {
     const realtime = {
       emit: jest.fn(),
@@ -27,6 +28,7 @@ describe('CommandService', () => {
       getSettings: jest.fn(() => ({
         language: 'pt-BR',
         voiceCommandMode,
+        voiceActivationWord,
       })),
     } as unknown as jest.Mocked<SettingsService>;
     const parser = new PtBrCommandParser();
@@ -191,6 +193,30 @@ describe('CommandService', () => {
       expect(navigation.apply).not.toHaveBeenCalled();
     },
   );
+
+  it('executa referência direta com a palavra de ativação configurada', async () => {
+    const { navigation, service } = createService('conservative', 'sistema');
+
+    const result = await service.identify('sistema Apocalipse 12 13');
+
+    expect(result).toMatchObject({
+      intentDecision: 'execute',
+      intentReason: 'explicit_action',
+    });
+    expect(navigation.apply).toHaveBeenCalledTimes(1);
+  });
+
+  it('não reconhece a palavra de ativação quando ela está desativada', async () => {
+    const { navigation, service } = createService('conservative', null);
+
+    const result = await service.identify('sistema Apocalipse 12 13');
+
+    expect(result).toMatchObject({
+      intentDecision: 'ignore',
+      intentReason: 'unknown_or_unsafe',
+    });
+    expect(navigation.apply).not.toHaveBeenCalled();
+  });
 
   it('modo conservador ignora referência direta', async () => {
     const { navigation, service } = createService('conservative');

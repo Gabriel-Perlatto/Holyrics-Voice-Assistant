@@ -60,10 +60,12 @@
   };
 
   const intentReasonLabels = {
-    explicit_action: 'Ação explícita ou referência direta no modo rápido',
+    explicit_action:
+      'Ação explícita, palavra de ativação ou referência direta no modo rápido',
     casual_reference: 'Referência mencionada em contexto casual',
     relative_reference_context: 'Comando relativo dentro de outra frase',
     unknown_or_unsafe: 'Intenção desconhecida ou insegura',
+    repeated_reference: 'Confirmado por repetição da mesma referência',
   };
 
   const loadCommandDiagnostics = async () => {
@@ -402,6 +404,8 @@
       form.elements.language.value = settings.language ?? 'pt-BR';
       form.elements.voiceCommandMode.value =
         settings.voiceCommandMode ?? 'conservative';
+      form.elements.voiceActivationWord.value =
+        settings.voiceActivationWord ?? '';
       const microphone = settings.microphone ?? '';
 
       if (
@@ -526,6 +530,7 @@
         holyricsPort: portValue ? Number(portValue) : null,
         language: form.elements.language.value,
         voiceCommandMode: form.elements.voiceCommandMode.value,
+        voiceActivationWord: form.elements.voiceActivationWord.value.trim(),
         microphone: form.elements.microphone.value,
         voskModelPath: form.elements.voskModelPath.value,
         speechAutoStart: form.elements.speechAutoStart.checked,

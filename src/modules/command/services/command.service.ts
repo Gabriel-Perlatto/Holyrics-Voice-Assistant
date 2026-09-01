@@ -46,6 +46,7 @@ export class CommandService {
       normalizedInput,
       command,
       settings.voiceCommandMode ?? 'conservative',
+      settings.voiceActivationWord ?? null,
     );
     const identification: CommandIdentification = {
       command,

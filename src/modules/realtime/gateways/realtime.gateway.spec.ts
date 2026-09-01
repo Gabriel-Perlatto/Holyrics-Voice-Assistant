@@ -20,6 +20,7 @@ describe('RealtimeGateway', () => {
         voskModelConfigured: false,
         speechAutoStart: false,
         voiceCommandMode: 'conservative',
+        voiceActivationWord: 'sistema',
         updatedAt: '2026-06-20T00:00:00.000Z',
       },
       occurredAt: '2026-06-20T00:00:00.000Z',

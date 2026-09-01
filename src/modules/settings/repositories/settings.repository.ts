@@ -21,6 +21,7 @@ interface SettingsRow {
   vosk_model_path: string | null;
   speech_auto_start: number;
   voice_command_mode: string;
+  voice_activation_word: string | null;
   updated_at: string;
 }
 
@@ -57,6 +58,7 @@ export class SettingsRepository implements OnModuleDestroy {
             vosk_model_path,
             speech_auto_start,
             voice_command_mode,
+            voice_activation_word,
             updated_at
           FROM settings
           WHERE id = 1
@@ -85,6 +87,7 @@ export class SettingsRepository implements OnModuleDestroy {
             vosk_model_path = @voskModelPath,
             speech_auto_start = @speechAutoStart,
             voice_command_mode = @voiceCommandMode,
+            voice_activation_word = @voiceActivationWord,
             updated_at = @updatedAt
           WHERE id = 1
         `,
@@ -116,6 +119,7 @@ export class SettingsRepository implements OnModuleDestroy {
         vosk_model_path TEXT,
         speech_auto_start INTEGER NOT NULL DEFAULT 0,
         voice_command_mode TEXT NOT NULL DEFAULT 'conservative',
+        voice_activation_word TEXT DEFAULT 'sistema',
         updated_at TEXT NOT NULL
       );
     `);
@@ -125,6 +129,7 @@ export class SettingsRepository implements OnModuleDestroy {
     this.migrateApiTokenColumn();
     this.migrateSpeechAutoStartColumn();
     this.migrateVoiceCommandModeColumn();
+    this.migrateVoiceActivationWordColumn();
 
     this.database
       .prepare(
@@ -141,8 +146,9 @@ export class SettingsRepository implements OnModuleDestroy {
             vosk_model_path,
             speech_auto_start,
             voice_command_mode,
+            voice_activation_word,
             updated_at
-          ) VALUES (1, 'local', '', NULL, NULL, NULL, 'pt-BR', NULL, NULL, 0, 'conservative', @updatedAt)
+          ) VALUES (1, 'local', '', NULL, NULL, NULL, 'pt-BR', NULL, NULL, 0, 'conservative', 'sistema', @updatedAt)
         `,
       )
       .run({ updatedAt: new Date().toISOString() });
@@ -162,6 +168,7 @@ export class SettingsRepository implements OnModuleDestroy {
       speechAutoStart: Boolean(row.speech_auto_start),
       voiceCommandMode:
         row.voice_command_mode === 'fast' ? 'fast' : 'conservative',
+      voiceActivationWord: row.voice_activation_word,
       updatedAt: row.updated_at,
     };
   }
@@ -222,6 +229,18 @@ export class SettingsRepository implements OnModuleDestroy {
     if (!columns.some(({ name }) => name === 'voice_command_mode')) {
       this.database.exec(
         "ALTER TABLE settings ADD COLUMN voice_command_mode TEXT NOT NULL DEFAULT 'conservative'",
+      );
+    }
+  }
+
+  private migrateVoiceActivationWordColumn(): void {
+    const columns = this.database
+      .prepare('PRAGMA table_info(settings)')
+      .all() as Array<{ name: string }>;
+
+    if (!columns.some(({ name }) => name === 'voice_activation_word')) {
+      this.database.exec(
+        "ALTER TABLE settings ADD COLUMN voice_activation_word TEXT DEFAULT 'sistema'",
       );
     }
   }

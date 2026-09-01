@@ -17,6 +17,7 @@ describe('SettingsService', () => {
     voskModelPath: null,
     speechAutoStart: false,
     voiceCommandMode: 'conservative' as const,
+    voiceActivationWord: 'sistema' as string | null,
     updatedAt: '2026-06-20T00:00:00.000Z',
   };
 
@@ -63,6 +64,7 @@ describe('SettingsService', () => {
       voskModelPath: null,
       speechAutoStart: false,
       voiceCommandMode: 'conservative',
+      voiceActivationWord: 'sistema',
       updatedAt: '2026-06-20T00:00:00.000Z',
       voskModelPathStatus: {
         configured: false,
@@ -88,6 +90,7 @@ describe('SettingsService', () => {
       voskModelPath: ' /modelos/vosk-pt ',
       speechAutoStart: true,
       voiceCommandMode: 'fast',
+      voiceActivationWord: ' Assistente ',
     });
 
     expect(repository.save).toHaveBeenCalledWith({
@@ -101,6 +104,7 @@ describe('SettingsService', () => {
       voskModelPath: '/modelos/vosk-pt',
       speechAutoStart: true,
       voiceCommandMode: 'fast',
+      voiceActivationWord: 'Assistente',
     });
     expect(result.holyricsHost).toBe('192.168.1.20');
     expect(result.holyricsApiTokenConfigured).toBe(true);
@@ -121,6 +125,7 @@ describe('SettingsService', () => {
         voskModelConfigured: true,
         speechAutoStart: true,
         voiceCommandMode: 'fast',
+        voiceActivationWord: 'Assistente',
         updatedAt: '2026-06-20T01:00:00.000Z',
       },
     );
@@ -271,6 +276,63 @@ describe('SettingsService', () => {
         voiceCommandMode: 'fast',
       }),
     );
+  });
+
+  it('preserva a palavra de ativação atual quando o campo não é enviado', () => {
+    const repository = createRepository();
+    repository.find.mockReturnValue({
+      ...currentSettings,
+      voiceActivationWord: 'computador',
+    });
+    const { service } = createService(repository);
+
+    service.updateSettings({
+      holyricsHost: '',
+      holyricsPort: null,
+      language: 'pt-BR',
+      microphone: null,
+      voskModelPath: null,
+    });
+
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        voiceActivationWord: 'computador',
+      }),
+    );
+  });
+
+  it('desativa a palavra de ativação quando recebe texto vazio', () => {
+    const { repository, service } = createService();
+
+    service.updateSettings({
+      holyricsHost: '',
+      holyricsPort: null,
+      language: 'pt-BR',
+      microphone: null,
+      voskModelPath: null,
+      voiceActivationWord: '',
+    });
+
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        voiceActivationWord: null,
+      }),
+    );
+  });
+
+  it('rejeita palavra de ativação maior que 50 caracteres', () => {
+    const { service } = createService();
+
+    expect(() =>
+      service.updateSettings({
+        holyricsHost: '',
+        holyricsPort: null,
+        language: 'pt-BR',
+        microphone: null,
+        voskModelPath: null,
+        voiceActivationWord: 'a'.repeat(51),
+      }),
+    ).toThrow(BadRequestException);
   });
 
   it('rejeita modo de comando desconhecido', () => {

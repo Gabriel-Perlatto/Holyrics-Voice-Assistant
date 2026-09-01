@@ -39,6 +39,7 @@ export interface SettingsUpdatedPayload {
   voskModelConfigured: boolean;
   speechAutoStart: boolean;
   voiceCommandMode: VoiceCommandMode;
+  voiceActivationWord: string | null;
   updatedAt: string;
 }
 

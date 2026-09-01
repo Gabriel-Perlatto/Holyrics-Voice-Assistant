@@ -34,6 +34,7 @@ export class CommandIntentGuardService {
     normalizedTranscription: string,
     command: StructuredCommand,
     mode: VoiceCommandMode,
+    activationWord: string | null = null,
   ): CommandIntentGuardDecision {
     if (command.type === CommandType.UNKNOWN) {
       return {
@@ -46,7 +47,7 @@ export class CommandIntentGuardService {
     const directCommand = this.parser.parse(normalizedTranscription);
     const isDirectReference =
       directCommand.type === CommandType.BIBLE_REFERENCE;
-    const signal = this.signals.detect(normalized, command);
+    const signal = this.signals.detect(normalized, command, activationWord);
 
     if (signal) {
       if (signal.decision === 'execute') {

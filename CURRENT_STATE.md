@@ -6,7 +6,7 @@ Holyrics Voice Assistant
 
 ## Status Geral
 
-Fase atual: 9.9 (Repetição como Confirmação)
+Fase atual: 9.10 (Palavra de Ativação)
 
 ## Fases concluídas
 
@@ -28,6 +28,7 @@ Fase atual: 9.9 (Repetição como Confirmação)
 - Phase 9.7 — Command Intent NLP e conexão Holyrics Web
 - Phase 9.8 — Sinais de Intenção Determinísticos e Correção de Transcrição
 - Phase 9.9 — Repetição como Confirmação
+- Phase 9.10 — Palavra de Ativação
 
 ## Módulos existentes
 
@@ -91,6 +92,9 @@ Fase atual: 9.9 (Repetição como Confirmação)
 - Repetição da mesma referência bíblica (ou refinamento de capítulo para
   versículo) em até 8 segundos após ser ignorada por falta de gatilho conta
   como confirmação e executa
+- Palavra de ativação configurável (`voiceActivationWord`, padrão `sistema`):
+  quando dita, executa a referência com prioridade sobre citação casual e
+  negação, mesmo sem verbo de ação
 - Conexão com o Holyrics em dois modos: `local` (host/porta/token) e `web`
   (API key + token, via `https://api.holyrics.com.br/request/<ação>`)
 - Persistência e proteção da API key web, sem exposição em `GET /api/settings`
@@ -107,7 +111,8 @@ Fase atual: 9.9 (Repetição como Confirmação)
   marcadores e verbos já previstos não são compreendidas como uma IA faria
 - A correção de transcrição cobre um vocabulário fechado pequeno; nomes de
   livros não são corrigidos automaticamente
-- Não há gatilho de ativação (wake word) dedicado
+- A palavra de ativação é um único termo livre, sem múltiplas palavras
+  simultâneas nem detecção por áudio antes da transcrição (nível Vosk)
 - A confirmação por repetição não se aplica a comandos relativos
   (próximo/anterior), só a `BIBLE_REFERENCE`
 - Não há fuzzy matching de nomes de livros bíblicos

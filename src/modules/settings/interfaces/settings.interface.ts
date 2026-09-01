@@ -12,6 +12,7 @@ export interface Settings {
   voskModelPath: string | null;
   speechAutoStart: boolean;
   voiceCommandMode: VoiceCommandMode;
+  voiceActivationWord: string | null;
   updatedAt: string;
 }
 

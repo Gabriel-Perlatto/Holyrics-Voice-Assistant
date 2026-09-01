@@ -32,6 +32,7 @@ describe('SettingsRepository', () => {
         voskModelPath: null,
         speechAutoStart: false,
         voiceCommandMode: 'conservative',
+        voiceActivationWord: 'sistema',
       }),
     );
 
@@ -52,6 +53,7 @@ describe('SettingsRepository', () => {
       voskModelPath: '/modelos/vosk',
       speechAutoStart: true,
       voiceCommandMode: 'fast',
+      voiceActivationWord: 'computador',
     });
     firstRepository.onModuleDestroy();
 
@@ -69,6 +71,7 @@ describe('SettingsRepository', () => {
         voskModelPath: '/modelos/vosk',
         speechAutoStart: true,
         voiceCommandMode: 'fast',
+        voiceActivationWord: 'computador',
       }),
     );
 
@@ -120,6 +123,7 @@ describe('SettingsRepository', () => {
         holyricsApiToken: null,
         speechAutoStart: false,
         voiceCommandMode: 'conservative',
+        voiceActivationWord: 'sistema',
       }),
     );
 

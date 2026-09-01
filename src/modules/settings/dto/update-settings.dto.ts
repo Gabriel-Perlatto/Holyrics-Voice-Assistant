@@ -9,4 +9,5 @@ export interface UpdateSettingsDto {
   voskModelPath: unknown;
   speechAutoStart?: unknown;
   voiceCommandMode?: unknown;
+  voiceActivationWord?: unknown;
 }

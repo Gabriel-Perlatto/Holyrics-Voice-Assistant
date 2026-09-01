@@ -67,6 +67,10 @@ export class SettingsService {
       input.voiceCommandMode,
       currentSettings.voiceCommandMode ?? 'conservative',
     );
+    const voiceActivationWord = this.validateVoiceActivationWord(
+      input.voiceActivationWord,
+      currentSettings.voiceActivationWord,
+    );
 
     const settings = this.settingsRepository.save({
       holyricsConnectionMode,
@@ -79,6 +83,7 @@ export class SettingsService {
       voskModelPath,
       speechAutoStart,
       voiceCommandMode,
+      voiceActivationWord,
     });
 
     const publicSettings = this.toPublicSettings(settings);
@@ -105,6 +110,7 @@ export class SettingsService {
         voskModelConfigured: Boolean(publicSettings.voskModelPath),
         speechAutoStart: publicSettings.speechAutoStart,
         voiceCommandMode: publicSettings.voiceCommandMode,
+        voiceActivationWord: publicSettings.voiceActivationWord,
         updatedAt: publicSettings.updatedAt,
       },
     );
@@ -294,6 +300,17 @@ export class SettingsService {
     }
 
     return value;
+  }
+
+  private validateVoiceActivationWord(
+    value: unknown,
+    currentValue: string | null,
+  ): string | null {
+    if (value === undefined) {
+      return currentValue;
+    }
+
+    return this.validateOptionalText(value, 'Palavra de ativação', 50);
   }
 
   private toPublicSettings(settings: Settings): PublicSettings {

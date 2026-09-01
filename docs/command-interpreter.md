@@ -1,6 +1,6 @@
 # Interpretador de comandos
 
-## Escopo das Phases 8, 8.5, 9.6, 9.8 e 9.9
+## Escopo das Phases 8, 8.5, 9.6, 9.8, 9.9 e 9.10
 
 O `CommandModule` transforma texto em comandos estruturados de forma local,
 sem dependência de internet.
@@ -327,6 +327,32 @@ A confirmação por repetição:
 Isso não substitui um gatilho de voz nem exige um botão manual: é apenas o
 reconhecimento de que, se o pregador já tentou uma vez e tenta de novo com a
 mesma referência, a segunda tentativa já é a confirmação.
+
+## Palavra de ativação (Phase 9.10)
+
+Além dos verbos de ação da Phase 9.8 ("vamos para", "abra em"...), o guard
+aceita uma palavra de ativação dedicada e configurável
+(`voiceActivationWord`, padrão `sistema`). Quando ela aparece em qualquer
+lugar da frase, a referência identificada executa imediatamente — com
+prioridade sobre marcadores de citação casual e sobre negação — mesmo no
+modo `conservative` e mesmo sem nenhum dos verbos de ação já reconhecidos.
+
+```text
+sistema Apocalipse 12 13          # executa
+sistema, como vimos em João 3 16  # executa mesmo assim: a palavra de
+                                   # ativação é o sinal mais forte que existe
+```
+
+A palavra é configurável em `/settings` e persistida em
+`voiceActivationWord`. Um texto vazio desativa a checagem — nesse caso, o
+guard cai de volta nos verbos de ação e no comportamento por modo já
+existente. A comparação ignora acentuação e maiúsculas/minúsculas, mas exige
+a palavra inteira (`sistema` não confunde com `sistemas`).
+
+Diferente do `CommandIntentSignalsService`, que reconhece frases inteiras
+específicas, a palavra de ativação é um único termo livre, escolhido pela
+igreja — não precisa ser "sistema"; pode ser qualquer palavra que o pregador
+não usaria naturalmente no meio de uma pregação.
 
 ## Números suportados
 

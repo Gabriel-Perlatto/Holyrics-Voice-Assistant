@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0 a 9.9** estão concluídas. Esta versão contém:
+As **Phases 0 a 9.10** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -69,7 +69,9 @@ As **Phases 0 a 9.9** estão concluídas. Esta versão contém:
 - correção de transcrição para erros comuns do Vosk em palavras-chave do
   domínio, como "capítulo" transcrito como "capeta";
 - repetição da mesma referência bíblica sem gatilho, em até 8 segundos após
-  ser ignorada, conta como confirmação e executa.
+  ser ignorada, conta como confirmação e executa;
+- palavra de ativação configurável (padrão `sistema`): quando dita, executa
+  a referência com prioridade sobre citação casual, mesmo sem verbo de ação.
 
 Esta fase não inclui apresentação real da passagem no Holyrics, texto bíblico,
 louvor, envio de comandos ao Holyrics, controle de apresentações, IA
@@ -200,7 +202,8 @@ curl --request PUT http://localhost:3000/api/settings \
     "microphone": "default",
     "voskModelPath": "models/pt-BR/vosk-model-small-pt-0.3",
     "speechAutoStart": false,
-    "voiceCommandMode": "conservative"
+    "voiceCommandMode": "conservative",
+    "voiceActivationWord": "sistema"
   }'
 ```
 
@@ -577,4 +580,20 @@ A confirmação por repetição nunca se aplica a uma referência bloqueada por
 citação casual (`casual_reference`), é esquecida assim que qualquer comando
 executa, e não interfere quando uma citação casual é dita entre as duas
 tentativas — a referência-alvo continua lembrada. Consulte
+[`docs/command-interpreter.md`](docs/command-interpreter.md).
+
+## Decisões técnicas da Phase 9.10
+
+`voiceActivationWord` é uma palavra de ativação configurável e opcional
+(padrão `sistema`, texto vazio desativa), persistida como as demais
+configurações. Diferente do token e da API key do Holyrics, ela não é
+secreta: aparece normalmente em `GET /api/settings` e no evento
+`SETTINGS_UPDATED`.
+
+Quando configurada, a palavra tem prioridade sobre qualquer outro sinal do
+`CommandIntentSignalsService` — inclusive citação casual e negação — porque é
+um sinal deliberado e escolhido pela própria igreja, ao contrário dos verbos
+de ação da Phase 9.8, que também aparecem naturalmente em fala comum. A
+comparação ignora acentuação e maiúsculas/minúsculas e exige a palavra
+inteira (`sistema` não confunde com `sistemas`). Consulte
 [`docs/command-interpreter.md`](docs/command-interpreter.md).
