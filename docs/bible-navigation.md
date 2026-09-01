@@ -13,11 +13,13 @@ TRANSCRIPTION_RECEIVED
         ↓
 NumberNormalizerService
         ↓
+TranscriptionCorrectionService
+        ↓
 CommandService
         ↓
 CommandIntentGuardService
         ↓
-CommandIntentClassifierService
+CommandIntentSignalsService
         ↓
 COMMAND_IDENTIFIED
         ↓ execute

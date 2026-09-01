@@ -6,7 +6,7 @@ import type {
   StructuredCommand,
 } from '../interfaces/command.interface';
 import { PtBrCommandParser } from '../parsers/pt-br-command.parser';
-import { CommandIntentClassifierService } from './command-intent-classifier.service';
+import { CommandIntentSignalsService } from './command-intent-signals.service';
 
 const DIRECT_RELATIVE_COMMANDS = new Set([
   'proximo',
@@ -24,16 +24,15 @@ const DIRECT_RELATIVE_COMMANDS = new Set([
 export class CommandIntentGuardService {
   constructor(
     private readonly parser: PtBrCommandParser,
-    private readonly classifier: CommandIntentClassifierService,
+    private readonly signals: CommandIntentSignalsService,
   ) {}
 
-  async decide(
+  decide(
     originalTranscription: unknown,
     normalizedTranscription: string,
     command: StructuredCommand,
     mode: VoiceCommandMode,
-    language = 'pt-BR',
-  ): Promise<CommandIntentGuardDecision> {
+  ): CommandIntentGuardDecision {
     if (command.type === CommandType.UNKNOWN) {
       return {
         decision: 'ignore',
@@ -45,27 +44,10 @@ export class CommandIntentGuardService {
     const directCommand = this.parser.parse(normalizedTranscription);
     const isDirectReference =
       directCommand.type === CommandType.BIBLE_REFERENCE;
-    const classification = await this.classifier.classify(
-      language,
-      normalized,
-    );
+    const signal = this.signals.detect(normalized, command);
 
-    if (classification) {
-      if (
-        mode === 'fast' &&
-        isDirectReference &&
-        classification.reason === 'unknown_or_unsafe'
-      ) {
-        return {
-          decision: 'execute',
-          reason: 'explicit_action',
-        };
-      }
-
-      return {
-        decision: classification.decision,
-        reason: classification.reason,
-      };
+    if (signal) {
+      return signal;
     }
 
     if (command.type !== CommandType.BIBLE_REFERENCE) {

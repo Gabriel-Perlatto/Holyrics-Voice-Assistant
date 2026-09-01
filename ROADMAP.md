@@ -871,6 +871,62 @@ Fora de escopo:
 - funcionalidades de louvor
 - Phase 10
 
+Nota de 1 de setembro de 2026: o classificador NLP.js desta fase foi
+substituído na Phase 9.8 por regras determinísticas, após testes reais
+mostrarem que o conjunto de treinamento crescia por tentativa e erro sem
+generalizar de forma confiável.
+
+---
+
+# Phase 9.8 - Sinais de Intenção Determinísticos e Correção de Transcrição
+
+Objetivo:
+
+Substituir o classificador NLP.js por regras explícitas e auditáveis, e
+corrigir erros comuns de transcrição do Vosk em palavras-chave do domínio
+(como "capítulo"), identificados em testes reais com pregadores.
+
+Status: **Concluída em 1 de setembro de 2026.**
+
+Tarefas:
+
+- [x] criar `CommandIntentSignalsService` com regras determinísticas:
+  marcadores de citação casual, verbos/expressões de ação restritos ao trecho
+  antes da referência, e negação
+- [x] remover `CommandIntentClassifierService`, a pasta `nlp/` de exemplos de
+  treinamento e a dependência `node-nlp`
+- [x] tratar livros que começam com "2" no nome como exceção ao marcador de
+  citação `segundo`/`2`
+- [x] criar `TranscriptionCorrectionService` com mapa de confusões conhecidas
+  (`capeta` → `capitulo`) e distância de edição como reforço para desvios
+  pequenos
+- [x] inserir a correção de transcrição entre o `NumberNormalizerService` e o
+  `PtBrCommandParser`
+- [x] manter o comportamento já validado dos modos `conservative` e `fast`
+- [x] atualizar `docs/command-interpreter.md`
+
+Critérios de aceite:
+
+- [x] "capítulo" transcrito como "capeta" continua resolvendo a referência
+  corretamente
+- [x] frases de ação continuam executando quando o verbo vem antes da
+  referência
+- [x] a mesma palavra depois da referência (uso narrativo) não é tratada como
+  comando
+- [x] frases casuais continuam bloqueadas nos dois modos
+- [x] referências a livros numerados (2 Pedro, 2 João, 2 Samuel...) não são
+  tratadas como citação casual
+- [x] testes passam
+- [x] build passa
+
+Fora de escopo:
+
+- gatilho de ativação (wake word) dedicado
+- repetição da mesma referência como confirmação implícita
+- fuzzy matching de nomes de livros
+- IA generativa, LLM ou modelo treinado
+- Phase 10
+
 ---
 
 # Phase 10 - System Hardening

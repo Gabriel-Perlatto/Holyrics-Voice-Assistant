@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0 a 9.7** estão concluídas. Esta versão contém:
+As **Phases 0 a 9.8** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -62,10 +62,12 @@ As **Phases 0 a 9.7** estão concluídas. Esta versão contém:
 - fallback local e erro seguro quando o Holyrics falha;
 - diagnóstico de transcrição, comando, referência atual e último comando
   aplicado em `/settings`;
-- classificação de intenção com NLP.js local, treinado no startup a partir de
-  exemplos versionados por idioma;
 - conexão com o Holyrics em dois modos, `local` (host/porta/token) e `web`
-  (API key + token oficial da ponte web).
+  (API key + token oficial da ponte web);
+- sinais de intenção determinísticos, sem modelo treinado, para decidir se
+  uma referência bíblica falada deve navegar;
+- correção de transcrição para erros comuns do Vosk em palavras-chave do
+  domínio, como "capítulo" transcrito como "capeta".
 
 Esta fase não inclui apresentação real da passagem no Holyrics, texto bíblico,
 louvor, envio de comandos ao Holyrics, controle de apresentações, IA
@@ -532,3 +534,28 @@ de internet. A API key segue as mesmas regras de proteção do token: nunca é
 devolvida por `GET /api/settings` e não aparece em logs. Consulte
 [`docs/command-interpreter.md`](docs/command-interpreter.md) e
 [`docs/holyrics.md`](docs/holyrics.md).
+
+## Decisões técnicas da Phase 9.8
+
+Testes reais com pregadores mostraram dois problemas no guard de intenção da
+Phase 9.7: o classificador NLP.js crescia por tentativa e erro sem generalizar
+de forma confiável, e o Vosk transcrevia "capítulo" como "capeta" com um
+pregador de sotaque forte, o que impedia o parser de reconhecer a referência
+mesmo com a intenção correta.
+
+O `CommandIntentClassifierService` e a pasta `src/modules/command/nlp/` foram
+removidos, junto da dependência `node-nlp`. Em seu lugar, o
+`CommandIntentSignalsService` aplica regras determinísticas e explícitas:
+marcadores de citação casual (`como vimos em`, `segundo`, `lá em`...), verbos
+de ação restritos ao trecho antes da referência (`vamos para`, `abra`,
+`mostre`, `coloque`, `projete`...) e negação (`não`, `sem`). Livros que
+começam com "2" no nome (2 Pedro, 2 João, 2 Samuel...) são uma exceção
+explícita ao marcador `segundo`/`2`.
+
+O novo `TranscriptionCorrectionService` roda entre o `NumberNormalizerService`
+e o `PtBrCommandParser`. Ele corrige um vocabulário fechado pequeno (não
+nomes de livros) em duas camadas: um mapa explícito de confusões já
+observadas (`capeta` → `capitulo`) e distância de edição como reforço para
+desvios menores. Os modos `conservative` e `fast` mantêm o comportamento já
+validado nas Phases 9.6 e 9.7. Consulte
+[`docs/command-interpreter.md`](docs/command-interpreter.md).

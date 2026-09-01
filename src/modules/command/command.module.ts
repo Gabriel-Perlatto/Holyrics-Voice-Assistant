@@ -4,10 +4,11 @@ import { SettingsModule } from '../settings/settings.module';
 import { CommandController } from './controllers/command.controller';
 import { PtBrCommandParser } from './parsers/pt-br-command.parser';
 import { CommandContextService } from './services/command-context.service';
-import { CommandIntentClassifierService } from './services/command-intent-classifier.service';
 import { CommandIntentGuardService } from './services/command-intent-guard.service';
+import { CommandIntentSignalsService } from './services/command-intent-signals.service';
 import { CommandService } from './services/command.service';
 import { NumberNormalizerService } from './services/number-normalizer.service';
+import { TranscriptionCorrectionService } from './services/transcription-correction.service';
 
 @Module({
   imports: [BibleModule, SettingsModule],
@@ -15,8 +16,9 @@ import { NumberNormalizerService } from './services/number-normalizer.service';
   providers: [
     PtBrCommandParser,
     NumberNormalizerService,
+    TranscriptionCorrectionService,
     CommandContextService,
-    CommandIntentClassifierService,
+    CommandIntentSignalsService,
     CommandIntentGuardService,
     CommandService,
   ],

@@ -6,10 +6,11 @@ import type { VoiceCommandMode } from '../../settings/interfaces/settings.interf
 import { CommandType } from '../enums/command-type.enum';
 import { PtBrCommandParser } from '../parsers/pt-br-command.parser';
 import { CommandContextService } from '../services/command-context.service';
-import { CommandIntentClassifierService } from '../services/command-intent-classifier.service';
 import { CommandIntentGuardService } from '../services/command-intent-guard.service';
+import { CommandIntentSignalsService } from '../services/command-intent-signals.service';
 import { CommandService } from '../services/command.service';
 import { NumberNormalizerService } from '../services/number-normalizer.service';
+import { TranscriptionCorrectionService } from '../services/transcription-correction.service';
 
 describe('CommandService', () => {
   const createService = (
@@ -31,12 +32,13 @@ describe('CommandService', () => {
     const service = new CommandService(
       parser,
       new NumberNormalizerService(),
+      new TranscriptionCorrectionService(),
       new CommandContextService(),
       realtime,
       navigation,
       new CommandIntentGuardService(
         parser,
-        new CommandIntentClassifierService(),
+        new CommandIntentSignalsService(),
       ),
       settings,
     );
@@ -65,6 +67,30 @@ describe('CommandService', () => {
         book: 'apocalipse',
         chapter: 12,
         verse: 13,
+      },
+      confidence: 1,
+      intentDecision: 'execute',
+      intentReason: 'explicit_action',
+    });
+    expect(navigation.apply).toHaveBeenCalledWith({
+      ...result.command,
+      confidence: 1,
+    });
+  });
+
+  it('executa referência quando Vosk transcreve "capítulo" como "capeta"', async () => {
+    const { navigation, service } = createService();
+
+    const result = await service.identify(
+      'vamos para gênesis capeta 3',
+    );
+
+    expect(result).toEqual({
+      command: {
+        type: CommandType.BIBLE_REFERENCE,
+        book: 'genesis',
+        chapter: 3,
+        verse: 1,
       },
       confidence: 1,
       intentDecision: 'execute',

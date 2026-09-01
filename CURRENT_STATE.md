@@ -6,7 +6,7 @@ Holyrics Voice Assistant
 
 ## Status Geral
 
-Fase atual: 9.7 (Command Intent NLP e conexão Holyrics Web)
+Fase atual: 9.8 (Sinais de Intenção Determinísticos e Correção de Transcrição)
 
 ## Fases concluídas
 
@@ -26,6 +26,7 @@ Fase atual: 9.7 (Command Intent NLP e conexão Holyrics Web)
 - Phase 9.5 — Holyrics Bible Projection Integration
 - Phase 9.6 — Command Intent Guard
 - Phase 9.7 — Command Intent NLP e conexão Holyrics Web
+- Phase 9.8 — Sinais de Intenção Determinísticos e Correção de Transcrição
 
 ## Módulos existentes
 
@@ -78,10 +79,14 @@ Fase atual: 9.7 (Command Intent NLP e conexão Holyrics Web)
 - Modo conservador padrão e modo rápido configurável
 - Referências casuais bloqueadas sem `BIBLE_CHANGED` ou envio ao Holyrics
 - Diagnóstico da decisão e do motivo do último comando
-- Classificação de intenção com NLP.js local, treinado no startup a partir de
-  exemplos versionados por idioma (`src/modules/command/nlp/`)
-- Reconhecimento de frases de ação além das expressões fixas anteriores
-  (`vamos parar`, `acompanhe comigo em`, entre outras variações treinadas)
+- Sinais de intenção determinísticos (`CommandIntentSignalsService`):
+  marcadores de citação casual, verbos de ação restritos ao trecho antes da
+  referência e negação, sem modelo treinado
+- Correção de transcrição (`TranscriptionCorrectionService`) para erros
+  comuns do Vosk em palavras-chave do domínio, como "capítulo" transcrito
+  como "capeta"
+- Reconhecimento de frases de ação como `vamos parar`, `acompanhe comigo em`,
+  entre outras, via regras explícitas
 - Conexão com o Holyrics em dois modos: `local` (host/porta/token) e `web`
   (API key + token, via `https://api.holyrics.com.br/request/<ação>`)
 - Persistência e proteção da API key web, sem exposição em `GET /api/settings`
@@ -94,18 +99,17 @@ Fase atual: 9.7 (Command Intent NLP e conexão Holyrics Web)
 - Sem módulo de louvor
 - Números acima de cento e cinquenta não são normalizados
 - Ordinais compostos não são normalizados
-- O guard depende do NLP.js treinado com exemplos versionados; frases fora
-  desses exemplos ainda não são compreendidas como uma IA generativa faria
+- O guard depende de regras determinísticas explícitas; frases fora dos
+  marcadores e verbos já previstos não são compreendidas como uma IA faria
+- A correção de transcrição cobre um vocabulário fechado pequeno; nomes de
+  livros não são corrigidos automaticamente
+- Não há gatilho de ativação (wake word) nem repetição como confirmação
+  implícita quando um comando falha silenciosamente
 - O modo web do Holyrics depende de internet e não é o padrão do projeto
 
 ## Modelo disponível
 
 Modelo Vosk português já configurado localmente.
-
-## Pendência de publicação
-
-As Phases 9.6 e 9.7 estão commitadas localmente mas ainda não foram enviadas
-ao remoto `origin` (GitHub). Duas commits aguardam `git push`.
 
 ## Próxima fase
 

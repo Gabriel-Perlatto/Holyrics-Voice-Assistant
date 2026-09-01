@@ -13,6 +13,7 @@ import { PtBrCommandParser } from '../parsers/pt-br-command.parser';
 import { CommandContextService } from './command-context.service';
 import { CommandIntentGuardService } from './command-intent-guard.service';
 import { NumberNormalizerService } from './number-normalizer.service';
+import { TranscriptionCorrectionService } from './transcription-correction.service';
 
 @Injectable()
 export class CommandService {
@@ -23,6 +24,7 @@ export class CommandService {
   constructor(
     private readonly parser: PtBrCommandParser,
     private readonly numberNormalizer: NumberNormalizerService,
+    private readonly transcriptionCorrection: TranscriptionCorrectionService,
     private readonly contextService: CommandContextService,
     private readonly realtimeService: RealtimeService,
     private readonly navigationService: BibleNavigationService,
@@ -31,17 +33,19 @@ export class CommandService {
   ) {}
 
   async identify(input: unknown): Promise<CommandIdentification> {
-    const normalizedInput = this.numberNormalizer.normalize(input);
+    const numberNormalizedInput = this.numberNormalizer.normalize(input);
+    const normalizedInput = this.transcriptionCorrection.correct(
+      numberNormalizedInput,
+    );
     const command = this.parser.parseTranscription(normalizedInput);
     const confidence =
       command.type === CommandType.UNKNOWN ? 0 : 1;
     const settings = this.settingsService.getSettings();
-    const intent = await this.intentGuard.decide(
+    const intent = this.intentGuard.decide(
       input,
       normalizedInput,
       command,
       settings.voiceCommandMode ?? 'conservative',
-      settings.language ?? 'pt-BR',
     );
     const identification: CommandIdentification = {
       command,

@@ -1,6 +1,6 @@
 # Interpretador de comandos
 
-## Escopo das Phases 8, 8.5, 9.6 e 9.7
+## Escopo das Phases 8, 8.5, 9.6 e 9.8
 
 O `CommandModule` transforma texto em comandos estruturados de forma local,
 sem dependência de internet.
@@ -12,11 +12,15 @@ O parser e o normalizador não:
 - alteram a passagem exibida;
 - alteram o `BibleModule`;
 - acessam a interface do pregador;
-- usam IA generativa ou LLM.
+- usam IA generativa, LLM ou modelo treinado.
 
-Na Phase 9.7, a decisão de intenção usa NLP.js local em memória. O modelo é
-treinado no startup a partir de exemplos versionados no projeto, separados por
-idioma. Ele não chama serviços externos.
+A Phase 9.7 usou um classificador NLP.js treinado a partir de exemplos
+versionados. Na prática, o conjunto de treinamento crescia a cada caso novo
+sem generalizar de forma confiável, então a Phase 9.8 substituiu o
+classificador por regras determinísticas explícitas (ver
+[Guard de intenção](#guard-de-intenção)) e por uma correção de transcrição
+baseada em vocabulário fechado (ver
+[Correção de transcrição](#correção-de-transcrição)).
 
 ## Fluxo
 
@@ -24,6 +28,8 @@ idioma. Ele não chama serviços externos.
 TRANSCRIPTION_RECEIVED
         ↓
 NumberNormalizerService
+        ↓
+TranscriptionCorrectionService
         ↓
 CommandService
         ↓
@@ -33,7 +39,7 @@ StructuredCommand
         ↓
 CommandIntentGuardService
         ↓
-CommandIntentClassifierService (NLP.js local)
+CommandIntentSignalsService (regras determinísticas)
         ↓
 COMMAND_IDENTIFIED
         ↓ execute
@@ -47,10 +53,37 @@ Na Phase 8.5, o texto final passa primeiro pelo `NumberNormalizerService`. O
 serviço devolve somente texto e não conhece intents, comandos estruturados,
 BibleModule ou Holyrics.
 
+Na Phase 9.8, o texto normalizado passa em seguida pelo
+`TranscriptionCorrectionService`, antes do parser.
+
 Na Phase 9.6, o parser também consegue extrair uma referência válida de uma
-frase completa. A extração apenas identifica o comando. Na Phase 9.7, o
-`CommandIntentGuardService` consulta o `CommandIntentClassifierService` para
+frase completa. A extração apenas identifica o comando. Na Phase 9.8, o
+`CommandIntentGuardService` consulta o `CommandIntentSignalsService` para
 decidir se a intenção permite navegar.
+
+## Correção de transcrição
+
+O `TranscriptionCorrectionService` corrige palavras do vocabulário fechado
+relevante para o parser e para o guard (`capitulo`, `versiculo`, verbos de
+ação como `vamos`/`abra`/`mostre`/`coloque`/`projete`, marcadores de citação
+como `como`/`vimos`/`segundo`, negações `nao`/`sem`). Nomes de livros ficam de
+fora de propósito, por serem muitos e mais arriscados de corrigir errado.
+
+Duas camadas, nesta ordem:
+
+1. **Confusões conhecidas**: um mapa explícito de palavras já observadas em
+   testes reais, como `capeta` → `capitulo` (o Vosk transcreveu "capítulo"
+   como "capeta" com um pregador de sotaque forte). Esse mapa deve crescer por
+   observação direta — quando aparecer um novo caso, basta adicionar uma
+   linha.
+2. **Distância de edição genérica**: para desvios pequenos não cobertos pelo
+   mapa (ex.: `versiculu` → `versiculo`), usa distância de Levenshtein com
+   limiar curto (1 para palavras de até 5 letras, 2 para palavras maiores) e
+   só corrige quando existe exatamente uma palavra do vocabulário mais
+   próxima. Uma palavra já correta (incluindo com acento) nunca é alterada.
+
+O serviço não conhece intents, comandos estruturados ou o BibleModule; devolve
+apenas texto corrigido, como o `NumberNormalizerService`.
 
 ## Comandos suportados
 
@@ -212,28 +245,37 @@ Motivos:
 - `relative_reference_context`;
 - `unknown_or_unsafe`.
 
-O guard usa NLP.js para classificar a intenção em exemplos de navegação e de
-fala casual. Em português do Brasil, os exemplos ficam em
-`src/modules/command/nlp/pt-br-intent-training.ts`. Novos idiomas devem criar
-perfis próprios, sem misturar exemplos com PT-BR.
+O guard usa o `CommandIntentSignalsService`, que aplica regras determinísticas
+e explícitas em vez de um modelo treinado:
 
-O classificador decide entre:
+1. **Marcadores de citação/menção casual** (`como vimos em`, `segundo`,
+   `lá em`, `lembra de`, `faz referência a`, entre outros): presença de
+   qualquer um bloqueia a execução, não importa o resto da frase.
+2. **Verbos/expressões de ação** (`vamos para/pra/ao/abrir/ler`, `abra`,
+   `mostre`, `coloque`, `projete`, `volta para`, `acompanhe`, `agora em`,
+   entre outros): só contam quando aparecem **antes** da referência bíblica
+   na frase. A mesma palavra depois da referência ("o versículo anterior
+   **mostra**...") é narrativa, não comando.
+3. **Negação** (`não`, `sem`): se aparecer junto com um verbo de ação antes da
+   referência, a frase é tratada como casual em vez de executada (`não vamos
+   abrir Romanos 8 agora`).
+4. Sem nenhum sinal acima, o guard cai no comportamento por modo já existente
+   desde a Phase 9.6 (ver abaixo).
 
-- comando explícito de navegação;
-- referência bíblica casual;
-- menção contextual a próximo/anterior;
-- referência direta sem ação explícita.
+Livros que começam com "2" no nome (2 Pedro, 2 João, 2 Samuel, 2 Reis,
+2 Crônicas, 2 Coríntios, 2 Tessalonicenses, 2 Timóteo) são uma exceção
+explícita ao marcador de citação `segundo`/`2`, para não bloquear uma
+referência direta a esses livros.
+
+Cada regra é uma lista curta e plana de expressões — ao contrário do
+treinamento por exemplos da Phase 9.7, adicionar cobertura para uma frase nova
+não exige repetir a combinação para cada livro da Bíblia.
 
 No modo `conservative`, referências bíblicas diretas, como
-`Apocalipse 12 13`, continuam bloqueadas. Frases como `vamos para`,
-`vamos pra`, `vamos ao`, `abra em`, `mostre`, `coloque`, `projete`,
-`vamos ler`, `acompanhe comigo em` e variações treinadas podem executar quando
-o parser já identificou uma referência bíblica válida. A variante
-`vamos parar` também é treinada porque é uma transcrição comum de `vamos para`
-em fala contínua.
-
-No modo `fast`, uma referência direta como `Apocalipse 12 13` também executa.
-Frases claramente casuais continuam bloqueadas nos dois modos.
+`Apocalipse 12 13`, continuam bloqueadas quando nenhum verbo de ação é
+identificado. No modo `fast`, uma referência direta como `Apocalipse 12 13`
+também executa. Frases claramente casuais continuam bloqueadas nos dois
+modos.
 
 Exemplos executados:
 
@@ -291,7 +333,11 @@ Somente decisões `execute` seguem para o `BibleNavigationService`. Uma decisão
 - não há intervalos de versículos;
 - não há composição de múltiplos comandos;
 - o contexto fica somente em memória;
-- o NLP.js melhora a flexibilidade, mas continua dependente dos exemplos de
-  treinamento versionados;
+- as regras de intenção são explícitas e determinísticas: não compreendem
+  frases fora dos marcadores e verbos já previstos, como uma IA faria;
+- a correção de transcrição cobre um vocabulário fechado pequeno; nomes de
+  livros não são corrigidos automaticamente;
 - novas formas recorrentes de pedir ou mencionar uma passagem devem ser
-  adicionadas ao perfil de treinamento do idioma correspondente.
+  adicionadas às listas de `CommandIntentSignalsService`; novas confusões de
+  transcrição devem ser adicionadas ao mapa do
+  `TranscriptionCorrectionService`.
