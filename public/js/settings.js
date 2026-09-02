@@ -61,37 +61,52 @@
 
   const intentReasonLabels = {
     explicit_action:
-      'Ação explícita, palavra de ativação ou referência direta no modo rápido',
+      'Ação explícita, palavra de ativação ou referência direta',
     casual_reference: 'Referência mencionada em contexto casual',
     relative_reference_context: 'Comando relativo dentro de outra frase',
     unknown_or_unsafe: 'Intenção desconhecida ou insegura',
     repeated_reference: 'Confirmado por repetição da mesma referência',
   };
 
+  const formatTranscription = (original, normalized) => {
+    if (!original) {
+      return 'Nenhuma transcrição processada.';
+    }
+
+    if (normalized && normalized !== original) {
+      return `"${original}" → normalizado: "${normalized}"`;
+    }
+
+    return `"${original}"`;
+  };
+
+  const formatDecision = (lastCommand) => {
+    if (!lastCommand) {
+      return 'Nenhuma decisão registrada.';
+    }
+
+    const decision =
+      intentDecisionLabels[lastCommand.intentDecision] ??
+      lastCommand.intentDecision;
+    const reason =
+      intentReasonLabels[lastCommand.intentReason] ??
+      lastCommand.intentReason;
+
+    return `${decision} — ${reason}`;
+  };
+
   const loadCommandDiagnostics = async () => {
-    const originalElement = document.querySelector(
-      '[data-command-transcription-original]',
-    );
-    const normalizedElement = document.querySelector(
-      '[data-command-transcription-normalized]',
+    const transcriptionElement = document.querySelector(
+      '[data-command-transcription]',
     );
     const commandElement = document.querySelector(
       '[data-command-identified]',
     );
     const decisionElement = document.querySelector(
-      '[data-command-intent-decision]',
-    );
-    const reasonElement = document.querySelector(
-      '[data-command-intent-reason]',
+      '[data-command-decision]',
     );
 
-    if (
-      !originalElement ||
-      !normalizedElement ||
-      !commandElement ||
-      !decisionElement ||
-      !reasonElement
-    ) {
+    if (!transcriptionElement || !commandElement || !decisionElement) {
       return;
     }
 
@@ -105,45 +120,26 @@
       }
 
       const status = await response.json();
-      originalElement.textContent = status.lastTranscription
-        ? `"${status.lastTranscription}"`
-        : 'Nenhuma transcrição processada.';
-      normalizedElement.textContent =
-        status.lastNormalizedTranscription
-          ? `"${status.lastNormalizedTranscription}"`
-          : 'Nenhuma transcrição normalizada.';
+      transcriptionElement.textContent = formatTranscription(
+        status.lastTranscription,
+        status.lastNormalizedTranscription,
+      );
       commandElement.textContent = formatCommand(status.lastCommand);
-      decisionElement.textContent = status.lastCommand
-        ? intentDecisionLabels[status.lastCommand.intentDecision] ??
-          status.lastCommand.intentDecision
-        : 'Nenhuma decisão registrada.';
-      reasonElement.textContent = status.lastCommand
-        ? intentReasonLabels[status.lastCommand.intentReason] ??
-          status.lastCommand.intentReason
-        : 'Nenhum motivo registrado.';
+      decisionElement.textContent = formatDecision(status.lastCommand);
     } catch {
-      originalElement.textContent =
-        'Não foi possível consultar o diagnóstico.';
-      normalizedElement.textContent =
+      transcriptionElement.textContent =
         'Não foi possível consultar o diagnóstico.';
       commandElement.textContent =
         'Não foi possível consultar o diagnóstico.';
       decisionElement.textContent =
         'Não foi possível consultar a decisão.';
-      reasonElement.textContent =
-        'Não foi possível consultar o motivo.';
     }
   };
 
   const loadNavigationDiagnostics = async () => {
-    const referenceElement = document.querySelector(
-      '[data-navigation-reference]',
-    );
-    const commandElement = document.querySelector(
-      '[data-navigation-command]',
-    );
+    const statusElement = document.querySelector('[data-navigation-status]');
 
-    if (!referenceElement || !commandElement) {
+    if (!statusElement) {
       return;
     }
 
@@ -157,15 +153,15 @@
       }
 
       const status = await response.json();
-      referenceElement.textContent =
-        status.currentReference ?? 'Nenhuma referência selecionada.';
-      commandElement.textContent = status.lastAppliedCommand
-        ? formatCommand(status.lastAppliedCommand)
-        : 'Nenhum comando aplicado.';
+      const reference =
+        status.currentReference ?? 'Nenhuma referência selecionada';
+      const appliedCommand = status.lastAppliedCommand
+        ? ` · último comando: ${formatCommand(status.lastAppliedCommand)}`
+        : '';
+
+      statusElement.textContent = `${reference}${appliedCommand}`;
     } catch {
-      referenceElement.textContent =
-        'Não foi possível consultar a navegação.';
-      commandElement.textContent =
+      statusElement.textContent =
         'Não foi possível consultar a navegação.';
     }
   };
@@ -174,11 +170,8 @@
     const statusElement = document.querySelector(
       '[data-projection-status]',
     );
-    const errorElement = document.querySelector(
-      '[data-projection-error]',
-    );
 
-    if (!statusElement || !errorElement) {
+    if (!statusElement) {
       return;
     }
 
@@ -196,7 +189,6 @@
 
       if (!status) {
         statusElement.textContent = 'Nenhum envio realizado.';
-        errorElement.textContent = 'Nenhum erro registrado.';
         return;
       }
 
@@ -205,16 +197,14 @@
         'local-only': 'Somente local',
         failed: 'Falha no envio',
       };
+      const error = status.error ? ` · erro: ${status.error}` : '';
+
       statusElement.textContent =
         `${labels[status.delivery] ?? status.delivery}: ` +
-        `${status.reference} (${status.version})`;
-      errorElement.textContent =
-        status.error ?? 'Nenhum erro registrado.';
+        `${status.reference} (${status.version})${error}`;
     } catch {
       statusElement.textContent =
         'Não foi possível consultar o último envio.';
-      errorElement.textContent =
-        'Não foi possível consultar o último erro.';
     }
   };
 
@@ -402,8 +392,6 @@
       form.elements.removeHolyricsApiKey.checked = false;
       form.elements.removeHolyricsApiToken.checked = false;
       form.elements.language.value = settings.language ?? 'pt-BR';
-      form.elements.voiceCommandMode.value =
-        settings.voiceCommandMode ?? 'conservative';
       form.elements.voiceActivationWord.value =
         settings.voiceActivationWord ?? '';
       const microphone = settings.microphone ?? '';
@@ -529,7 +517,6 @@
         holyricsHost: form.elements.holyricsHost.value,
         holyricsPort: portValue ? Number(portValue) : null,
         language: form.elements.language.value,
-        voiceCommandMode: form.elements.voiceCommandMode.value,
         voiceActivationWord: form.elements.voiceActivationWord.value.trim(),
         microphone: form.elements.microphone.value,
         voskModelPath: form.elements.voskModelPath.value,
@@ -924,7 +911,7 @@
             '[data-speech-transcription]',
           );
           const commandTranscription = document.querySelector(
-            '[data-command-transcription-original]',
+            '[data-command-transcription]',
           );
 
           if (transcription) {
@@ -939,32 +926,6 @@
         }
 
         if (event.type === 'COMMAND_IDENTIFIED') {
-          const command = document.querySelector(
-            '[data-command-identified]',
-          );
-
-          if (command) {
-            command.textContent = formatCommand(event.payload);
-          }
-
-          const decision = document.querySelector(
-            '[data-command-intent-decision]',
-          );
-          const reason = document.querySelector(
-            '[data-command-intent-reason]',
-          );
-
-          if (decision) {
-            decision.textContent =
-              intentDecisionLabels[event.payload.intentDecision] ??
-              event.payload.intentDecision;
-          }
-          if (reason) {
-            reason.textContent =
-              intentReasonLabels[event.payload.intentReason] ??
-              event.payload.intentReason;
-          }
-
           void loadCommandDiagnostics();
         }
 
@@ -977,13 +938,7 @@
           event.type === 'SYSTEM_ERROR' &&
           event.payload.source === 'holyrics-bible-projection'
         ) {
-          const projectionError = document.querySelector(
-            '[data-projection-error]',
-          );
-
-          if (projectionError) {
-            projectionError.textContent = event.payload.message;
-          }
+          void loadProjectionDiagnostics();
         }
 
         if (event.type === 'SPEECH_STARTED') {

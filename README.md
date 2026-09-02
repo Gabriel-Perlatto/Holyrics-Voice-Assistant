@@ -6,7 +6,7 @@ igrejas. O projeto está em desenvolvimento incremental conforme o
 
 ## Estado atual
 
-As **Phases 0 a 9.11** estão concluídas. Esta versão contém:
+As **Phases 0 a 9.13** estão concluídas. Esta versão contém:
 
 - aplicação principal em NestJS;
 - frontend estático servido pelo próprio NestJS;
@@ -73,7 +73,11 @@ As **Phases 0 a 9.11** estão concluídas. Esta versão contém:
 - palavra de ativação configurável (padrão `sistema`): quando dita, executa
   a referência com prioridade sobre citação casual, mesmo sem verbo de ação;
 - correção de nomes de livros bíblicos transcritos com pequenos desvios
-  (ex.: "apocaliste" → "apocalipse"), quando seguidos de um número.
+  (ex.: "apocaliste" → "apocalipse"), quando seguidos de um número;
+- corte proativo de segmento no Vosk após 12s de fala contínua sem pausa, e
+  junção de borda para recuperar um comando partido entre dois segmentos;
+- sem modo configurável: uma referência bíblica direta sempre executa, sem
+  precisar de gatilho.
 
 Esta fase não inclui apresentação real da passagem no Holyrics, texto bíblico,
 louvor, envio de comandos ao Holyrics, controle de apresentações, IA
@@ -204,7 +208,6 @@ curl --request PUT http://localhost:3000/api/settings \
     "microphone": "default",
     "voskModelPath": "models/pt-BR/vosk-model-small-pt-0.3",
     "speechAutoStart": false,
-    "voiceCommandMode": "conservative",
     "voiceActivationWord": "sistema"
   }'
 ```
@@ -618,3 +621,50 @@ referência de livro isolado sem capítulo. O risco de uma palavra comum
 seguida de número por coincidência continua existindo, mas é bem mais
 restrito do que tentar corrigir qualquer palavra em qualquer posição.
 Consulte [`docs/command-interpreter.md`](docs/command-interpreter.md).
+
+## Decisões técnicas da Phase 9.12
+
+Um teste real com uma pregação contínua, sem pausas, revelou dois problemas.
+Primeiro: o Vosk/Kaldi decide sozinho quando fechar uma frase (silêncio =
+final); sem pausas, esse fechamento demora, o reconhecedor interno degrada, e
+as últimas palavras antes de um corte forçado saem quebradas. Segundo: um
+comando de voz pode ficar partido entre o fim de um segmento de transcrição
+e o início do próximo.
+
+Para o primeiro problema, o `VoskSpeechProvider` passou a impor um limite
+próprio de 12 segundos por segmento: se nenhuma transcrição final natural
+acontecer antes disso, o provider chama `recognizer.finalResult()`
+proativamente (o mesmo método já usado ao parar a captura), evitando chegar
+no limite interno do reconhecedor.
+
+Para o segundo, o `CommandService` tenta uma junção de borda quando o
+segmento isolado resulta em `unknown_or_unsafe`: cola as últimas até 8
+palavras do segmento anterior na frente do atual e tenta de novo. Duas
+salvaguardas: um segmento que já executou nunca é reaproveitado (evita
+reexecutar a mesma referência por coincidência com um segmento novo), e a
+tentativa de junção usa uma avaliação exploratória (`record: false` em
+`CommandIntentGuardService.decide()`) que não grava estado de repetição —
+só a decisão final é gravada. Consulte
+[`docs/speech-providers.md`](docs/speech-providers.md) e
+[`docs/command-interpreter.md`](docs/command-interpreter.md).
+
+## Decisões técnicas da Phase 9.13
+
+As Phases 9.6 a 9.12 mantinham dois modos configuráveis (`voiceCommandMode`):
+`conservative`, que bloqueava uma referência direta sem verbo de ação, e
+`fast`, que a executava de imediato. Na prática, o modo `conservative` só
+adicionava uma etapa extra (dizer "vamos para" antes de toda referência) sem
+ganho real de segurança — frases casuais já são bloqueadas pelo
+`CommandIntentSignalsService` independentemente do modo. Esta fase removeu a
+escolha: o comportamento do antigo modo `fast` passou a ser o único e sempre
+ativo.
+
+`voiceCommandMode` foi removido de `Settings`, do DTO de atualização, do
+evento `SETTINGS_UPDATED` e do formulário em `/settings`. A coluna
+`voice_command_mode` permanece no SQLite, sem uso, para não exigir uma
+migração destrutiva — bancos existentes continuam abrindo normalmente. A
+confirmação por repetição (Phase 9.9) e a junção de borda (Phase 9.12)
+continuam existindo, mas agora só entram em jogo para uma referência
+embutida numa frase maior sem verbo de ação; uma referência direta nunca
+mais chega a precisar delas. Consulte
+[`docs/command-interpreter.md`](docs/command-interpreter.md).

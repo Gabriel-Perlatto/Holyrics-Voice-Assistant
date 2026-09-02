@@ -102,6 +102,28 @@ conf/mfcc.conf
 graph/HCLG.fst
 ```
 
+## Corte proativo de segmento (Phase 9.12)
+
+O Vosk/Kaldi decide sozinho quando fechar uma frase (silêncio detectado =
+transcrição final). Em fala contínua e sem pausas — comum em pregações —,
+esse fechamento natural pode demorar muito para acontecer. Nesses casos, o
+reconhecedor interno degrada e as últimas palavras antes de um corte forçado
+saem transcritas incorretamente.
+
+Para evitar isso, o `VoskSpeechProvider` mantém um temporizador de segmento:
+sempre que existe uma transcrição parcial em andamento, um temporizador de
+`MAX_SEGMENT_DURATION_MS` (12 segundos) é agendado. Se nenhuma transcrição
+final natural acontecer antes disso, o provider chama `recognizer.finalResult()`
+proativamente — o mesmo método já usado ao parar a captura —, emite o
+resultado como transcrição final e reinicia a contagem para o próximo
+segmento. Uma transcrição final natural sempre cancela o temporizador
+pendente.
+
+Esse corte proativo pode, por sua vez, partir um comando de voz entre dois
+segmentos (ex.: o verbo de ação em um segmento, a referência bíblica no
+seguinte). O `CommandService` trata esse caso — consulte
+[`docs/command-interpreter.md`](command-interpreter.md#junção-de-borda-entre-segmentos-phase-912).
+
 ## Captura de áudio
 
 O backend usa `ffmpeg` para produzir PCM `s16le`, mono, a 16 kHz:

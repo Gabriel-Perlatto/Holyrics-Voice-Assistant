@@ -56,7 +56,6 @@ describe('SpeechService', () => {
         microphone: 'default',
         voskModelPath: '/models/pt-BR/model',
         speechAutoStart: false,
-        voiceCommandMode: 'conservative',
         updatedAt: '2026-06-20T00:00:00.000Z',
       })),
     }) as unknown as jest.Mocked<SettingsService>;

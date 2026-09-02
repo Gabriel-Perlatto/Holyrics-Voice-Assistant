@@ -1,6 +1,6 @@
 # Interpretador de comandos
 
-## Escopo das Phases 8, 8.5, 9.6, 9.8, 9.9, 9.10 e 9.11
+## Escopo das Phases 8, 8.5, 9.6, 9.8, 9.9, 9.10, 9.11, 9.12 e 9.13
 
 O `CommandModule` transforma texto em comandos estruturados de forma local,
 sem dependência de internet.
@@ -303,8 +303,13 @@ e explícitas em vez de um modelo treinado:
 3. **Negação** (`não`, `sem`): se aparecer junto com um verbo de ação antes da
    referência, a frase é tratada como casual em vez de executada (`não vamos
    abrir Romanos 8 agora`).
-4. Sem nenhum sinal acima, o guard cai no comportamento por modo já existente
-   desde a Phase 9.6 (ver abaixo).
+4. Sem nenhum sinal acima, uma referência **direta** — quando a frase inteira,
+   sem mais nada, já é a referência bíblica (ex.: `Apocalipse 12 13`) —
+   sempre executa. Esse é o único comportamento desde a Phase 9.13 (ver
+   [Remoção do modo conservador](#remoção-do-modo-conservador-phase-913));
+   uma referência **embutida** numa frase maior, sem nenhum verbo de ação
+   antes dela, continua sem executar de imediato — ali entra a
+   [confirmação por repetição](#repetição-como-confirmação-phase-99).
 
 Livros que começam com "2" no nome (2 Pedro, 2 João, 2 Samuel, 2 Reis,
 2 Crônicas, 2 Coríntios, 2 Tessalonicenses, 2 Timóteo) são uma exceção
@@ -315,11 +320,9 @@ Cada regra é uma lista curta e plana de expressões — ao contrário do
 treinamento por exemplos da Phase 9.7, adicionar cobertura para uma frase nova
 não exige repetir a combinação para cada livro da Bíblia.
 
-No modo `conservative`, referências bíblicas diretas, como
-`Apocalipse 12 13`, continuam bloqueadas quando nenhum verbo de ação é
-identificado. No modo `fast`, uma referência direta como `Apocalipse 12 13`
-também executa. Frases claramente casuais continuam bloqueadas nos dois
-modos.
+Uma referência direta, como `Apocalipse 12 13` dita sozinha, sempre executa —
+não é preciso nenhum verbo de ação antes dela. Frases claramente casuais
+continuam bloqueadas mesmo assim.
 
 Exemplos executados:
 
@@ -330,12 +333,12 @@ acompanhe comigo em Filipenses 4
 abra em João 3 16
 mostre Salmos 23 1
 próximo versículo
+Apocalipse 12 13
 ```
 
 Exemplos ignorados:
 
 ```text
-Apocalipse 12 13                 # modo conservador
 como vimos em Apocalipse 12 13
 segundo Apocalipse 12 13
 no próximo versículo veremos
@@ -343,15 +346,15 @@ não podemos fazer isso com o próximo
 o próximo irmão pode vir
 ```
 
-`voiceCommandMode` é persistido nas configurações locais. O valor padrão é
-`conservative`; o outro valor aceito é `fast`.
-
 ## Repetição como confirmação (Phase 9.9)
 
-Quando o pregador tenta navegar e o sistema não reconhece a ação (nenhum
-verbo de ação identificado, ex.: apenas `Apocalipse 12 13` no modo
-conservador), o comportamento natural é repetir a mesma referência. O
-`CommandRepetitionService` guarda a última referência ignorada por essa razão
+Quando o pregador tenta navegar e o sistema não reconhece a ação — uma
+referência **embutida** numa frase maior, sem nenhum verbo de ação antes
+dela, ex.: "sabe aquele texto Apocalipse 12 13" —, o comportamento natural é
+repetir a mesma referência. Desde a Phase 9.13, uma referência **direta**
+(a frase inteira é só a referência) já executa de imediato e nunca chega a
+precisar dessa confirmação. O `CommandRepetitionService` guarda a última
+referência ignorada por essa razão
 específica (`unknown_or_unsafe`) e, se a mesma referência — ou um refinamento
 dela, como `Apocalipse 12` seguido de `Apocalipse 12 13` — for identificada de
 novo em até 8 segundos, a segunda vez executa com o motivo
@@ -377,8 +380,11 @@ Além dos verbos de ação da Phase 9.8 ("vamos para", "abra em"...), o guard
 aceita uma palavra de ativação dedicada e configurável
 (`voiceActivationWord`, padrão `sistema`). Quando ela aparece em qualquer
 lugar da frase, a referência identificada executa imediatamente — com
-prioridade sobre marcadores de citação casual e sobre negação — mesmo no
-modo `conservative` e mesmo sem nenhum dos verbos de ação já reconhecidos.
+prioridade sobre marcadores de citação casual e sobre negação — mesmo sem
+nenhum dos verbos de ação já reconhecidos. Isso importa sobretudo para uma
+referência **embutida** numa frase maior (que, sem a palavra de ativação,
+dependeria de um verbo de ação ou da confirmação por repetição); uma
+referência **direta** já executa de qualquer forma desde a Phase 9.13.
 
 ```text
 sistema Apocalipse 12 13          # executa
@@ -388,14 +394,81 @@ sistema, como vimos em João 3 16  # executa mesmo assim: a palavra de
 
 A palavra é configurável em `/settings` e persistida em
 `voiceActivationWord`. Um texto vazio desativa a checagem — nesse caso, o
-guard cai de volta nos verbos de ação e no comportamento por modo já
-existente. A comparação ignora acentuação e maiúsculas/minúsculas, mas exige
-a palavra inteira (`sistema` não confunde com `sistemas`).
+guard cai de volta nos verbos de ação e na confirmação por repetição. A
+comparação ignora acentuação e maiúsculas/minúsculas, mas exige a palavra
+inteira (`sistema` não confunde com `sistemas`).
 
 Diferente do `CommandIntentSignalsService`, que reconhece frases inteiras
 específicas, a palavra de ativação é um único termo livre, escolhido pela
 igreja — não precisa ser "sistema"; pode ser qualquer palavra que o pregador
 não usaria naturalmente no meio de uma pregação.
+
+## Junção de borda entre segmentos (Phase 9.12)
+
+Em fala contínua e sem pausas, um comando pode ficar partido entre o fim de
+um segmento de transcrição e o início do próximo — seja por um corte natural
+do Vosk, seja pelo corte proativo do `VoskSpeechProvider` (ver
+[`docs/speech-providers.md`](speech-providers.md#corte-proativo-de-segmento-phase-912)).
+Isso cobre dois casos:
+
+```text
+"vamos abrir em"           | "apocalipse 12 13"
+"vamos para apocalipse"    | "capítulo 12 13"
+```
+
+No primeiro, o segmento atual sozinho já forma uma referência válida, mas
+sem o verbo de ação que ficou no segmento anterior. No segundo, o segmento
+atual sozinho nem forma uma referência (falta o livro). Nos dois casos, o
+guard, avaliado isoladamente, retorna `unknown_or_unsafe`.
+
+Quando isso acontece — e o segmento anterior **não** resultou em execução —,
+o `CommandService` tenta de novo com as últimas até 8 palavras do segmento
+anterior coladas na frente do segmento atual, refazendo toda a correção de
+transcrição e o parser sobre o texto combinado. Se essa combinação resultar
+em `execute`, ela é usada; caso contrário, o resultado isolado do segmento
+atual prevalece.
+
+Duas salvaguardas:
+
+- **Um segmento já executado nunca vira isca de junção.** Se o segmento
+  anterior já executou um comando, ele não é reaproveitado — combinar seu
+  texto com um segmento novo poderia reconstruir e reexecutar a mesma
+  referência por coincidência com palavras soltas do segmento seguinte.
+- **A avaliação da junção não grava estado de repetição.** O
+  `CommandIntentGuardService.decide()` aceita um parâmetro `record` para
+  decisões exploratórias; a tentativa de junção usa `record: false`, e só a
+  decisão final (isolada ou combinada, o que executar) é gravada de verdade.
+  Isso evita que uma tentativa de junção descartada "roube" a memória de
+  repetição do segmento isolado.
+
+O diagnóstico em `/settings` sempre mostra a transcrição normalizada do
+**segmento isolado**, nunca o texto combinado — a junção só afeta a decisão
+de executar, não o que é exibido como última transcrição.
+
+## Remoção do modo conservador (Phase 9.13)
+
+As Phases 9.6 a 9.12 mantinham dois modos configuráveis
+(`voiceCommandMode`): `conservative`, que bloqueava uma referência direta
+sem verbo de ação, e `fast`, que a executava de imediato. Na prática, o modo
+`conservative` só adicionava uma etapa extra (dizer "vamos para" antes de
+toda referência) sem ganho real de segurança — frases claramente casuais já
+são bloqueadas pelo `CommandIntentSignalsService` independentemente de
+qualquer modo. A Phase 9.13 removeu a escolha: o comportamento do antigo
+modo `fast` passou a ser o único e sempre ativo.
+
+O que muda em relação às Phases anteriores:
+
+- uma referência **direta** (a frase inteira é a referência, ex.:
+  `Apocalipse 12 13`) sempre executa, sem precisar de nenhum verbo de ação;
+- a confirmação por repetição (Phase 9.9) e a junção de borda (Phase 9.12)
+  continuam existindo, mas agora só entram em jogo para uma referência
+  **embutida** numa frase maior sem verbo de ação — o caso de uma referência
+  direta nunca mais chega a precisar delas;
+- `voiceCommandMode` foi removido de `Settings`, do DTO de atualização, do
+  evento `SETTINGS_UPDATED` e do formulário em `/settings`. A coluna
+  `voice_command_mode` permanece no SQLite (sem uso) para não exigir uma
+  migração destrutiva; bancos existentes não perdem dados.
+- `CommandIntentGuardService.decide()` não recebe mais um parâmetro de modo.
 
 ## Números suportados
 
@@ -430,8 +503,15 @@ Somente decisões `execute` seguem para o `BibleNavigationService`. Uma decisão
 - o contexto fica somente em memória;
 - as regras de intenção são explícitas e determinísticas: não compreendem
   frases fora dos marcadores e verbos já previstos, como uma IA faria;
-- a correção de transcrição cobre um vocabulário fechado pequeno; nomes de
-  livros não são corrigidos automaticamente;
+- a correção de transcrição (palavras-chave) e a de nomes de livros cobrem
+  vocabulários fechados pequenos e conservadores — ver
+  [Correção de nomes de livros](#correção-de-nomes-de-livros-phase-911);
+- a junção de borda entre segmentos (Phase 9.12) olha no máximo 8 palavras
+  do fim do segmento anterior, só é tentada quando o segmento isolado dá
+  `unknown_or_unsafe`, e nunca reaproveita um segmento que já executou;
+- desde a Phase 9.13, não há modo configurável: uma referência direta
+  sempre executa. Não há mais uma opção mais "cautelosa" para quem prefira
+  exigir um verbo de ação mesmo em referências ditas sozinhas;
 - novas formas recorrentes de pedir ou mencionar uma passagem devem ser
   adicionadas às listas de `CommandIntentSignalsService`; novas confusões de
   transcrição devem ser adicionadas ao mapa do

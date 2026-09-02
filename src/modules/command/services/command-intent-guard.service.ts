@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import type { VoiceCommandMode } from '../../settings/interfaces/settings.interface';
 import { CommandType } from '../enums/command-type.enum';
 import type {
   CommandIntentGuardDecision,
@@ -29,12 +28,20 @@ export class CommandIntentGuardService {
     private readonly repetition: CommandRepetitionService,
   ) {}
 
+  /**
+   * `record` controla se a decisão grava efeitos colaterais no
+   * `CommandRepetitionService` (lembrar uma referência ignorada, ou limpá-la
+   * ao executar). Use `record: false` para uma avaliação exploratória — por
+   * exemplo, o `CommandService` testa uma junção de borda com o segmento
+   * anterior antes de decidir qual texto realmente usar — e deixe o valor
+   * padrão para a decisão que efetivamente será aplicada.
+   */
   decide(
     originalTranscription: unknown,
     normalizedTranscription: string,
     command: StructuredCommand,
-    mode: VoiceCommandMode,
     activationWord: string | null = null,
+    record = true,
   ): CommandIntentGuardDecision {
     if (command.type === CommandType.UNKNOWN) {
       return {
@@ -50,7 +57,7 @@ export class CommandIntentGuardService {
     const signal = this.signals.detect(normalized, command, activationWord);
 
     if (signal) {
-      if (signal.decision === 'execute') {
+      if (signal.decision === 'execute' && record) {
         this.repetition.clear();
       }
 
@@ -66,8 +73,10 @@ export class CommandIntentGuardService {
           };
     }
 
-    if (mode === 'fast' && isDirectReference) {
-      this.repetition.clear();
+    if (isDirectReference) {
+      if (record) {
+        this.repetition.clear();
+      }
 
       return {
         decision: 'execute',
@@ -76,7 +85,9 @@ export class CommandIntentGuardService {
     }
 
     if (this.repetition.isRepetition(command)) {
-      this.repetition.clear();
+      if (record) {
+        this.repetition.clear();
+      }
 
       return {
         decision: 'execute',
@@ -84,7 +95,9 @@ export class CommandIntentGuardService {
       };
     }
 
-    this.repetition.rememberIgnored(command);
+    if (record) {
+      this.repetition.rememberIgnored(command);
+    }
 
     return {
       decision: 'ignore',

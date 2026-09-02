@@ -178,17 +178,6 @@
               </label>
 
               <label class="field-group">
-                <span>Modo de comando por voz</span>
-                <select name="voiceCommandMode" data-settings-field>
-                  <option value="conservative">Conservador</option>
-                  <option value="fast">Rápido</option>
-                </select>
-                <small>
-                  Conservador exige uma ação explícita antes da referência.
-                </small>
-              </label>
-
-              <label class="field-group">
                 <span>Palavra de ativação por voz</span>
                 <input
                   type="text"
@@ -339,58 +328,35 @@
         </div>
 
         <p class="field-group__description">
-          Esta seção mostra interpretação, decisão de segurança, navegação
-          interna e o resultado do envio ao Holyrics.
+          Cada linha resume um passo do processamento: o que foi ouvido, o
+          que o sistema entendeu, se executou ou não e por quê, e o
+          resultado da navegação e do envio ao Holyrics.
         </p>
 
-        <div class="transcription-panel">
-          <span>Última transcrição original</span>
-          <p data-command-transcription-original>
-            Nenhuma transcrição processada.
-          </p>
-        </div>
-
-        <div class="transcription-panel">
-          <span>Última transcrição normalizada</span>
-          <p data-command-transcription-normalized>
-            Nenhuma transcrição normalizada.
-          </p>
-        </div>
-
-        <div class="transcription-panel">
-          <span>Último comando identificado</span>
-          <p data-command-identified>Nenhum comando identificado.</p>
-        </div>
-
-        <div class="transcription-panel">
-          <span>Decisão do guard</span>
-          <p data-command-intent-decision>Nenhuma decisão registrada.</p>
-        </div>
-
-        <div class="transcription-panel">
-          <span>Motivo</span>
-          <p data-command-intent-reason>Nenhum motivo registrado.</p>
-        </div>
-
-        <div class="transcription-panel">
-          <span>Referência atual</span>
-          <p data-navigation-reference>Nenhuma referência selecionada.</p>
-        </div>
-
-        <div class="transcription-panel">
-          <span>Último comando aplicado</span>
-          <p data-navigation-command>Nenhum comando aplicado.</p>
-        </div>
-
-        <div class="transcription-panel">
-          <span>Último envio ao Holyrics</span>
-          <p data-projection-status>Nenhum envio realizado.</p>
-        </div>
-
-        <div class="transcription-panel">
-          <span>Último erro de envio</span>
-          <p data-projection-error>Nenhum erro registrado.</p>
-        </div>
+        <dl class="status-list">
+          <div>
+            <dt>Transcrição</dt>
+            <dd data-command-transcription>
+              Nenhuma transcrição processada.
+            </dd>
+          </div>
+          <div>
+            <dt>Comando interpretado</dt>
+            <dd data-command-identified>Nenhum comando identificado.</dd>
+          </div>
+          <div>
+            <dt>Decisão</dt>
+            <dd data-command-decision>Nenhuma decisão registrada.</dd>
+          </div>
+          <div>
+            <dt>Navegação</dt>
+            <dd data-navigation-status>Nenhuma navegação registrada.</dd>
+          </div>
+          <div>
+            <dt>Envio ao Holyrics</dt>
+            <dd data-projection-status>Nenhum envio realizado.</dd>
+          </div>
+        </dl>
       </section>
 
       <section class="status-panel" aria-labelledby="system-status-title">

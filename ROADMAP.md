@@ -820,6 +820,10 @@ Fora de escopo:
 - funcionalidades de louvor
 - Phase 10
 
+Nota de 1 de setembro de 2026: os modos `conservative` e `fast` introduzidos
+nesta fase foram removidos na Phase 9.13. O comportamento do antigo modo
+`fast` passou a ser o único e sempre ativo.
+
 ---
 
 # Phase 9.7 - Command Intent NLP e Conexão Holyrics Web
@@ -1055,6 +1059,116 @@ Critérios de aceite:
 Fora de escopo:
 
 - correção de referências de livro isolado, sem capítulo nem versículo
+- IA generativa, LLM ou modelo treinado
+- Phase 10
+
+---
+
+# Phase 9.12 - Corte Proativo de Segmento e Junção de Borda
+
+Objetivo:
+
+Corrigir dois problemas observados em teste real com pregação contínua e sem
+pausas: palavras quebradas no fim de segmentos muito longos (o Vosk/Kaldi
+degrada internamente), e comandos partidos entre dois segmentos de
+transcrição.
+
+Status: **Concluída em 1 de setembro de 2026.**
+
+Tarefas:
+
+- [x] adicionar temporizador de segmento (`MAX_SEGMENT_DURATION_MS`, 12s) ao
+  `VoskSpeechProvider`
+- [x] forçar `recognizer.finalResult()` proativamente quando o temporizador
+  expira sem uma transcrição final natural
+- [x] cancelar o temporizador a cada transcrição final natural e ao
+  parar/descartar o provider
+- [x] adicionar parâmetro `record` a `CommandIntentGuardService.decide()`
+  para avaliações exploratórias sem gravar efeitos de repetição
+- [x] tentar junção de borda no `CommandService` quando o segmento isolado
+  resulta em `unknown_or_unsafe`: até 8 palavras do fim do segmento anterior
+  coladas na frente do atual, reprocessadas pela correção de transcrição e
+  pelo parser
+- [x] nunca reaproveitar um segmento anterior que já executou como isca de
+  junção
+- [x] manter a transcrição normalizada exibida em `/settings` sempre como a
+  do segmento isolado, nunca a combinada
+- [x] atualizar `docs/speech-providers.md` e `docs/command-interpreter.md`
+
+Critérios de aceite:
+
+- [x] fala contínua sem pausa por mais de 12s gera um corte proativo, sem
+  esperar o Vosk decidir sozinho
+- [x] um corte natural cancela o temporizador pendente
+- [x] gatilho no segmento anterior + referência sozinha no atual executa
+- [x] livro no segmento anterior + capítulo/versículo separado no atual
+  executa
+- [x] dois segmentos comuns não combinam em um comando falso
+- [x] um segmento já executado não é reaproveitado por um segmento seguinte
+  não relacionado
+- [x] a confirmação por repetição (Phase 9.9) continua funcionando quando a
+  junção de borda não resolve
+- [x] testes passam
+- [x] build passa
+- [x] testado manualmente via `/api/commands/interpret`
+
+Fora de escopo:
+
+- processamento de comandos em transcrições parciais (somente finais)
+- junção de mais de dois segmentos
+- ajuste automático da duração máxima de segmento por igreja
+- IA generativa, LLM ou modelo treinado
+- Phase 10
+
+---
+
+# Phase 9.13 - Remoção do Modo Conservador
+
+Objetivo:
+
+Simplificar o guard de intenção removendo a escolha entre os modos
+`conservative` e `fast`: o modo `conservative` só adicionava uma etapa extra
+(exigir um verbo de ação antes de toda referência direta) sem ganho real de
+segurança, já que frases casuais já são bloqueadas pelo
+`CommandIntentSignalsService` independentemente do modo. O comportamento do
+antigo modo `fast` passa a ser o único e sempre ativo.
+
+Status: **Concluída em 1 de setembro de 2026.**
+
+Tarefas:
+
+- [x] remover o parâmetro de modo de `CommandIntentGuardService.decide()`
+- [x] tornar unconditional a execução de referência direta
+  (`isDirectReference`)
+- [x] remover `voiceCommandMode` e `VoiceCommandMode` de `Settings`,
+  `PublicSettings`, `UpdateSettingsDto` e `SettingsUpdatedPayload`
+- [x] remover a validação e a leitura de `voiceCommandMode` em
+  `SettingsService`
+- [x] remover a coluna do fluxo de leitura/escrita do
+  `SettingsRepository`, mantendo a coluna `voice_command_mode` no SQLite
+  (sem uso) para não exigir uma migração destrutiva
+- [x] remover o seletor "Modo de comando por voz" de `/settings`
+- [x] atualizar `docs/command-interpreter.md` e `docs/realtime.md`
+- [x] atualizar a suíte de testes para o comportamento único
+
+Critérios de aceite:
+
+- [x] uma referência direta (`Apocalipse 12 13`) sempre executa, sem
+  gatilho, sem depender de nenhuma configuração
+- [x] a confirmação por repetição (Phase 9.9) e a junção de borda
+  (Phase 9.12) continuam funcionando para referências embutidas numa frase
+  maior, sem verbo de ação
+- [x] frases casuais continuam bloqueadas
+- [x] `GET /api/settings` não retorna mais `voiceCommandMode`
+- [x] bancos SQLite existentes continuam abrindo sem erro
+- [x] testado manualmente via `/settings` e `POST /api/commands/interpret`
+- [x] testes passam
+- [x] build passa
+
+Fora de escopo:
+
+- remover a coluna `voice_command_mode` do SQLite (migração destrutiva)
+- fuzzy matching de nomes de livros além do já feito na Phase 9.11
 - IA generativa, LLM ou modelo treinado
 - Phase 10
 

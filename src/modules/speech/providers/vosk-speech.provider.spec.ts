@@ -157,6 +157,60 @@ describe('VoskSpeechProvider', () => {
     );
   });
 
+  it('força um corte após fala contínua sem pausa', async () => {
+    jest.useFakeTimers();
+
+    try {
+      const handlers = {
+        onTranscription: jest.fn(),
+        onError: jest.fn(),
+      };
+      (recognizer.finalResult as jest.Mock).mockReturnValue({
+        text: 'texto acumulado',
+      });
+      await initialize(handlers);
+      await provider.start();
+      audioHandler?.(Buffer.from([0, 1, 2, 3]));
+
+      expect(recognizer.finalResult).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(12_000);
+
+      expect(recognizer.finalResult).toHaveBeenCalledTimes(1);
+      expect(handlers.onTranscription).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: 'texto acumulado',
+          final: true,
+        }),
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('não corta quando o reconhecedor já fechou a frase naturalmente', async () => {
+    jest.useFakeTimers();
+
+    try {
+      const handlers = {
+        onTranscription: jest.fn(),
+        onError: jest.fn(),
+      };
+      await initialize(handlers);
+      await provider.start();
+      audioHandler?.(Buffer.from([0, 1, 2, 3]));
+
+      (recognizer.acceptWaveform as jest.Mock).mockReturnValue(true);
+      audioHandler?.(Buffer.from([4, 5, 6, 7]));
+
+      jest.advanceTimersByTime(12_000);
+
+      expect(recognizer.finalResult).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('transforma falha do binding em erro controlado', async () => {
     runtimeLoader.load.mockImplementation(() => {
       throw new Error('biblioteca Vosk indisponível');

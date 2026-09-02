@@ -27,7 +27,6 @@ describe('HolyricsService', () => {
     microphone: null,
     voskModelPath: null,
     speechAutoStart: false,
-    voiceCommandMode: 'conservative' as const,
     updatedAt: '2026-06-20T00:00:00.000Z',
   };
 

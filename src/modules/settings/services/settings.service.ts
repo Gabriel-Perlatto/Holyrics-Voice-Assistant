@@ -63,10 +63,6 @@ export class SettingsService {
       currentSettings.speechAutoStart,
       'Inicialização automática da captura',
     );
-    const voiceCommandMode = this.validateVoiceCommandMode(
-      input.voiceCommandMode,
-      currentSettings.voiceCommandMode ?? 'conservative',
-    );
     const voiceActivationWord = this.validateVoiceActivationWord(
       input.voiceActivationWord,
       currentSettings.voiceActivationWord,
@@ -82,7 +78,6 @@ export class SettingsService {
       microphone,
       voskModelPath,
       speechAutoStart,
-      voiceCommandMode,
       voiceActivationWord,
     });
 
@@ -109,7 +104,6 @@ export class SettingsService {
         microphoneConfigured: Boolean(publicSettings.microphone),
         voskModelConfigured: Boolean(publicSettings.voskModelPath),
         speechAutoStart: publicSettings.speechAutoStart,
-        voiceCommandMode: publicSettings.voiceCommandMode,
         voiceActivationWord: publicSettings.voiceActivationWord,
         updatedAt: publicSettings.updatedAt,
       },
@@ -280,23 +274,6 @@ export class SettingsService {
 
     if (typeof value !== 'boolean') {
       throw new BadRequestException(`${fieldName} deve ser verdadeiro ou falso.`);
-    }
-
-    return value;
-  }
-
-  private validateVoiceCommandMode(
-    value: unknown,
-    currentValue: Settings['voiceCommandMode'],
-  ): Settings['voiceCommandMode'] {
-    if (value === undefined) {
-      return currentValue;
-    }
-
-    if (value !== 'conservative' && value !== 'fast') {
-      throw new BadRequestException(
-        'O modo de comando por voz deve ser conservative ou fast.',
-      );
     }
 
     return value;

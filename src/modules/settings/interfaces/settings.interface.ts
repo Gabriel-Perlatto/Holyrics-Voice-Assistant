@@ -1,4 +1,3 @@
-export type VoiceCommandMode = 'conservative' | 'fast';
 export type HolyricsConnectionMode = 'local' | 'web';
 
 export interface Settings {
@@ -11,7 +10,6 @@ export interface Settings {
   microphone: string | null;
   voskModelPath: string | null;
   speechAutoStart: boolean;
-  voiceCommandMode: VoiceCommandMode;
   voiceActivationWord: string | null;
   updatedAt: string;
 }

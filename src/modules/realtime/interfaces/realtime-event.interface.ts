@@ -1,9 +1,6 @@
 import { RealtimeEventType } from '../enums/realtime-event-type.enum';
 import type { CommandIdentification } from '../../command/interfaces/command.interface';
-import type {
-  HolyricsConnectionMode,
-  VoiceCommandMode,
-} from '../../settings/interfaces/settings.interface';
+import type { HolyricsConnectionMode } from '../../settings/interfaces/settings.interface';
 
 export interface HolyricsConnectedPayload {
   connected: true;
@@ -38,7 +35,6 @@ export interface SettingsUpdatedPayload {
   microphoneConfigured: boolean;
   voskModelConfigured: boolean;
   speechAutoStart: boolean;
-  voiceCommandMode: VoiceCommandMode;
   voiceActivationWord: string | null;
   updatedAt: string;
 }

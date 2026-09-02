@@ -15,7 +15,6 @@ describe('HolyricsBibleProjectionService', () => {
     microphone: null,
     voskModelPath: null,
     speechAutoStart: false,
-    voiceCommandMode: 'conservative' as const,
     updatedAt: '2026-06-20T00:00:00.000Z',
   };
   const input = { reference: 'João 3:16', version: 'NVI' };

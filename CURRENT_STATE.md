@@ -6,7 +6,7 @@ Holyrics Voice Assistant
 
 ## Status Geral
 
-Fase atual: 9.11 (Fuzzy Matching de Nomes de Livros)
+Fase atual: 9.13 (Remoção do Modo Conservador)
 
 ## Fases concluídas
 
@@ -30,6 +30,8 @@ Fase atual: 9.11 (Fuzzy Matching de Nomes de Livros)
 - Phase 9.9 — Repetição como Confirmação
 - Phase 9.10 — Palavra de Ativação
 - Phase 9.11 — Fuzzy Matching de Nomes de Livros
+- Phase 9.12 — Corte Proativo de Segmento e Junção de Borda
+- Phase 9.13 — Remoção do Modo Conservador
 
 ## Módulos existentes
 
@@ -79,7 +81,8 @@ Fase atual: 9.11 (Fuzzy Matching de Nomes de Livros)
 - Falhas externas preservam a navegação e emitem erro seguro
 - Diagnóstico do último envio ao Holyrics
 - Guard de intenção antes da navegação por voz
-- Modo conservador padrão e modo rápido configurável
+- Referência bíblica direta sempre executa, sem gatilho nem configuração de
+  modo (modo conservador removido na Phase 9.13)
 - Referências casuais bloqueadas sem `BIBLE_CHANGED` ou envio ao Holyrics
 - Diagnóstico da decisão e do motivo do último comando
 - Sinais de intenção determinísticos (`CommandIntentSignalsService`):
@@ -90,14 +93,20 @@ Fase atual: 9.11 (Fuzzy Matching de Nomes de Livros)
   como "capeta"
 - Reconhecimento de frases de ação como `vamos parar`, `acompanhe comigo em`,
   entre outras, via regras explícitas
-- Repetição da mesma referência bíblica (ou refinamento de capítulo para
-  versículo) em até 8 segundos após ser ignorada por falta de gatilho conta
-  como confirmação e executa
+- Repetição da mesma referência bíblica embutida numa frase (ou refinamento
+  de capítulo para versículo) em até 8 segundos após ser ignorada conta
+  como confirmação e executa; uma referência direta já executa de imediato
+  desde a Phase 9.13
 - Palavra de ativação configurável (`voiceActivationWord`, padrão `sistema`):
   quando dita, executa a referência com prioridade sobre citação casual e
   negação, mesmo sem verbo de ação
 - Correção de nomes de livros transcritos com pequenos desvios (ex.:
   "apocaliste" → "apocalipse"), só quando a palavra é seguida por um número
+- Corte proativo de segmento no Vosk (12s de fala contínua sem pausa),
+  evitando degradação interna do reconhecedor em pregações longas
+- Junção de borda entre segmentos: recupera um comando partido entre o fim
+  de um segmento e o início do próximo, sem reaproveitar um segmento já
+  executado
 - Conexão com o Holyrics em dois modos: `local` (host/porta/token) e `web`
   (API key + token, via `https://api.holyrics.com.br/request/<ação>`)
 - Persistência e proteção da API key web, sem exposição em `GET /api/settings`
@@ -112,8 +121,10 @@ Fase atual: 9.11 (Fuzzy Matching de Nomes de Livros)
 - Ordinais compostos não são normalizados
 - O guard depende de regras determinísticas explícitas; frases fora dos
   marcadores e verbos já previstos não são compreendidas como uma IA faria
-- A correção de transcrição cobre um vocabulário fechado pequeno; nomes de
-  livros não são corrigidos automaticamente
+- A correção de transcrição (palavras-chave) e a de nomes de livros cobrem
+  vocabulários fechados pequenos e conservadores
+- Não há mais modo configurável: uma referência direta sempre executa, sem
+  opção "mais cautelosa" para quem prefira exigir um verbo de ação
 - A palavra de ativação é um único termo livre, sem múltiplas palavras
   simultâneas nem detecção por áudio antes da transcrição (nível Vosk)
 - A confirmação por repetição não se aplica a comandos relativos
@@ -122,6 +133,10 @@ Fase atual: 9.11 (Fuzzy Matching de Nomes de Livros)
   cobre referência de livro isolado, sem capítulo nem versículo
 - Risco residual: uma palavra comum seguida de um número por coincidência
   ainda pode ser corrigida para um nome de livro parecido
+- A junção de borda olha no máximo 8 palavras do segmento anterior e só uma
+  vez (não encadeia três ou mais segmentos)
+- Comandos só são processados em transcrições finais; a duração máxima de
+  segmento (12s) não é configurável por igreja
 - O modo web do Holyrics depende de internet e não é o padrão do projeto
 
 ## Modelo disponível

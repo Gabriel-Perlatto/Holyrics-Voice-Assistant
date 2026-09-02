@@ -20,7 +20,6 @@ interface SettingsRow {
   microphone: string | null;
   vosk_model_path: string | null;
   speech_auto_start: number;
-  voice_command_mode: string;
   voice_activation_word: string | null;
   updated_at: string;
 }
@@ -57,7 +56,6 @@ export class SettingsRepository implements OnModuleDestroy {
             microphone,
             vosk_model_path,
             speech_auto_start,
-            voice_command_mode,
             voice_activation_word,
             updated_at
           FROM settings
@@ -86,7 +84,6 @@ export class SettingsRepository implements OnModuleDestroy {
             microphone = @microphone,
             vosk_model_path = @voskModelPath,
             speech_auto_start = @speechAutoStart,
-            voice_command_mode = @voiceCommandMode,
             voice_activation_word = @voiceActivationWord,
             updated_at = @updatedAt
           WHERE id = 1
@@ -145,10 +142,9 @@ export class SettingsRepository implements OnModuleDestroy {
             microphone,
             vosk_model_path,
             speech_auto_start,
-            voice_command_mode,
             voice_activation_word,
             updated_at
-          ) VALUES (1, 'local', '', NULL, NULL, NULL, 'pt-BR', NULL, NULL, 0, 'conservative', 'sistema', @updatedAt)
+          ) VALUES (1, 'local', '', NULL, NULL, NULL, 'pt-BR', NULL, NULL, 0, 'sistema', @updatedAt)
         `,
       )
       .run({ updatedAt: new Date().toISOString() });
@@ -166,8 +162,6 @@ export class SettingsRepository implements OnModuleDestroy {
       microphone: row.microphone,
       voskModelPath: row.vosk_model_path,
       speechAutoStart: Boolean(row.speech_auto_start),
-      voiceCommandMode:
-        row.voice_command_mode === 'fast' ? 'fast' : 'conservative',
       voiceActivationWord: row.voice_activation_word,
       updatedAt: row.updated_at,
     };

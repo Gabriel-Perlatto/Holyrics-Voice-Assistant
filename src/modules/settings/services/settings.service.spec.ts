@@ -16,7 +16,6 @@ describe('SettingsService', () => {
     microphone: null,
     voskModelPath: null,
     speechAutoStart: false,
-    voiceCommandMode: 'conservative' as const,
     voiceActivationWord: 'sistema' as string | null,
     updatedAt: '2026-06-20T00:00:00.000Z',
   };
@@ -63,7 +62,6 @@ describe('SettingsService', () => {
       microphone: null,
       voskModelPath: null,
       speechAutoStart: false,
-      voiceCommandMode: 'conservative',
       voiceActivationWord: 'sistema',
       updatedAt: '2026-06-20T00:00:00.000Z',
       voskModelPathStatus: {
@@ -89,7 +87,6 @@ describe('SettingsService', () => {
       microphone: ' Microfone USB ',
       voskModelPath: ' /modelos/vosk-pt ',
       speechAutoStart: true,
-      voiceCommandMode: 'fast',
       voiceActivationWord: ' Assistente ',
     });
 
@@ -103,7 +100,6 @@ describe('SettingsService', () => {
       microphone: 'Microfone USB',
       voskModelPath: '/modelos/vosk-pt',
       speechAutoStart: true,
-      voiceCommandMode: 'fast',
       voiceActivationWord: 'Assistente',
     });
     expect(result.holyricsHost).toBe('192.168.1.20');
@@ -124,7 +120,6 @@ describe('SettingsService', () => {
         microphoneConfigured: true,
         voskModelConfigured: true,
         speechAutoStart: true,
-        voiceCommandMode: 'fast',
         voiceActivationWord: 'Assistente',
         updatedAt: '2026-06-20T01:00:00.000Z',
       },
@@ -148,7 +143,6 @@ describe('SettingsService', () => {
       microphone: '',
       voskModelPath: null,
       speechAutoStart: false,
-      voiceCommandMode: 'conservative',
     });
 
     expect(repository.save).toHaveBeenCalledWith(
@@ -159,7 +153,6 @@ describe('SettingsService', () => {
         holyricsApiToken: null,
         microphone: null,
         voskModelPath: null,
-        voiceCommandMode: 'conservative',
       }),
     );
   });
@@ -255,29 +248,6 @@ describe('SettingsService', () => {
     );
   });
 
-  it('preserva o modo atual quando o campo não é enviado', () => {
-    const repository = createRepository();
-    repository.find.mockReturnValue({
-      ...currentSettings,
-      voiceCommandMode: 'fast',
-    });
-    const { service } = createService(repository);
-
-    service.updateSettings({
-      holyricsHost: '',
-      holyricsPort: null,
-      language: 'pt-BR',
-      microphone: null,
-      voskModelPath: null,
-    });
-
-    expect(repository.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        voiceCommandMode: 'fast',
-      }),
-    );
-  });
-
   it('preserva a palavra de ativação atual quando o campo não é enviado', () => {
     const repository = createRepository();
     repository.find.mockReturnValue({
@@ -331,21 +301,6 @@ describe('SettingsService', () => {
         microphone: null,
         voskModelPath: null,
         voiceActivationWord: 'a'.repeat(51),
-      }),
-    ).toThrow(BadRequestException);
-  });
-
-  it('rejeita modo de comando desconhecido', () => {
-    const { service } = createService();
-
-    expect(() =>
-      service.updateSettings({
-        holyricsHost: '',
-        holyricsPort: null,
-        language: 'pt-BR',
-        microphone: null,
-        voskModelPath: null,
-        voiceCommandMode: 'automatic',
       }),
     ).toThrow(BadRequestException);
   });

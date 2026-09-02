@@ -2,7 +2,6 @@ import type { BibleNavigationService } from '../../bible/services/bible-navigati
 import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
 import type { RealtimeService } from '../../realtime/services/realtime.service';
 import type { SettingsService } from '../../settings/services/settings.service';
-import type { VoiceCommandMode } from '../../settings/interfaces/settings.interface';
 import { CommandType } from '../enums/command-type.enum';
 import { PtBrCommandParser } from '../parsers/pt-br-command.parser';
 import { BookNameCorrectionService } from '../services/book-name-correction.service';
@@ -15,10 +14,7 @@ import { NumberNormalizerService } from '../services/number-normalizer.service';
 import { TranscriptionCorrectionService } from '../services/transcription-correction.service';
 
 describe('CommandService', () => {
-  const createService = (
-    voiceCommandMode: VoiceCommandMode = 'conservative',
-    voiceActivationWord: string | null = null,
-  ) => {
+  const createService = (voiceActivationWord: string | null = null) => {
     const realtime = {
       emit: jest.fn(),
     } as unknown as jest.Mocked<RealtimeService>;
@@ -28,7 +24,6 @@ describe('CommandService', () => {
     const settings = {
       getSettings: jest.fn(() => ({
         language: 'pt-BR',
-        voiceCommandMode,
         voiceActivationWord,
       })),
     } as unknown as jest.Mocked<SettingsService>;
@@ -221,7 +216,7 @@ describe('CommandService', () => {
   );
 
   it('executa referência direta com a palavra de ativação configurada', async () => {
-    const { navigation, service } = createService('conservative', 'sistema');
+    const { navigation, service } = createService('sistema');
 
     const result = await service.identify('sistema Apocalipse 12 13');
 
@@ -233,7 +228,7 @@ describe('CommandService', () => {
   });
 
   it('não reconhece a palavra de ativação quando ela está desativada', async () => {
-    const { navigation, service } = createService('conservative', null);
+    const { navigation, service } = createService(null);
 
     const result = await service.identify('sistema Apocalipse 12 13');
 
@@ -244,38 +239,8 @@ describe('CommandService', () => {
     expect(navigation.apply).not.toHaveBeenCalled();
   });
 
-  it('modo conservador ignora referência direta', async () => {
-    const { navigation, service } = createService('conservative');
-
-    expect(await service.identify('Apocalipse 12 13')).toMatchObject({
-      intentDecision: 'ignore',
-      intentReason: 'unknown_or_unsafe',
-    });
-    expect(navigation.apply).not.toHaveBeenCalled();
-  });
-
-  it('executa referência repetida sem gatilho após ser ignorada', async () => {
-    const { navigation, service } = createService('conservative');
-
-    const first = await service.identify('Apocalipse 12 13');
-
-    expect(first).toMatchObject({
-      intentDecision: 'ignore',
-      intentReason: 'unknown_or_unsafe',
-    });
-    expect(navigation.apply).not.toHaveBeenCalled();
-
-    const second = await service.identify('Apocalipse 12 13');
-
-    expect(second).toMatchObject({
-      intentDecision: 'execute',
-      intentReason: 'repeated_reference',
-    });
-    expect(navigation.apply).toHaveBeenCalledTimes(1);
-  });
-
-  it('modo rápido executa referência direta', async () => {
-    const { navigation, service } = createService('fast');
+  it('executa referência direta sem precisar de gatilho', async () => {
+    const { navigation, service } = createService();
 
     expect(await service.identify('Apocalipse 12 13')).toMatchObject({
       intentDecision: 'execute',
@@ -284,8 +249,8 @@ describe('CommandService', () => {
     expect(navigation.apply).toHaveBeenCalledTimes(1);
   });
 
-  it('modo rápido continua ignorando referência casual', async () => {
-    const { navigation, service } = createService('fast');
+  it('continua ignorando referência casual mesmo sem modo conservador', async () => {
+    const { navigation, service } = createService();
 
     expect(
       await service.identify('como vimos em Apocalipse 12 13'),
@@ -294,6 +259,27 @@ describe('CommandService', () => {
       intentReason: 'casual_reference',
     });
     expect(navigation.apply).not.toHaveBeenCalled();
+  });
+
+  it('executa referência embutida repetida sem gatilho após ser ignorada', async () => {
+    const { navigation, service } = createService();
+    const embedded = 'sabe aquele texto Apocalipse 12 13';
+
+    const first = await service.identify(embedded);
+
+    expect(first).toMatchObject({
+      intentDecision: 'ignore',
+      intentReason: 'unknown_or_unsafe',
+    });
+    expect(navigation.apply).not.toHaveBeenCalled();
+
+    const second = await service.identify(embedded);
+
+    expect(second).toMatchObject({
+      intentDecision: 'execute',
+      intentReason: 'repeated_reference',
+    });
+    expect(navigation.apply).toHaveBeenCalledTimes(1);
   });
 
   it.each([
@@ -368,5 +354,110 @@ describe('CommandService', () => {
       RealtimeEventType.COMMAND_EXECUTED,
       expect.anything(),
     );
+  });
+
+  describe('junção de borda entre segmentos', () => {
+    it('executa quando o gatilho fica no segmento anterior e a referência embutida sozinha no atual', async () => {
+      const { navigation, service } = createService();
+
+      const first = await service.identify('vamos abrir em');
+
+      expect(first).toMatchObject({
+        command: { type: CommandType.UNKNOWN },
+        intentDecision: 'ignore',
+      });
+      expect(navigation.apply).not.toHaveBeenCalled();
+
+      // Texto embutido (não começa com o livro) para que o segmento sozinho
+      // realmente dependa da junção — uma referência direta já executaria
+      // de qualquer forma, sem precisar do gatilho do segmento anterior.
+      const second = await service.identify(
+        'sabe aquele texto apocalipse 12 13',
+      );
+
+      expect(second).toEqual({
+        command: {
+          type: CommandType.BIBLE_REFERENCE,
+          book: 'apocalipse',
+          chapter: 12,
+          verse: 13,
+        },
+        confidence: 1,
+        intentDecision: 'execute',
+        intentReason: 'explicit_action',
+      });
+      expect(navigation.apply).toHaveBeenCalledTimes(1);
+      expect(navigation.apply).toHaveBeenCalledWith({
+        ...second.command,
+        confidence: 1,
+      });
+    });
+
+    it('executa quando o número fica separado do livro pelo corte do segmento', async () => {
+      const { navigation, service } = createService();
+
+      await service.identify('vamos para apocalipse capítulo');
+      const second = await service.identify('12 13');
+
+      expect(second).toMatchObject({
+        command: {
+          type: CommandType.BIBLE_REFERENCE,
+          book: 'apocalipse',
+          chapter: 12,
+          verse: 13,
+        },
+        intentDecision: 'execute',
+        intentReason: 'explicit_action',
+      });
+      expect(navigation.apply).toHaveBeenCalledTimes(1);
+    });
+
+    it('não combina dois segmentos comuns em um comando falso', async () => {
+      const { navigation, service } = createService();
+
+      await service.identify('que benção maravilhosa vivemos hoje');
+      const second = await service.identify('vamos orar juntos agora');
+
+      expect(second).toMatchObject({
+        command: { type: CommandType.UNKNOWN },
+        intentDecision: 'ignore',
+        intentReason: 'unknown_or_unsafe',
+      });
+      expect(navigation.apply).not.toHaveBeenCalled();
+    });
+
+    it('mantém a confirmação por repetição quando a junção de borda não ajuda', async () => {
+      const { navigation, service } = createService();
+      const embedded = 'sabe aquele texto apocalipse 12 13';
+
+      await service.identify('olá igreja');
+      const second = await service.identify(embedded);
+
+      expect(second).toMatchObject({
+        intentDecision: 'ignore',
+        intentReason: 'unknown_or_unsafe',
+      });
+
+      const third = await service.identify(embedded);
+
+      expect(third).toMatchObject({
+        intentDecision: 'execute',
+        intentReason: 'repeated_reference',
+      });
+      expect(navigation.apply).toHaveBeenCalledTimes(1);
+    });
+
+    it('não junta com um segmento anterior que já foi executado', async () => {
+      const { navigation, service } = createService();
+
+      await service.identify('vamos para João 3 16');
+      const second = await service.identify('vinte e três');
+
+      expect(second).toMatchObject({
+        command: { type: CommandType.UNKNOWN },
+        intentDecision: 'ignore',
+      });
+      expect(navigation.apply).toHaveBeenCalledTimes(1);
+    });
   });
 });

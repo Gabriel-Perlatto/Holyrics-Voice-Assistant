@@ -32,6 +32,15 @@ const CURRENT_MODEL_FILES = [
   'graph/HCLG.fst',
 ];
 
+/**
+ * Duração máxima de um segmento de fala contínua sem pausa. O Kaldi/Vosk
+ * decide sozinho quando fechar uma frase (silêncio = final); em fala muito
+ * longa e sem pausas, o reconhecedor interno degrada e as últimas palavras
+ * antes do corte saem quebradas. Forçar um fechamento periódico evita
+ * chegar nesse limite interno.
+ */
+const MAX_SEGMENT_DURATION_MS = 12_000;
+
 @Injectable()
 export class VoskSpeechProvider implements SpeechProvider {
   private readonly logger = new Logger(VoskSpeechProvider.name);
@@ -40,6 +49,7 @@ export class VoskSpeechProvider implements SpeechProvider {
   private handlers: SpeechProviderHandlers | null = null;
   private configuration: SpeechConfiguration | null = null;
   private lastPartial = '';
+  private segmentTimer: ReturnType<typeof setTimeout> | null = null;
   private status: SpeechProviderStatus = {
     provider: 'vosk',
     state: SpeechState.IDLE,
@@ -166,6 +176,7 @@ export class VoskSpeechProvider implements SpeechProvider {
   }
 
   async stop(): Promise<SpeechProviderStatus> {
+    this.clearSegmentTimer();
     await this.audioCapture.stop();
     this.emitFinalResult();
     this.lastPartial = '';
@@ -190,6 +201,7 @@ export class VoskSpeechProvider implements SpeechProvider {
   }
 
   async dispose(): Promise<void> {
+    this.clearSegmentTimer();
     await this.audioCapture.stop();
     this.emitFinalResult();
     await this.disposeResources();
@@ -219,6 +231,7 @@ export class VoskSpeechProvider implements SpeechProvider {
       const receivedAt = new Date().toISOString();
 
       if (accepted) {
+        this.clearSegmentTimer();
         const text = this.recognizer.result().text?.trim();
         this.lastPartial = '';
 
@@ -243,6 +256,48 @@ export class VoskSpeechProvider implements SpeechProvider {
           final: false,
           provider: 'vosk',
           receivedAt,
+        });
+      }
+
+      if (partial && !this.segmentTimer) {
+        this.scheduleSegmentBoundary();
+      }
+    } catch (error) {
+      const detail =
+        error instanceof Error ? error.message : 'erro desconhecido';
+      this.handleCaptureFailure(`Falha ao processar áudio: ${detail}`);
+    }
+  }
+
+  private scheduleSegmentBoundary(): void {
+    this.segmentTimer = setTimeout(() => {
+      this.segmentTimer = null;
+      this.forceSegmentBoundary();
+    }, MAX_SEGMENT_DURATION_MS);
+  }
+
+  private clearSegmentTimer(): void {
+    if (this.segmentTimer) {
+      clearTimeout(this.segmentTimer);
+      this.segmentTimer = null;
+    }
+  }
+
+  private forceSegmentBoundary(): void {
+    if (!this.recognizer || !this.handlers) {
+      return;
+    }
+
+    try {
+      const text = this.recognizer.finalResult().text?.trim();
+      this.lastPartial = '';
+
+      if (text) {
+        this.handlers.onTranscription({
+          text,
+          final: true,
+          provider: 'vosk',
+          receivedAt: new Date().toISOString(),
         });
       }
     } catch (error) {
@@ -364,6 +419,8 @@ export class VoskSpeechProvider implements SpeechProvider {
   }
 
   private async disposeResources(): Promise<void> {
+    this.clearSegmentTimer();
+
     try {
       this.recognizer?.free();
     } catch {
