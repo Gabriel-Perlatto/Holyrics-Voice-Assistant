@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { BibleNavigationService } from '../../bible/services/bible-navigation.service';
 import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
 import { RealtimeService } from '../../realtime/services/realtime.service';
@@ -24,6 +24,7 @@ const MAX_BOUNDARY_MERGE_WORDS = 8;
 
 @Injectable()
 export class CommandService {
+  private readonly logger = new Logger(CommandService.name);
   private lastTranscription: string | null = null;
   private lastNormalizedTranscription: string | null = null;
   private lastCommand: CommandIdentification | null = null;
@@ -134,8 +135,21 @@ export class CommandService {
       identification,
     );
 
+    this.logger.debug(
+      `Comando ${command.type} → ${intent.decision} (${intent.reason})`,
+    );
+
     if (intent.decision === 'execute') {
-      await this.navigationService.apply(identifiedCommand);
+      try {
+        await this.navigationService.apply(identifiedCommand);
+      } catch (error) {
+        this.logger.error(
+          `Falha ao aplicar comando na navegação: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        throw error;
+      }
     }
 
     return identification;

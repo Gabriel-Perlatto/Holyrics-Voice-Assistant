@@ -124,6 +124,20 @@ segmentos (ex.: o verbo de ação em um segmento, a referência bíblica no
 seguinte). O `CommandService` trata esse caso — consulte
 [`docs/command-interpreter.md`](command-interpreter.md#junção-de-borda-entre-segmentos-phase-912).
 
+## Tratamento de falhas na interpretação (Phase 10)
+
+`SpeechService.handleTranscription()` dispara `CommandService.identify()`
+para cada transcrição final sem bloquear a captura de áudio seguinte. Até a
+Phase 10 essa chamada não tinha `await` nem tratamento de erro: uma falha
+inesperada em qualquer ponto do pipeline de interpretação (parser, guard de
+intenção, navegação ou projeção no Holyrics) resultava numa rejeição de
+Promise não tratada, sem log e sem aviso ao usuário.
+
+Agora a chamada trata a rejeição explicitamente: registra um erro no log do
+`SpeechService` e emite `SYSTEM_ERROR` com `source: "speech"` e uma mensagem
+segura para o usuário. A captura de áudio continua normalmente; apenas
+aquele comando específico é perdido.
+
 ## Captura de áudio
 
 O backend usa `ffmpeg` para produzir PCM `s16le`, mono, a 16 kHz:

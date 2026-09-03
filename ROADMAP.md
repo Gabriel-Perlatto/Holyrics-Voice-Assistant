@@ -1180,24 +1180,54 @@ Objetivo:
 
 Melhorar estabilidade para uso real.
 
+Status: **Em andamento desde 3 de setembro de 2026.**
+
 Tarefas:
 
-- revisar tratamento de erros
-- melhorar mensagens para usuários não técnicos
-- adicionar logs por módulo
-- criar página ou bloco de status do sistema
-- validar configurações antes de iniciar captura
-- impedir falhas silenciosas
-- revisar comportamento quando Holyrics cair
-- revisar comportamento quando microfone cair
-- revisar comportamento quando modelo Vosk estiver inválido
+- [x] revisar tratamento de erros (auditoria completa de
+  `SpeechService`, `CommandService`, `BibleNavigationService`,
+  `HolyricsBibleProjectionService`, providers de voz e microfone)
+- [x] melhorar mensagens para usuários não técnicas (já em boa forma desde
+  fases anteriores; nenhuma mensagem técnica/stack trace encontrada exposta
+  ao usuário)
+- [x] adicionar logs por módulo (`CommandService`, `BibleNavigationService`
+  e `SettingsService` não tinham nenhum log; agora registram decisões de
+  comando, navegação aplicada/rejeitada e configurações atualizadas)
+- [ ] criar página ou bloco de status do sistema (avaliado: hoje o estado
+  já aparece em badges por seção — Holyrics, Speech Provider e Status do
+  sistema/rede — em vez de um bloco único; decidir com o mantenedor se vale
+  consolidar ou se os badges por seção já são suficientes)
+- [x] validar configurações antes de iniciar captura (já existia desde a
+  Phase 7: `SpeechService.initialize()` rejeita sem modelo Vosk ou
+  microfone configurados)
+- [x] impedir falhas silenciosas (bug real corrigido: em
+  `SpeechService.handleTranscription()`, `commandService.identify(...)` era
+  chamado sem `await` nem `.catch()`, arriscando uma rejeição de Promise não
+  tratada sem nenhum log ou aviso ao usuário)
+- [x] revisar comportamento quando Holyrics cair (`HolyricsBibleProjectionService`
+  já captura toda falha, preserva a navegação local, registra aviso e emite
+  `SYSTEM_ERROR` com mensagem segura — nenhuma mudança necessária)
+- [x] revisar comportamento quando microfone cair (`VoskSpeechProvider`
+  já valida o microfone configurado antes de iniciar e converte falhas em
+  `SpeechProviderError` com mensagem clara — nenhuma mudança necessária)
+- [x] revisar comportamento quando modelo Vosk estiver inválido
+  (`VoskSpeechProvider.validateModel()` já distingue modelo ausente de
+  estrutura inválida com mensagens específicas — nenhuma mudança necessária)
 
 Critérios de aceite:
 
-- erros comuns são compreensíveis
-- sistema não quebra silenciosamente
-- usuário sabe o que corrigir
-- logs ajudam contribuidores a debugar
+- [x] erros comuns são compreensíveis
+- [x] sistema não quebra silenciosamente
+- [x] usuário sabe o que corrigir
+- [x] logs ajudam contribuidores a debugar
+- [x] testes passam
+- [x] build passa
+
+Fora de escopo (por ora):
+
+- consolidar os três blocos de status de `/settings` em um único painel
+  (pendente de decisão do mantenedor, para não recriar o excesso de
+  informação simplificado na Phase 9)
 
 ---
 

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CommandType } from '../../command/enums/command-type.enum';
 import type { IdentifiedCommand } from '../../command/interfaces/command.interface';
 import { HolyricsBibleProjectionService } from '../../holyrics/services/holyrics-bible-projection.service';
@@ -23,6 +23,7 @@ interface ResolvedPassage {
 
 @Injectable()
 export class BibleNavigationService {
+  private readonly logger = new Logger(BibleNavigationService.name);
   private lastAppliedCommand: IdentifiedCommand | null = null;
 
   constructor(
@@ -39,6 +40,9 @@ export class BibleNavigationService {
     const passage = this.resolveCommand(command);
 
     if (!passage) {
+      this.logger.warn(
+        `Comando ${command.type} não resolveu em uma passagem válida.`,
+      );
       return this.getStatus();
     }
 
@@ -78,6 +82,10 @@ export class BibleNavigationService {
       delivery: projection.delivery,
       deliveredToHolyrics: projection.deliveredToHolyrics,
     });
+
+    this.logger.debug(
+      `Navegação aplicada: ${passage.book.name} ${passage.chapter}:${passage.verse} (entrega: ${projection.delivery})`,
+    );
 
     return this.getStatus();
   }

@@ -193,7 +193,14 @@ export class SpeechService
     );
 
     if (transcription.final) {
-      this.commandService.identify(transcription.text);
+      this.commandService.identify(transcription.text).catch((error) => {
+        this.logger.error(
+          `Falha ao interpretar comando de voz: ${this.getErrorMessage(error)}`,
+        );
+        this.emitSystemError(
+          'Não foi possível interpretar o último comando de voz.',
+        );
+      });
     }
   }
 

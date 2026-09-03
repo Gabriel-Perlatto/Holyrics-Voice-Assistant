@@ -6,7 +6,7 @@ Holyrics Voice Assistant
 
 ## Status Geral
 
-Fase atual: 9.13 (Remoção do Modo Conservador)
+Fase atual: 10 (System Hardening) — em andamento
 
 ## Fases concluídas
 
@@ -32,6 +32,9 @@ Fase atual: 9.13 (Remoção do Modo Conservador)
 - Phase 9.11 — Fuzzy Matching de Nomes de Livros
 - Phase 9.12 — Corte Proativo de Segmento e Junção de Borda
 - Phase 9.13 — Remoção do Modo Conservador
+- Phase 10 (parcial) — System Hardening: falha silenciosa corrigida em
+  `SpeechService`, logs adicionados a `CommandService`,
+  `BibleNavigationService` e `SettingsService`
 
 ## Módulos existentes
 
@@ -145,7 +148,9 @@ Modelo Vosk português já configurado localmente.
 
 ## Próxima fase
 
-Phase 10 — System Hardening
+Phase 10 — System Hardening (em andamento)
 
-A Phase 10 ainda não foi iniciada. Funcionalidades de louvor permanecem
+Falta decidir se vale consolidar os três blocos de status de `/settings`
+(Holyrics, Speech Provider, Status do sistema) em um único painel, ou manter
+os badges por seção como estão. Funcionalidades de louvor permanecem
 adiadas.

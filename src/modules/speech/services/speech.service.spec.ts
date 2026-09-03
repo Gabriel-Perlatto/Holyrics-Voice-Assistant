@@ -68,7 +68,7 @@ describe('SpeechService', () => {
 
   const createCommandService = (): jest.Mocked<CommandService> =>
     ({
-      identify: jest.fn(),
+      identify: jest.fn().mockResolvedValue(undefined),
     }) as unknown as jest.Mocked<CommandService>;
 
   const createService = () => {
@@ -186,6 +186,32 @@ describe('SpeechService', () => {
     expect(command.identify).toHaveBeenCalledWith(
       'João capítulo três',
     );
+  });
+
+  it('não deixa uma falha ao interpretar comando derrubar a aplicação', async () => {
+    const { provider, realtime, command, service } = createService();
+    let handlers: SpeechProviderHandlers | undefined;
+    provider.initialize.mockImplementation(async (_config, value) => {
+      handlers = value;
+      return readyStatus;
+    });
+    await service.initialize();
+    command.identify.mockRejectedValueOnce(new Error('falha interna'));
+
+    handlers?.onTranscription({
+      text: 'João capítulo três',
+      final: true,
+      provider: 'vosk',
+      receivedAt: '2026-06-20T00:00:00.000Z',
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(realtime.emitSystemError).toHaveBeenCalledWith({
+      source: 'speech',
+      message: 'Não foi possível interpretar o último comando de voz.',
+    });
   });
 
   it('não interpreta transcrições parciais', async () => {

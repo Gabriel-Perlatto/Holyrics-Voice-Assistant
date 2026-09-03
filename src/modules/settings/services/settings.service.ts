@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { RealtimeEventType } from '../../realtime/enums/realtime-event-type.enum';
 import { RealtimeService } from '../../realtime/services/realtime.service';
 import type { UpdateSettingsDto } from '../dto/update-settings.dto';
@@ -14,6 +14,8 @@ const LANGUAGE_PATTERN = /^[a-z]{2}(?:-[A-Z]{2})?$/;
 
 @Injectable()
 export class SettingsService {
+  private readonly logger = new Logger(SettingsService.name);
+
   constructor(
     private readonly settingsRepository: SettingsRepository,
     private readonly realtimeService: RealtimeService,
@@ -108,6 +110,8 @@ export class SettingsService {
         updatedAt: publicSettings.updatedAt,
       },
     );
+
+    this.logger.log('Configurações atualizadas.');
 
     return publicSettings;
   }
